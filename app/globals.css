@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ruby-50: #FCE4EC;
+  --color-ruby-100: #F8BBD0;
+  --color-ruby-200: #F48FB1;
+  --color-ruby-300: #F06292;
+  --color-ruby-400: #EC407A;
+  --color-ruby-500: #E91E63;
+  --color-ruby-600: #D81B60;
+  --color-ruby-700: #C2185B;
+  --color-ruby-800: #AD1457;
+  --color-ruby-900: #880E4F;
+
+  --color-teal-500: #009688;
+  --color-amber-500: #FFC107;
+  
+  --color-snow: #F8FAFC;
+  --color-gunmetal: #263238;
+}
+
+:root {
+  --background: #F8FAFC; /* Snow */
+  --foreground: #263238; /* Gunmetal */
+  
+  --primary: #C2185B; /* Ruby Red */
+  --secondary: #009688; /* Teal */
+  --warning: #FFC107; /* Amber */
+}
+
+/* Dark mode overrides (optional - keeping it light/clean as requested but good to have prepared) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #263238; /* Gunmetal as bg */
+    --foreground: #F8FAFC; /* Snow as text */
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}

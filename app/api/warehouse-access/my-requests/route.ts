@@ -25,7 +25,7 @@ export async function GET() {
             }
         });
 
-        return NextResponse.json(myAccess);
+        return NextResponse.json(myAccess ?? []);
     } catch (error) {
         console.error("Error fetching my access", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

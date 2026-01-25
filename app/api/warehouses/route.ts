@@ -30,7 +30,7 @@ export async function GET() {
             where: whereClause,
             orderBy: { createdAt: 'desc' }
         });
-        return NextResponse.json(warehouses);
+        return NextResponse.json(warehouses ?? []);
     } catch (error) {
         console.error("Error fetching warehouses", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

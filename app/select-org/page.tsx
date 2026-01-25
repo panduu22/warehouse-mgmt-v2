@@ -77,6 +77,7 @@ export default function WarehouseSelectPage() {
         try {
             const res = await axios.get("/api/warehouses");
             const data = Array.isArray(res.data) ? res.data : [];
+            console.log("WAREHOUSE DATA:", data, Array.isArray(data));
             setWarehouses(data);
             if (data.length === 0 && userRole === "ADMIN") {
                 setView("CREATE");

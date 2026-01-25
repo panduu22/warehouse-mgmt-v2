@@ -50,6 +50,13 @@ export default function WarehouseSelectPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userRole = (session?.user as any)?.role;
 
+    // Redirect to login if unauthenticated
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.replace("/api/auth/signin?callbackUrl=/select-org");
+        }
+    }, [status, router]);
+
     // Initial Fetch
     useEffect(() => {
         if (status === "authenticated") {
@@ -166,6 +173,10 @@ export default function WarehouseSelectPage() {
 
     if (status === "loading") {
         return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading...</div>;
+    }
+
+    if (status === "unauthenticated") {
+        return null;
     }
 
     return (

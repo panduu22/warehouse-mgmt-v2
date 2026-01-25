@@ -1,49 +1,48 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const { warehouseId } = await req.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userId = (session.user as any).id;
+        const db = await getDb();
 
-        if (!warehouseId) {
-            return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
-        }
+        const user = await db.collection("User").findOne({ email: session.user.email });
+        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-        const existingAccess = await prisma.warehouseAccess.findUnique({
-            where: {
-                userId_warehouseId: {
-                    userId,
-                    warehouseId
-                }
-            }
+        // Check for existing request
+        const existing = await db.collection("WarehouseAccess").findOne({
+            userId: user._id,
+            warehouseId: new ObjectId(warehouseId)
         });
 
-        if (existingAccess) {
-            return NextResponse.json({ error: "Access request already exists" }, { status: 409 });
+        if (existing) {
+            return NextResponse.json({ error: "Request already exists" }, { status: 400 });
         }
 
-        const accessRequest = await prisma.warehouseAccess.create({
-            data: {
-                userId,
-                warehouseId,
-                role: "STAFF",
-                status: "PENDING",
-            }
-        });
+        const newRequest = {
+            userId: user._id,
+            warehouseId: new ObjectId(warehouseId),
+            status: "PENDING",
+            role: "STAFF",
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        return NextResponse.json(accessRequest, { status: 201 });
+        const result = await db.collection("WarehouseAccess").insertOne(newRequest);
+
+        return NextResponse.json({
+            ...newRequest,
+            id: result.insertedId.toString(),
+            _id: undefined
+        });
     } catch (error) {
-        console.error("Error requesting access", error);
+        console.error("Request access failed", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -9,59 +10,56 @@ export async function POST(req: Request) {
 
     try {
         const { tripId, date } = await req.json();
+        const db = await getDb();
 
         // Check if bill exists
-        const existingBill = await prisma.bill.findUnique({ where: { tripId } });
+        const existingBill = await db.collection("Bill").findOne({ tripId: new ObjectId(tripId) });
         if (existingBill) {
             return NextResponse.json({ error: "Bill already exists for this trip" }, { status: 400 });
         }
 
-        const trip = await prisma.trip.findUnique({
-            where: { id: tripId },
-            include: { warehouse: true } // Need to link bill to proper warehouse
-        });
+        const trip = await db.collection("Trip").findOne({ _id: new ObjectId(tripId) });
 
         if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
         if (trip.status !== "VERIFIED") {
             return NextResponse.json({ error: "Trip must be verified before billing" }, { status: 400 });
         }
 
-        // Fetch products to calculate total
-        // Note: In a real system, we should have stored 'priceAtLoad' in TripItems. 
-        // Here we fetch current product price.
-        // Prisma doesn't support population inside JSON types directy in query easily for calculation.
-        // We will loop.
-
         const itemIds = trip.loadedItems.map((i: any) => i.productId);
-        const products = await prisma.product.findMany({
-            where: { id: { in: itemIds } }
-        });
-        const productMap = new Map(products.map(p => [p.id, p]));
+        const products = await db.collection("Product")
+            .find({ _id: { $in: itemIds } })
+            .toArray();
+
+        const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
         let totalAmount = 0;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         trip.loadedItems.forEach((item: any) => {
             const sold = item.qtyLoaded - (item.qtyReturned || 0);
-            const product = productMap.get(item.productId);
+            const product = productMap.get(item.productId.toString());
             if (product && sold > 0) {
                 totalAmount += sold * product.price;
             }
         });
 
         // Create Bill
-        const bill = await prisma.bill.create({
-            data: {
-                tripId,
-                totalAmount,
-                warehouseId: trip.warehouseId,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                generatedBy: (session.user as any).id,
-                generatedAt: date ? new Date(date) : new Date()
-            }
-        });
+        const newBillData = {
+            tripId: new ObjectId(tripId),
+            totalAmount,
+            warehouseId: trip.warehouseId,
+            generatedBy: new ObjectId((session.user as any).id),
+            generatedAt: date ? new Date(date) : new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        return NextResponse.json(bill, { status: 201 });
+        const result = await db.collection("Bill").insertOne(newBillData);
+
+        return NextResponse.json({
+            ...newBillData,
+            id: result.insertedId.toString(),
+            _id: undefined
+        }, { status: 201 });
 
     } catch (error) {
         console.error("Bill generation error", error);
@@ -79,35 +77,81 @@ export async function GET(req: Request) {
     if (!warehouseId) return NextResponse.json([], { status: 400 });
 
     try {
-        // 1. Fetch Bills
-        const bills = await prisma.bill.findMany({
-            where: { warehouseId },
-            include: {
-                trip: {
-                    include: { vehicle: true }
-                }
-            },
-            orderBy: { generatedAt: 'desc' }
-        });
+        const db = await getDb();
+        const warehouseObjectId = new ObjectId(warehouseId);
 
-        // 2. Fetch Pending Trips (Verified but no Bill) for this warehouse
-        // We can do this efficiently by getting all Verified trips and excluding those present in bills.
-        // Or finding Verified Trips where bill is null? Relation is 1-1 optional.
-        const pendingTrips = await prisma.trip.findMany({
-            where: {
-                warehouseId,
+        // 1. Fetch Bills
+        const bills = await db.collection("Bill")
+            .find({ warehouseId: warehouseObjectId })
+            .sort({ generatedAt: -1 })
+            .toArray();
+
+        // 2. Fetch Trips for these bills to enrich
+        const tripIdsForBills = bills.map(b => b.tripId);
+        const tripsForBills = await db.collection("Trip")
+            .find({ _id: { $in: tripIdsForBills } })
+            .toArray();
+
+        // 3. Fetch Vehicles for those trips
+        const vehicleIds = Array.from(new Set(tripsForBills.map(t => t.vehicleId)));
+        const vehicles = await db.collection("Vehicle")
+            .find({ _id: { $in: vehicleIds } })
+            .toArray();
+
+        const vehicleMap = new Map(vehicles.map(v => [v._id.toString(), v]));
+        const tripMap = new Map(tripsForBills.map(t => [t._id.toString(), {
+            ...t,
+            id: t._id.toString(),
+            vehicle: vehicleMap.get(t.vehicleId.toString()) ? {
+                ...vehicleMap.get(t.vehicleId.toString()),
+                id: t.vehicleId.toString()
+            } : null
+        }]));
+
+        const enrichedBills = bills.map(b => ({
+            ...b,
+            id: b._id.toString(),
+            _id: undefined,
+            trip: tripMap.get(b.tripId.toString()) || null
+        }));
+
+        // 4. Fetch Pending Trips (Verified but no Bill)
+        // Find all tripIds that already have bills
+        const billedTripIds = await db.collection("Bill")
+            .find({ warehouseId: warehouseObjectId })
+            .project({ tripId: 1 })
+            .toArray();
+        const billedTripIdList = billedTripIds.map(b => b.tripId);
+
+        const pendingTrips = await db.collection("Trip")
+            .find({
+                warehouseId: warehouseObjectId,
                 status: "VERIFIED",
-                bill: { is: null } // Prisma way to check for absence of relation
-            },
-            include: {
-                vehicle: true
-            },
-            orderBy: { endTime: 'desc' }
-        });
+                _id: { $nin: billedTripIdList }
+            })
+            .sort({ endTime: -1 })
+            .toArray();
+
+        // Enrich pending trips with vehicle
+        const pendingVehicleIds = Array.from(new Set(pendingTrips.map(t => t.vehicleId)));
+        const pendingVehicles = await db.collection("Vehicle")
+            .find({ _id: { $in: pendingVehicleIds } })
+            .toArray();
+        const pendingVehicleMap = new Map(pendingVehicles.map(v => [v._id.toString(), v]));
+
+        const formattedPendingTrips = pendingTrips.map(t => ({
+            ...t,
+            id: t._id.toString(),
+            _id: undefined,
+            vehicle: pendingVehicleMap.get(t.vehicleId.toString()) ? {
+                ...pendingVehicleMap.get(t.vehicleId.toString()),
+                id: t.vehicleId.toString()
+            } : null
+        }));
 
         return NextResponse.json({
-            bills,
-            pendingTrips
+            bills: enrichedBills,
+            pendingTrips: formattedPendingTrips
         });
 
     } catch (error) {

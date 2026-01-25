@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
     try {
@@ -28,22 +29,29 @@ export async function POST(req: Request) {
             finalSku = `${base}-${flav}-${pck}-${random}`.replace(/-+/g, "-");
         }
 
-        const product = await prisma.product.create({
-            data: {
-                name,
-                sku: finalSku,
-                quantity: Number(quantity),
-                price: Number(price),
-                location,
-                pack,
-                flavour,
-                invoiceCost: invoiceCost ? Number(invoiceCost) : null,
-                salePrice: salePrice ? Number(salePrice) : null,
-                warehouseId
-            }
-        });
+        const db = await getDb();
+        const newProduct = {
+            name,
+            sku: finalSku,
+            quantity: Number(quantity),
+            price: Number(price),
+            location,
+            pack,
+            flavour,
+            invoiceCost: invoiceCost ? Number(invoiceCost) : null,
+            salePrice: salePrice ? Number(salePrice) : null,
+            warehouseId: new ObjectId(warehouseId),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        return NextResponse.json(product, { status: 201 });
+        const result = await db.collection("Product").insertOne(newProduct);
+
+        return NextResponse.json({
+            ...newProduct,
+            id: result.insertedId.toString(),
+            _id: undefined
+        }, { status: 201 });
     } catch (error) {
         console.error("Failed to create product", error);
         return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
@@ -59,16 +67,21 @@ export async function GET(req: Request) {
     }
 
     try {
-        const products = await prisma.product.findMany({
-            where: {
-                warehouseId: warehouseId
-            },
-            orderBy: {
-                createdAt: "desc"
-            }
-        });
-        return NextResponse.json(products);
+        const db = await getDb();
+        const products = await db.collection("Product")
+            .find({ warehouseId: new ObjectId(warehouseId) })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        const formattedProducts = products.map(p => ({
+            ...p,
+            id: p._id.toString(),
+            _id: undefined
+        }));
+
+        return NextResponse.json(formattedProducts);
     } catch (error) {
+        console.error("Failed to fetch products", error);
         return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }

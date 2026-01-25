@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -11,26 +12,38 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
-        // Strict consistency check: Only Admin can edit price/product details? Staff might only add stock (which is usually POST or specific endpoint)
-        // For general "Edit Stock", assume ID based update is Admin or Staff allowed for now based on prompt context (Staff loads vehicles, Admin manages stock)
-        // The prompt says "stock mgmt put add button and items should be editable". Usually Admin edit.
-        // Let's keep it safe.
-
         const { id } = await params;
         const body = await req.json();
 
-        // Prisma update
-        const product = await prisma.product.update({
-            where: { id },
-            data: {
-                ...body,
-                quantity: body.quantity !== undefined ? Number(body.quantity) : undefined,
-                price: body.price !== undefined ? Number(body.price) : undefined,
-                invoiceCost: body.invoiceCost !== undefined ? Number(body.invoiceCost) : undefined
-            }
-        });
+        const db = await getDb();
 
-        return NextResponse.json(product);
+        // Prepare update data
+        const updateData: any = { ...body };
+        delete updateData.id;
+        delete updateData._id;
+
+        if (updateData.quantity !== undefined) updateData.quantity = Number(updateData.quantity);
+        if (updateData.price !== undefined) updateData.price = Number(updateData.price);
+        if (updateData.invoiceCost !== undefined) updateData.invoiceCost = Number(updateData.invoiceCost);
+        if (updateData.salePrice !== undefined) updateData.salePrice = Number(updateData.salePrice);
+
+        updateData.updatedAt = new Date();
+
+        const result = await db.collection("Product").findOneAndUpdate(
+            { _id: new ObjectId(id) },
+            { $set: updateData },
+            { returnDocument: "after" }
+        );
+
+        if (!result) {
+            return NextResponse.json({ error: "Product not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({
+            ...result,
+            id: result._id.toString(),
+            _id: undefined
+        });
     } catch (error) {
         console.error("Failed to update stock", error);
         return NextResponse.json({ error: "Failed to update stock" }, { status: 500 });
@@ -46,10 +59,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         }
 
         const { id } = await params;
+        const db = await getDb();
 
-        await prisma.product.delete({
-            where: { id }
-        });
+        const result = await db.collection("Product").deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 0) {
+            return NextResponse.json({ error: "Product not found" }, { status: 404 });
+        }
 
         return NextResponse.json({ message: "Product deleted successfully" });
     } catch (error) {

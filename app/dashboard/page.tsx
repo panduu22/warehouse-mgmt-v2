@@ -1,46 +1,61 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { Package, Truck, Receipt, MoreHorizontal, ArrowRight, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
+import { ObjectId } from "mongodb";
 
 async function getData(dateFilter?: string) {
+    const db = await getDb();
+
     const dateQuery = dateFilter ? {
-        gte: new Date(dateFilter),
-        lt: new Date(new Date(dateFilter).getTime() + 24 * 60 * 60 * 1000)
+        $gte: new Date(dateFilter),
+        $lt: new Date(new Date(dateFilter).getTime() + 24 * 60 * 60 * 1000)
     } : undefined;
 
-    // Build Where Clauses
-    const tripWhere = dateFilter
+    // Build Queries
+    const tripQuery: any = dateFilter
         ? { startTime: dateQuery }
-        : { status: { not: "VERIFIED" as const } }; // 'as const' helps with type inference if needed, or just string.
+        : { status: { $ne: "VERIFIED" } };
 
-    // For Verified Trips Count
-    const verifiedTripsWhere = {
-        status: "VERIFIED" as const,
+    const verifiedTripsQuery: any = {
+        status: "VERIFIED",
         ...(dateFilter ? { endTime: dateQuery } : {})
     };
 
-    const billWhere = dateFilter ? { generatedAt: dateQuery } : {};
-
-    const activityWhere = dateFilter ? { updatedAt: dateQuery } : {};
+    const billQuery: any = dateFilter ? { generatedAt: dateQuery } : {};
+    const activityQuery: any = dateFilter ? { updatedAt: dateQuery } : {};
 
     const [productCount, tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips] = await Promise.all([
-        prisma.product.count(),
-        prisma.trip.count({ where: tripWhere }),
-        prisma.trip.count({ where: verifiedTripsWhere }),
-        prisma.bill.count({ where: billWhere }),
-        prisma.product.count({ where: { quantity: { lt: 20 } } }),
-        prisma.trip.findMany({
-            where: activityWhere,
-            orderBy: { updatedAt: 'desc' },
-            take: dateFilter ? 50 : 5,
-            include: { vehicle: true } // Populate replace
-        })
+        db.collection("Product").countDocuments(),
+        db.collection("Trip").countDocuments(tripQuery),
+        db.collection("Trip").countDocuments(verifiedTripsQuery),
+        db.collection("Bill").countDocuments(billQuery),
+        db.collection("Product").countDocuments({ quantity: { $lt: 20 } }),
+        db.collection("Trip")
+            .find(activityQuery)
+            .sort({ updatedAt: -1 })
+            .limit(dateFilter ? 50 : 5)
+            .toArray()
     ]);
+
+    // Enrich recent trips with vehicle
+    const vehicleIds = Array.from(new Set(recentTrips.map(t => t.vehicleId)));
+    const vehicles = await db.collection("Vehicle").find({ _id: { $in: vehicleIds } }).toArray();
+    const vehicleMap = new Map(vehicles.map(v => [v._id.toString(), v]));
+
+    const formattedRecentTrips = recentTrips.map(t => ({
+        ...t,
+        id: t._id.toString(),
+        _id: undefined,
+        vehicle: vehicleMap.get(t.vehicleId.toString()) ? {
+            ...vehicleMap.get(t.vehicleId.toString()),
+            id: t.vehicleId.toString()
+        } : null
+    }));
 
     return {
         productCount,
@@ -48,7 +63,7 @@ async function getData(dateFilter?: string) {
         verifiedTripsCount,
         billCount,
         lowStockCount,
-        recentTrips: recentTrips || [],
+        recentTrips: formattedRecentTrips || [],
         isFiltered: !!dateFilter
     };
 }
@@ -229,16 +244,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function StatCard({ title, value, icon: Icon, subtitle, trend, color }: any) {
-    const colors = {
+    const colors: any = {
         ruby: "text-ruby-600 bg-ruby-50 border-ruby-100",
         teal: "text-teal-600 bg-teal-50 border-teal-100",
         amber: "text-amber-600 bg-amber-50 border-amber-100",
-    }[color as string] || "text-gray-600 bg-gray-50 border-gray-100";
+    };
+    const colorClass = colors[color as string] || "text-gray-600 bg-gray-50 border-gray-100";
 
     return (
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
             <div className="flex justify-between items-start mb-4">
-                <div className={clsx("p-3 rounded-xl", colors)}>
+                <div className={clsx("p-3 rounded-xl", colorClass)}>
                     <Icon className="w-6 h-6" />
                 </div>
                 {trend && (

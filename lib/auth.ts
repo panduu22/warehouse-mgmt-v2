@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
+import { ObjectId } from "mongodb";
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -15,30 +16,32 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session }) {
             if (session.user?.email) {
-                let dbUser = await prisma.user.findUnique({
-                    where: { email: session.user.email }
-                });
+                const db = await getDb();
+                let dbUser = await db.collection("User").findOne({ email: session.user.email });
 
                 // Auto-heal: If user has session but no DB record (e.g. after DB wipe), recreate them.
                 if (!dbUser) {
-                    const userCount = await prisma.user.count();
+                    const userCount = await db.collection("User").countDocuments();
                     const role = userCount === 0 ? "ADMIN" : "STAFF";
 
-                    dbUser = await prisma.user.create({
-                        data: {
-                            name: session.user.name || "Unknown",
-                            email: session.user.email,
-                            image: session.user.image,
-                            role: role,
-                        }
-                    });
+                    const newUser = {
+                        name: session.user.name || "Unknown",
+                        email: session.user.email,
+                        image: session.user.image,
+                        role: role,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    };
+
+                    const result = await db.collection("User").insertOne(newUser);
+                    dbUser = { ...newUser, _id: result.insertedId } as any;
                 }
 
                 if (dbUser) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (session.user as any).role = dbUser.role;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).id = dbUser.id;
+                    (session.user as any).id = (dbUser._id as ObjectId).toString();
                 }
             }
             return session;

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!session || ((session.user as any).role !== "ADMIN" && (session.user as any).role !== "STAFF")) {
-        // Allow STAFF to add vehicles too? Prompt said "I cannt add the vehicle". 
-        // Previous code had logic to allow. Let's allow authenticated users for now or allow STAFF.
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,16 +18,23 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
         }
 
-        const vehicle = await prisma.vehicle.create({
-            data: {
-                number,
-                driverName,
-                warehouseId,
-                status: "AVAILABLE"
-            }
-        });
+        const db = await getDb();
+        const newVehicle = {
+            number,
+            driverName,
+            warehouseId: new ObjectId(warehouseId),
+            status: "AVAILABLE",
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        return NextResponse.json(vehicle, { status: 201 });
+        const result = await db.collection("Vehicle").insertOne(newVehicle);
+
+        return NextResponse.json({
+            ...newVehicle,
+            id: result.insertedId.toString(),
+            _id: undefined
+        }, { status: 201 });
     } catch (error) {
         console.error("Vehicle Creation Error:", error);
         return NextResponse.json({ error: "Failed to create vehicle" }, { status: 500 });
@@ -39,19 +45,26 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const warehouseId = searchParams.get("warehouseId");
 
-    // If no warehouseId, maybe return empty or error? Or all?
-    // In multi-tenant, we should strictly filter.
     if (!warehouseId) {
         return NextResponse.json([], { status: 400 });
     }
 
     try {
-        const vehicles = await prisma.vehicle.findMany({
-            where: { warehouseId },
-            orderBy: { createdAt: 'desc' }
-        });
-        return NextResponse.json(vehicles);
+        const db = await getDb();
+        const vehicles = await db.collection("Vehicle")
+            .find({ warehouseId: new ObjectId(warehouseId) })
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        const formattedVehicles = vehicles.map(v => ({
+            ...v,
+            id: v._id.toString(),
+            _id: undefined
+        }));
+
+        return NextResponse.json(formattedVehicles);
     } catch (error) {
+        console.error("Failed to fetch vehicles", error);
         return NextResponse.json({ error: "Failed to fetch vehicles" }, { status: 500 });
     }
 }

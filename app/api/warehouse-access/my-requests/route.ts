@@ -1,31 +1,32 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function GET() {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session.user as any).id;
-
     try {
-        const myAccess = await prisma.warehouseAccess.findMany({
-            where: {
-                userId: userId,
-            },
-            select: {
-                warehouseId: true,
-                status: true,
-                role: true
-            }
-        });
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        return NextResponse.json(myAccess ?? []);
+        const db = await getDb();
+        const user = await db.collection("User").findOne({ email: session.user.email });
+
+        if (!user) return NextResponse.json([]);
+
+        const myAccess = await db.collection("WarehouseAccess")
+            .find({ userId: user._id })
+            .toArray();
+
+        const formattedAccess = myAccess.map(a => ({
+            ...a,
+            id: a._id.toString(),
+            _id: undefined,
+            userId: a.userId.toString(),
+            warehouseId: a.warehouseId.toString()
+        }));
+
+        return NextResponse.json(formattedAccess ?? []);
     } catch (error) {
         console.error("Error fetching my access", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

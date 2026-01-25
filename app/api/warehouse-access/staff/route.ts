@@ -1,52 +1,50 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET() {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userRole = (session?.user as any)?.role;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session?.user as any)?.id;
-
-    if (userRole !== "ADMIN") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     try {
-        // Find approved access for all warehouses (Admins manage everything)
-        const staffAccess = await prisma.warehouseAccess.findMany({
-            where: {
-                status: "APPROVED"
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        image: true,
-                    },
-                },
-                warehouse: {
-                    select: {
-                        id: true,
-                        name: true,
-                    },
-                },
-            },
-            orderBy: {
-                createdAt: "desc",
-            },
-        });
+        const session = await getServerSession(authOptions);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!session || (session.user as any).role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
 
-        return NextResponse.json(staffAccess);
+        const db = await getDb();
+
+        // Fetch all approved access with user and warehouse info
+        const staffAccess = await db.collection("WarehouseAccess")
+            .find({ status: "APPROVED" })
+            .toArray();
+
+        const userIds = staffAccess.map(r => r.userId);
+        const warehouseIds = staffAccess.map(r => r.warehouseId);
+
+        const [users, warehouses] = await Promise.all([
+            db.collection("User").find({ _id: { $in: userIds } }).toArray(),
+            db.collection("Warehouse").find({ _id: { $in: warehouseIds } }).toArray()
+        ]);
+
+        const userMap = new Map(users.map(u => [u._id.toString(), u]));
+        const warehouseMap = new Map(warehouses.map(w => [w._id.toString(), w]));
+
+        const enrichedStaff = staffAccess.map(r => ({
+            ...r,
+            id: r._id.toString(),
+            _id: undefined,
+            user: userMap.get(r.userId.toString()) ? {
+                id: r.userId.toString(),
+                name: userMap.get(r.userId.toString())?.name,
+                email: userMap.get(r.userId.toString())?.email
+            } : null,
+            warehouse: warehouseMap.get(r.warehouseId.toString()) ? {
+                id: r.warehouseId.toString(),
+                name: warehouseMap.get(r.warehouseId.toString())?.name
+            } : null
+        }));
+
+        return NextResponse.json(enrichedStaff);
     } catch (error) {
         console.error("Error fetching staff", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

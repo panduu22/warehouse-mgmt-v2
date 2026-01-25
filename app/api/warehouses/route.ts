@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ObjectId } from "mongodb";
 
 export async function GET() {
     const session = await getServerSession(authOptions);
@@ -16,21 +17,29 @@ export async function GET() {
     const userId = user.id;
 
     try {
-        let whereClause = {};
+        const db = await getDb();
+        let query = {};
 
-        if (role === "ADMIN") {
-            // Admin sees all warehouses for management
-            whereClause = {};
-        } else {
-            // Staff also sees all to request access
-            whereClause = {};
+        if (role !== "ADMIN") {
+            // Staff sees warehouses they have access to? 
+            // In the original Prisma code, it was empty whereClause, meaning all warehouses.
+            // Let's keep that behavior for now but use the new driver.
+            query = {};
         }
 
-        const warehouses = await prisma.warehouse.findMany({
-            where: whereClause,
-            orderBy: { createdAt: 'desc' }
-        });
-        return NextResponse.json(warehouses ?? []);
+        const warehouses = await db.collection("Warehouse")
+            .find(query)
+            .sort({ createdAt: -1 })
+            .toArray();
+
+        // Convert ObjectId to string for JSON
+        const formattedWarehouses = warehouses.map(w => ({
+            ...w,
+            id: w._id.toString(),
+            _id: undefined
+        }));
+
+        return NextResponse.json(formattedWarehouses ?? []);
     } catch (error) {
         console.error("Error fetching warehouses", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -41,11 +50,6 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userRole = (session?.user as any)?.role;
-
-    // Only Global Admins can create warehouses? 
-    // Or maybe we allow anyone to create for now as we transition?
-    // Let's stick to ADMIN only check if possible, or allow all for dev.
-    // Given previous User model has 'ADMIN', let's use that.
 
     if (!session || userRole !== "ADMIN") {
         return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
@@ -58,15 +62,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Name and location are required" }, { status: 400 });
         }
 
-        const warehouse = await prisma.warehouse.create({
-            data: {
-                name,
-                location,
-                createdById: (session.user as any).id
-            }
-        });
+        const db = await getDb();
+        const newWarehouse = {
+            name,
+            location,
+            createdById: new ObjectId((session.user as any).id),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
-        return NextResponse.json(warehouse, { status: 201 });
+        const result = await db.collection("Warehouse").insertOne(newWarehouse);
+
+        return NextResponse.json({
+            ...newWarehouse,
+            id: result.insertedId.toString(),
+            _id: undefined
+        }, { status: 201 });
     } catch (error) {
         console.error("Error creating warehouse", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

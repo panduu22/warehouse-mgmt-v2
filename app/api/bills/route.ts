@@ -45,13 +45,18 @@ export async function POST(req: Request) {
         const pricingMap = new Map(dailyPricings.map(p => [p.productId.toString(), p.price]));
 
         let totalAmount = 0;
+        let totalProfit = 0;
 
         trip.loadedItems.forEach((item: any) => {
             const sold = item.qtyLoaded - (item.qtyReturned || 0);
             const product = productMap.get(item.productId.toString());
             if (product && sold > 0) {
-                const finalPrice = pricingMap.get(item.productId.toString()) ?? product.price;
+                const finalPrice = pricingMap.get(item.productId.toString()) ?? (product.salePrice || product.price);
                 totalAmount += sold * finalPrice;
+
+                // Profit = Selling Price - MRP (Base Price)
+                const profitPerUnit = finalPrice - product.price;
+                totalProfit += sold * profitPerUnit;
             }
         });
 
@@ -59,6 +64,7 @@ export async function POST(req: Request) {
         const newBillData = {
             tripId: new ObjectId(tripId),
             totalAmount,
+            totalProfit,
             warehouseId: trip.warehouseId,
             generatedBy: new ObjectId((session.user as any).id),
             generatedAt: date ? new Date(date) : new Date(),

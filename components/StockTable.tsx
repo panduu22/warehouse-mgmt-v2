@@ -11,8 +11,9 @@ interface Product {
     name: string;
     sku: string;
     quantity: number;
-    price: number;
-    dailyPrice?: number | null;
+    price: number; // MRP
+    dailyPrice: number; // Effective today's price
+    isDailyPriceOverridden: boolean;
     location?: string;
     invoiceCost?: number;
     salePrice?: number;
@@ -153,6 +154,7 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                             <th className="px-6 py-4">Invoice Cost</th>
                             <th className="px-6 py-4">MRP (Base)</th>
                             <th className="px-6 py-4">Today's Price</th>
+                            <th className="px-6 py-4 text-center">Profit/Margin</th>
                             <th className="px-6 py-4">Sale Price</th>
                             <th className="px-6 py-4 text-right">Quantity</th>
                             <th className="px-6 py-4 text-right">Actions</th>
@@ -160,124 +162,143 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {isLoading && products.length === 0 ? (
-                            <tr><td colSpan={7} className="p-8 text-center">Loading stock...</td></tr>
+                            <tr><td colSpan={8} className="p-8 text-center">Loading stock...</td></tr>
                         ) : !Array.isArray(products) || products.length === 0 ? (
                             <tr>
-                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                                     No products found in {selectedWarehouse.name}.
                                 </td>
                             </tr>
                         ) : (
-                            products.map((product) => (
-                                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
-                                    {editingId === product.id ? (
-                                        <>
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    className="border rounded px-2 py-1 w-full"
-                                                    value={editForm.name}
-                                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    type="number"
-                                                    className="border rounded px-2 py-1 w-24"
-                                                    value={editForm.invoiceCost}
-                                                    onChange={e => setEditForm({ ...editForm, invoiceCost: Number(e.target.value) })}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    type="number"
-                                                    className="border rounded px-2 py-1 w-24"
-                                                    value={editForm.price}
-                                                    onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="text-gray-400 text-xs italic">Set Daily Price in Main View</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <input
-                                                    type="number"
-                                                    className="border rounded px-2 py-1 w-24"
-                                                    value={editForm.salePrice}
-                                                    onChange={e => setEditForm({ ...editForm, salePrice: Number(e.target.value) })}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <input
-                                                    type="number"
-                                                    className="border rounded px-2 py-1 w-24 text-right"
-                                                    value={editForm.quantity}
-                                                    onChange={e => setEditForm({ ...editForm, quantity: Number(e.target.value) })}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                                <button onClick={() => handleSave(product.id)} className="text-green-600 hover:text-green-800"><Save className="w-5 h-5" /></button>
-                                                <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                                            </td>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {product.name}
-                                                <div className="text-xs text-gray-400">{product.pack} {product.flavour}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600">₹{product.invoiceCost || "-"}</td>
-                                            <td className="px-6 py-4 text-gray-600">
-                                                <span className={clsx(product.dailyPrice && "line-through text-gray-400")}>₹{product.price || "-"}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600">
-                                                {isAdmin ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <input
-                                                            type="number"
-                                                            placeholder={product.price.toString()}
-                                                            className={clsx(
-                                                                "border rounded px-2 py-1 w-24 text-sm font-bold",
-                                                                product.dailyPrice ? "border-ruby-200 bg-ruby-50 text-ruby-700" : "border-gray-200"
-                                                            )}
-                                                            defaultValue={product.dailyPrice || ""}
-                                                            onBlur={(e) => {
-                                                                if (e.target.value && Number(e.target.value) !== product.dailyPrice) {
-                                                                    handleDailyPriceChange(product.id, e.target.value);
-                                                                }
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    handleDailyPriceChange(product.id, (e.target as HTMLInputElement).value);
-                                                                }
-                                                            }}
-                                                        />
-                                                        {updatingPricingId === product.id && <Loader2 className="w-4 h-4 animate-spin text-ruby-600" />}
-                                                    </div>
-                                                ) : (
-                                                    <span className="font-bold text-ruby-700">{product.dailyPrice ? `₹${product.dailyPrice}` : "Using Base"}</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600">₹{product.salePrice || "-"}</td>
-                                            <td className="px-6 py-4 text-right font-medium">
-                                                <span className={clsx(
-                                                    product.quantity < 10 ? "text-red-600" :
-                                                        product.quantity < 50 ? "text-amber-600" : "text-emerald-600"
-                                                )}>
-                                                    {product.quantity}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right space-x-2">
-                                                {/* Edit visible to everyone */}
-                                                <button onClick={() => handleEditClick(product)} className="text-gray-400 hover:text-ruby-600"><Pencil className="w-4 h-4" /></button>
-                                                {/* Delete restricted to Admin */}
-                                                {isAdmin && (
-                                                    <button onClick={() => handleDelete(product.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                                )}
-                                            </td>
-                                        </>
-                                    )}
-                                </tr>
-                            ))
+                            products.map((product) => {
+                                const profit = product.dailyPrice - product.price;
+
+                                return (
+                                    <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                                        {editingId === product.id ? (
+                                            <>
+                                                <td className="px-6 py-4">
+                                                    <input
+                                                        className="border rounded px-2 py-1 w-full"
+                                                        value={editForm.name}
+                                                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <input
+                                                        type="number"
+                                                        className="border rounded px-2 py-1 w-24"
+                                                        value={editForm.invoiceCost}
+                                                        onChange={e => setEditForm({ ...editForm, invoiceCost: Number(e.target.value) })}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <input
+                                                        type="number"
+                                                        className="border rounded px-2 py-1 w-24"
+                                                        value={editForm.price}
+                                                        onChange={e => setEditForm({ ...editForm, price: Number(e.target.value) })}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className="text-gray-400 text-xs italic">Set Daily Price in Main View</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    -
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <input
+                                                        type="number"
+                                                        className="border rounded px-2 py-1 w-24"
+                                                        value={editForm.salePrice}
+                                                        onChange={e => setEditForm({ ...editForm, salePrice: Number(e.target.value) })}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <input
+                                                        type="number"
+                                                        className="border rounded px-2 py-1 w-24 text-right"
+                                                        value={editForm.quantity}
+                                                        onChange={e => setEditForm({ ...editForm, quantity: Number(e.target.value) })}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                                    <button onClick={() => handleSave(product.id)} className="text-green-600 hover:text-green-800"><Save className="w-5 h-5" /></button>
+                                                    <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+                                                </td>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                    {product.name}
+                                                    <div className="text-xs text-gray-400">{product.pack} {product.flavour}</div>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-600">₹{product.invoiceCost || "-"}</td>
+                                                <td className="px-6 py-4 text-gray-600 font-medium">₹{product.price || "-"}</td>
+                                                <td className="px-6 py-4 text-gray-600">
+                                                    {isAdmin ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <input
+                                                                type="number"
+                                                                placeholder={product.dailyPrice.toString()}
+                                                                className={clsx(
+                                                                    "border rounded px-2 py-1 w-24 text-sm font-bold",
+                                                                    product.isDailyPriceOverridden ? "border-ruby-200 bg-ruby-50 text-ruby-700 shadow-sm" : "border-gray-200 bg-gray-50/50"
+                                                                )}
+                                                                defaultValue={product.isDailyPriceOverridden ? product.dailyPrice : ""}
+                                                                onBlur={(e) => {
+                                                                    if (e.target.value && Number(e.target.value) !== product.dailyPrice) {
+                                                                        handleDailyPriceChange(product.id, e.target.value);
+                                                                    } else if (!e.target.value && product.isDailyPriceOverridden) {
+                                                                        // Future: maybe allow clearing overrides
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        handleDailyPriceChange(product.id, (e.target as HTMLInputElement).value);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            {updatingPricingId === product.id && <Loader2 className="w-4 h-4 animate-spin text-ruby-600" />}
+                                                        </div>
+                                                    ) : (
+                                                        <span className={clsx("font-bold", product.isDailyPriceOverridden ? "text-ruby-700" : "text-gray-900")}>
+                                                            ₹{product.dailyPrice}
+                                                            {!product.isDailyPriceOverridden && <span className="ml-1 text-[10px] text-gray-400 font-normal">(Default)</span>}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className={clsx(
+                                                        "px-2 py-1 rounded text-xs font-bold",
+                                                        profit > 0 ? "bg-emerald-50 text-emerald-700" :
+                                                            profit < 0 ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-500"
+                                                    )}>
+                                                        {profit > 0 ? "+" : ""}{profit}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-500">₹{product.salePrice || "-"}</td>
+                                                <td className="px-6 py-4 text-right font-medium">
+                                                    <span className={clsx(
+                                                        product.quantity < 10 ? "text-red-600" :
+                                                            product.quantity < 50 ? "text-amber-600" : "text-emerald-600"
+                                                    )}>
+                                                        {product.quantity}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right space-x-2">
+                                                    {/* Edit visible to everyone */}
+                                                    <button onClick={() => handleEditClick(product)} className="text-gray-400 hover:text-ruby-600"><Pencil className="w-4 h-4" /></button>
+                                                    {/* Delete restricted to Admin */}
+                                                    {isAdmin && (
+                                                        <button onClick={() => handleDelete(product.id)} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                                    )}
+                                                </td>
+                                            </>
+                                        )}
+                                    </tr>
+                                )
+                            })
                         )}
                     </tbody>
                 </table>

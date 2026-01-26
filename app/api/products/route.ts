@@ -99,12 +99,18 @@ export async function GET(req: Request) {
 
         const pricingMap = new Map(dailyPricings.map(p => [p.productId.toString(), p.price]));
 
-        const formattedProducts = products.map(p => ({
-            ...p,
-            id: p._id.toString(),
-            _id: undefined,
-            dailyPrice: pricingMap.get(p._id.toString()) || null
-        }));
+        const formattedProducts = products.map(p => {
+            const pricingOverride = pricingMap.get(p._id.toString());
+            const dailyPrice = pricingOverride ?? (p.salePrice || p.price);
+
+            return {
+                ...p,
+                id: p._id.toString(),
+                _id: undefined,
+                dailyPrice: dailyPrice,
+                isDailyPriceOverridden: pricingOverride !== undefined
+            };
+        });
 
         return NextResponse.json(formattedProducts);
     } catch (error) {

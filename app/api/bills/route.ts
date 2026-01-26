@@ -54,8 +54,8 @@ export async function POST(req: Request) {
                 const finalPrice = pricingMap.get(item.productId.toString()) ?? (product.salePrice || product.price);
                 totalAmount += sold * finalPrice;
 
-                // Profit = Selling Price - MRP (Base Price)
-                const profitPerUnit = finalPrice - product.price;
+                // Profit = Selling Price - Invoice Cost
+                const profitPerUnit = finalPrice - (product.invoiceCost || finalPrice);
                 totalProfit += sold * profitPerUnit;
             }
         });

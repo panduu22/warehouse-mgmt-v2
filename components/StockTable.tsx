@@ -171,7 +171,7 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                             </tr>
                         ) : (
                             products.map((product) => {
-                                const profit = product.dailyPrice - product.price;
+                                const profit = product.dailyPrice - (product.invoiceCost || product.dailyPrice);
 
                                 return (
                                     <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">

@@ -82,13 +82,16 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session.user as any;
 
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Good Evening, <span className="text-ruby-700">{user.name?.split(" ")[0]}</span>
+                        Good {greeting}, <span className="text-ruby-700">{user.name?.split(" ")[0]}</span>
                     </h1>
                     <p className="text-gray-500 mt-1">Here is what is happening in your warehouse.</p>
                 </div>

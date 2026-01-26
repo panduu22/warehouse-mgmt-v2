@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, ArrowRight, Building2, CheckCircle, LogOut, Users, Trash2 } from "lucide-react";
+import { Package, Plus, ArrowRight, Building2, CheckCircle, LogOut, Users, Trash2, Pencil } from "lucide-react";
 import clsx from "clsx";
 import axios from "axios";
 import { useGodown } from "@/components/GodownProvider";
@@ -46,6 +46,10 @@ export default function WarehouseSelectPage() {
     const [newName, setNewName] = useState("");
     const [newLocation, setNewLocation] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Edit Staff States
+    const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+    const [editStaffEmail, setEditStaffEmail] = useState("");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userRole = (session?.user as any)?.role;
@@ -434,47 +438,138 @@ export default function WarehouseSelectPage() {
                 )}
 
                 {view === "STAFF" && (
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                        {!Array.isArray(staffList) || staffList.length === 0 ? (
-                            <div className="text-center py-12">
-                                <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900">No active staff found</h3>
-                                <p className="text-gray-500">Approve requests to add staff.</p>
-                            </div>
-                        ) : (
-                            <ul className="divide-y divide-gray-200">
-                                {staffList.map((req: any) => (
-                                    <li key={req.id} className="p-6 flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
-                                                {req.user.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h4 className="text-lg font-bold text-gray-900">{req.user.name}</h4>
-                                                    {req.isExpired && (
-                                                        <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold uppercase">Expired</span>
-                                                    )}
+                    <div className="space-y-6">
+                        {/* Add Staff Form */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Add Staff Member</h3>
+                            <form
+                                onSubmit={async (e) => {
+                                    e.preventDefault();
+                                    const form = e.target as HTMLFormElement;
+                                    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+                                    const warehouseId = (form.elements.namedItem("warehouseId") as HTMLSelectElement).value;
+
+                                    if (!email || !warehouseId) return;
+                                    setIsSubmitting(true);
+                                    try {
+                                        await axios.post("/api/warehouse-access/invite", { email, warehouseId });
+                                        alert("Staff member added successfully!");
+                                        form.reset();
+                                        fetchStaff();
+                                    } catch (err) {
+                                        console.error(err);
+                                        alert("Failed to add staff member.");
+                                    } finally {
+                                        setIsSubmitting(false);
+                                    }
+                                }}
+                                className="flex flex-col sm:flex-row gap-4"
+                            >
+                                <input
+                                    name="email"
+                                    type="email"
+                                    required
+                                    placeholder="staff@example.com"
+                                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-ruby-500 focus:border-ruby-500"
+                                />
+                                <select
+                                    name="warehouseId"
+                                    required
+                                    className="px-4 py-2 border rounded-lg bg-white focus:ring-ruby-500 focus:border-ruby-500"
+                                >
+                                    <option value="">Select Warehouse</option>
+                                    {warehouses.map(wh => (
+                                        <option key={wh.id} value={wh.id}>{wh.name}</option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="bg-ruby-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-ruby-700 transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmitting ? "Adding..." : "Add Staff"}
+                                </button>
+                            </form>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            {!Array.isArray(staffList) || staffList.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900">No active staff found</h3>
+                                    <p className="text-gray-500">Approve requests to add staff.</p>
+                                </div>
+                            ) : (
+                                <ul className="divide-y divide-gray-200">
+                                    {staffList.map((req: any) => (
+                                        <li key={req.id} className="p-6 flex items-center justify-between">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
+                                                    {req.user.name.charAt(0)}
                                                 </div>
-                                                <p className="text-sm text-gray-500">{req.user.email}</p>
-                                                <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                                    <span className="font-medium">Access to:</span> {req.warehouse.name}
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="text-lg font-bold text-gray-900">{req.user.name}</h4>
+                                                        {req.isExpired && (
+                                                            <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold uppercase">Expired</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">{req.user.email}</p>
+                                                    <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                                        <span className="font-medium">Access to:</span> {req.warehouse.name}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleRemoveStaff(req.id)}
-                                                className="text-gray-400 hover:text-red-600 p-2 rounded-lg transition-colors"
-                                                title="Remove Staff"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                                            <div className="flex items-center gap-2">
+                                                {editingStaffId === req.user.id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            className="px-2 py-1 border rounded text-sm w-48"
+                                                            value={editStaffEmail}
+                                                            onChange={(e) => setEditStaffEmail(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await axios.patch(`/api/users/${req.user.id}`, { email: editStaffEmail });
+                                                                    setEditingStaffId(null);
+                                                                    fetchStaff();
+                                                                } catch (err) {
+                                                                    alert("Update failed");
+                                                                }
+                                                            }}
+                                                            className="bg-green-600 text-white px-3 py-1 rounded text-xs font-bold"
+                                                        >
+                                                            Save
+                                                        </button>
+                                                        <button onClick={() => setEditingStaffId(null)} className="text-gray-400 text-xs">Cancel</button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingStaffId(req.user.id);
+                                                            setEditStaffEmail(req.user.email);
+                                                        }}
+                                                        className="text-gray-400 hover:text-ruby-600 p-2 rounded-lg transition-colors"
+                                                        title="Edit Email"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleRemoveStaff(req.id)}
+                                                    className="text-gray-400 hover:text-red-600 p-2 rounded-lg transition-colors"
+                                                    title="Remove Staff"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

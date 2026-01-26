@@ -7,7 +7,9 @@ import { ObjectId } from "mongodb";
 export async function PUT(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        if (!session || (session.user as any).role !== "ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
 
         const { requestId, status, role } = await req.json();
         const db = await getDb();

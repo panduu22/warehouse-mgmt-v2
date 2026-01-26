@@ -240,7 +240,7 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                         <div className="flex items-center gap-2">
                                                             <input
                                                                 type="number"
-                                                                placeholder={product.dailyPrice.toString()}
+                                                                placeholder={(product.salePrice || product.price).toString()}
                                                                 className={clsx(
                                                                     "border rounded px-2 py-1 w-24 text-sm font-bold",
                                                                     product.isDailyPriceOverridden ? "border-ruby-200 bg-ruby-50 text-ruby-700 shadow-sm" : "border-gray-200 bg-gray-50/50"
@@ -249,8 +249,6 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                                 onBlur={(e) => {
                                                                     if (e.target.value && Number(e.target.value) !== product.dailyPrice) {
                                                                         handleDailyPriceChange(product.id, e.target.value);
-                                                                    } else if (!e.target.value && product.isDailyPriceOverridden) {
-                                                                        // Future: maybe allow clearing overrides
                                                                     }
                                                                 }}
                                                                 onKeyDown={(e) => {
@@ -264,7 +262,7 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                     ) : (
                                                         <span className={clsx("font-bold", product.isDailyPriceOverridden ? "text-ruby-700" : "text-gray-900")}>
                                                             ₹{product.dailyPrice}
-                                                            {!product.isDailyPriceOverridden && <span className="ml-1 text-[10px] text-gray-400 font-normal">(Default)</span>}
+                                                            {!product.isDailyPriceOverridden && <span className="ml-1 text-[10px] text-gray-400 font-normal">(Sale Price)</span>}
                                                         </span>
                                                     )}
                                                 </td>
@@ -274,7 +272,7 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                         profit > 0 ? "bg-emerald-50 text-emerald-700" :
                                                             profit < 0 ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-500"
                                                     )}>
-                                                        {profit > 0 ? "+" : ""}{profit}
+                                                        {profit > 0 ? "+" : ""}{profit.toFixed(2)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500">₹{product.salePrice || "-"}</td>

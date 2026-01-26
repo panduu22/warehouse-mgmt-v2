@@ -133,6 +133,7 @@ export default function BillsPage() {
                                 <th className="px-6 py-4">Invoice Date</th>
                                 <th className="px-6 py-4">Verified Date</th>
                                 <th className="px-6 py-4">Vehicle</th>
+                                <th className="px-6 py-4 text-right">Profit</th>
                                 <th className="px-6 py-4 text-right">Amount</th>
                                 <th className="px-6 py-4"></th>
                             </tr>
@@ -153,6 +154,9 @@ export default function BillsPage() {
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">
                                             {bill.trip?.vehicle?.number}
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-medium text-emerald-600">
+                                            ₹{(bill.totalProfit || 0).toFixed(2)}
                                         </td>
                                         <td className="px-6 py-4 text-right font-bold text-ruby-700">
                                             ₹{bill.totalAmount.toLocaleString()}

@@ -36,8 +36,12 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
     // Add State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [addMode, setAddMode] = useState<"EXISTING" | "NEW">("EXISTING");
-    const [selectedExistingId, setSelectedExistingId] = useState("");
+    const [selectedFlavour, setSelectedFlavour] = useState("");
+    const [selectedPack, setSelectedPack] = useState("");
     const [addQuantity, setAddQuantity] = useState("");
+
+    const flavours = Array.from(new Set(products.map(p => p.flavour).filter(Boolean)));
+    const packs = Array.from(new Set(products.map(p => p.pack).filter(Boolean)));
 
     const [newProduct, setNewProduct] = useState({
         name: "",
@@ -116,17 +120,21 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
 
     const handleAddExisting = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedExistingId || !addQuantity) return;
+        if (!selectedFlavour || !selectedPack || !addQuantity) return;
         setIsSubmitting(true);
         try {
-            const product = products.find(p => p.id === selectedExistingId);
-            if (!product) return;
+            const product = products.find(p => p.flavour === selectedFlavour && p.pack === selectedPack);
+            if (!product) {
+                alert("Product not found with this combination.");
+                return;
+            }
 
             const newQty = (product.quantity || 0) + Number(addQuantity);
-            await axios.patch(`/api/products/${selectedExistingId}`, { quantity: newQty });
+            await axios.patch(`/api/products/${product.id}`, { quantity: newQty });
 
             setIsAddModalOpen(false);
-            setSelectedExistingId("");
+            setSelectedFlavour("");
+            setSelectedPack("");
             setAddQuantity("");
             fetchProducts();
         } catch (error) {
@@ -347,22 +355,38 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                             {addMode === "EXISTING" ? (
                                 <form onSubmit={handleAddExisting} className="space-y-6 flex-1 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300">
                                     <div className="space-y-5">
-                                        <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">1. Select Product</label>
-                                            <select
-                                                required
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-medium focus:ring-2 focus:ring-ruby-500 transition-all outline-none appearance-none cursor-pointer"
-                                                value={selectedExistingId}
-                                                onChange={e => setSelectedExistingId(e.target.value)}
-                                            >
-                                                <option value="">Search by flavour/pack...</option>
-                                                {products.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.flavour} — {p.pack} ({p.name})</option>
-                                                ))}
-                                            </select>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">1. Select Flavour</label>
+                                                <select
+                                                    required
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-medium focus:ring-2 focus:ring-ruby-500 transition-all outline-none appearance-none cursor-pointer"
+                                                    value={selectedFlavour}
+                                                    onChange={e => setSelectedFlavour(e.target.value)}
+                                                >
+                                                    <option value="">Choose flavour...</option>
+                                                    {flavours.map(f => (
+                                                        <option key={f as string} value={f as string}>{f as string}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">2. Select Pack</label>
+                                                <select
+                                                    required
+                                                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-medium focus:ring-2 focus:ring-ruby-500 transition-all outline-none appearance-none cursor-pointer"
+                                                    value={selectedPack}
+                                                    onChange={e => setSelectedPack(e.target.value)}
+                                                >
+                                                    <option value="">Choose pack...</option>
+                                                    {packs.map(p => (
+                                                        <option key={p as string} value={p as string}>{p as string}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">2. Quantity to Add</label>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">3. Quantity to Add</label>
                                             <input
                                                 required
                                                 type="number"

@@ -316,9 +316,9 @@ export default function WarehouseSelectPage() {
                                                 {userRole === "ADMIN" ? (
                                                     <button
                                                         onClick={() => handleSelect(wh)}
-                                                        className="bg-ruby-50 text-ruby-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                                                        className="bg-ruby-50 text-ruby-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-ruby-100"
                                                     >
-                                                        Manage <ArrowRight className="w-4 h-4" />
+                                                        Enter Warehouse <ArrowRight className="w-4 h-4" />
                                                     </button>
                                                 ) : (
                                                     <>

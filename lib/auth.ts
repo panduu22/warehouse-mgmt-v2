@@ -14,37 +14,28 @@ export const authOptions: NextAuthOptions = {
         async signIn() {
             return true;
         },
-        async session({ session }) {
-            if (session.user?.email) {
-                const db = await getDb();
-                let dbUser = await db.collection("User").findOne({ email: session.user.email });
-
-                // Auto-heal: If user has session but no DB record (e.g. after DB wipe), recreate them.
-                if (!dbUser) {
-                    const userCount = await db.collection("User").countDocuments();
-                    const role = userCount === 0 ? "ADMIN" : "STAFF";
-
-                    const newUser = {
-                        name: session.user.name || "Unknown",
-                        email: session.user.email,
-                        image: session.user.image,
-                        role: role,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    };
-
-                    const result = await db.collection("User").insertOne(newUser);
-                    dbUser = { ...newUser, _id: result.insertedId } as any;
-                }
-
-                if (dbUser) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).role = dbUser.role;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).id = (dbUser._id as ObjectId).toString();
-                }
+        async session({ session, token }) {
+            if (session.user?.email && token) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (session.user as any).role = token.role;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (session.user as any).id = token.id;
             }
             return session;
+        },
+        async jwt({ token, user, trigger }) {
+            if (user) {
+                // This only runs on first login/sign in
+                const db = await getDb();
+                const dbUser = await db.collection("User").findOne({ email: user.email });
+                if (dbUser) {
+                    token.role = dbUser.role;
+                    token.id = (dbUser._id as ObjectId).toString();
+                }
+            } else if (trigger === "update") {
+                // Handle manual updates if needed
+            }
+            return token;
         }
     },
     session: {

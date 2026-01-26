@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
+import { NextResponse as NextResp } from "next/server";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -8,11 +11,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const db = await getDb();
         const bill = await db.collection("Bill").findOne({ _id: new ObjectId(id) });
 
-        if (!bill) return NextResponse.json({ error: "Bill not found" }, { status: 404 });
+        if (!bill) return NextResp.json({ error: "Bill not found" }, { status: 404 });
+
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResp.json({ error: "Unauthorized" }, { status: 401 });
+        const user = session.user as any;
+
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, bill.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResp.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         // Get Trip
         const trip = await db.collection("Trip").findOne({ _id: new ObjectId(bill.tripId) });
-        if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+        if (!trip) return NextResp.json({ error: "Trip not found" }, { status: 404 });
 
         // Get Vehicle
         const vehicle = await db.collection("Vehicle").findOne({ _id: new ObjectId(trip.vehicleId) });
@@ -33,7 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
         const enrichedItems = trip.loadedItems.map((item: any) => {
-            const product = productMap.get(item.productId.toString());
+            const product = productMap.get(item.productId.toString()) as any;
             return {
                 ...item,
                 productId: item.productId.toString(),
@@ -63,9 +75,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             warehouse: warehouse ? { ...warehouse, id: warehouse._id.toString(), _id: undefined } : null
         };
 
-        return NextResponse.json(enrichedBill);
+        return NextResp.json(enrichedBill);
     } catch (error) {
         console.error("Fetch bill error", error);
-        return NextResponse.json({ error: "Failed to fetch bill" }, { status: 500 });
+        return NextResp.json({ error: "Failed to fetch bill" }, { status: 500 });
     }
 }

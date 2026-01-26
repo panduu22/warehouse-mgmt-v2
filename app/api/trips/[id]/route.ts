@@ -4,19 +4,26 @@ import clientPromise from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || ((session.user as any).role !== "ADMIN" && (session.user as any).role !== "STAFF")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
     const client = await clientPromise;
     const mongoSession = client.startSession();
 
     try {
+        const db = client.db();
+        const trip = await db.collection("Trip").findOne({ _id: new ObjectId(id) });
+        if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+
+        const user = session.user as any;
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, trip.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
         const { returnedItems, status, verifiedAt } = await req.json();
 
         if (status !== "VERIFIED") {
@@ -102,6 +109,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const trip = await db.collection("Trip").findOne({ _id: new ObjectId(id) });
 
         if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const user = session.user as any;
+
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, trip.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         // Get Vehicle
         const vehicle = await db.collection("Vehicle").findOne({ _id: new ObjectId(trip.vehicleId) });

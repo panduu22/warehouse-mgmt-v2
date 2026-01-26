@@ -4,6 +4,7 @@ import clientPromise from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -17,6 +18,12 @@ export async function POST(req: Request) {
 
         if (!vehicleId || !items || items.length === 0 || !warehouseId) {
             return NextResponse.json({ error: "Invalid data: Missing vehicle, items, or warehouse" }, { status: 400 });
+        }
+
+        const user = session.user as any;
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
         }
 
         let newTrip;
@@ -95,6 +102,15 @@ export async function GET(req: Request) {
 
     if (!warehouseId) {
         return NextResponse.json([], { status: 400 });
+    }
+
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = session.user as any;
+
+    const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
+    if (!hasAccess) {
+        return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
     }
 
     try {

@@ -3,19 +3,26 @@ import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getServerSession(authOptions);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!session || ((session.user as any).role !== "ADMIN" && (session.user as any).role !== "STAFF")) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        }
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { id } = await params;
         const body = await req.json();
-
         const db = await getDb();
+        const user = session.user as any;
+
+        // Fetch product to get warehouseId
+        const product = await db.collection("Product").findOne({ _id: new ObjectId(id) });
+        if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, product.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         // Prepare update data
         const updateData: any = { ...body };
@@ -53,13 +60,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const session = await getServerSession(authOptions);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (!session || (session.user as any).role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
-        }
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { id } = await params;
         const db = await getDb();
+        const user = session.user as any;
+
+        // Fetch product to get warehouseId
+        const product = await db.collection("Product").findOne({ _id: new ObjectId(id) });
+        if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, product.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         const result = await db.collection("Product").deleteOne({ _id: new ObjectId(id) });
 

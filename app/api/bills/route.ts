@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -12,13 +13,14 @@ export async function POST(req: Request) {
         const { tripId, date } = await req.json();
         const db = await getDb();
 
-        // Check if bill exists
-        const existingBill = await db.collection("Bill").findOne({ tripId: new ObjectId(tripId) });
-        if (existingBill) {
-            return NextResponse.json({ error: "Bill already exists for this trip" }, { status: 400 });
-        }
-
         const trip = await db.collection("Trip").findOne({ _id: new ObjectId(tripId) });
+        if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+
+        const user = session.user as any;
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, trip.warehouseId.toString());
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
         if (trip.status !== "VERIFIED") {
@@ -75,6 +77,13 @@ export async function GET(req: Request) {
     const warehouseId = searchParams.get("warehouseId");
 
     if (!warehouseId) return NextResponse.json([], { status: 400 });
+
+    const user = session.user as any;
+
+    const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
+    if (!hasAccess) {
+        return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+    }
 
     try {
         const db = await getDb();

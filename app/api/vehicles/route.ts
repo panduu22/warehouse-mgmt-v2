@@ -3,16 +3,24 @@ import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { checkWarehouseAccess } from "@/lib/access";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || ((session.user as any).role !== "ADMIN" && (session.user as any).role !== "STAFF")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
         const { number, driverName, warehouseId } = await req.json();
+
+        if (!warehouseId) {
+            return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
+        }
+
+        const user = session.user as any;
+        const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
+        if (!hasAccess) {
+            return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
+        }
 
         if (!warehouseId) {
             return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
@@ -47,6 +55,15 @@ export async function GET(req: Request) {
 
     if (!warehouseId) {
         return NextResponse.json([], { status: 400 });
+    }
+
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = session.user as any;
+
+    const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
+    if (!hasAccess) {
+        return NextResponse.json({ error: "Access denied or expired" }, { status: 403 });
     }
 
     try {

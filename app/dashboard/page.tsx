@@ -6,6 +6,7 @@ import { Package, Truck, Receipt, MoreHorizontal, ArrowRight, TrendingUp, Clock,
 import Link from "next/link";
 import clsx from "clsx";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
+import LiveClock from "@/components/LiveClock";
 import { ObjectId } from "mongodb";
 
 async function getData(dateFilter?: string) {
@@ -96,6 +97,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <p className="text-gray-500 mt-1">Here is what is happening in your warehouse.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <LiveClock />
                     <DashboardDateFilter />
 
                     <Link href="/stock/add" className="bg-ruby-700 hover:bg-ruby-800 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-ruby-900/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2">

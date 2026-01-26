@@ -138,7 +138,7 @@ export default function WarehouseSelectPage() {
             fetchMyRequests(); // Refresh status
         } catch (error) {
             console.error("Failed to request access", error);
-            alert("Failed to request access (or already requested)");
+            alert("Failed to request access.");
         } finally {
             setIsSubmitting(false);
         }
@@ -165,11 +165,10 @@ export default function WarehouseSelectPage() {
         router.push("/dashboard");
     };
 
-    // Helper to get my status for a warehouse
-    const getMyStatus = (warehouseId: string) => {
+    // Helper to get my access info for a warehouse
+    const getMyAccess = (warehouseId: string) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const req: any = myRequests.find((r: any) => r.warehouseId === warehouseId);
-        return req?.status || null;
+        return myRequests.find((r: any) => r.warehouseId === warehouseId) || null;
     };
 
     if (status === "loading") {
@@ -299,7 +298,10 @@ export default function WarehouseSelectPage() {
                         {Array.isArray(warehouses) && warehouses.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {warehouses.map((wh) => {
-                                    const status = getMyStatus(wh.id);
+                                    const access = getMyAccess(wh.id);
+                                    const status = access?.status;
+                                    const isExpired = access?.isExpired;
+
                                     return (
                                         <div key={wh.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-ruby-500 hover:ring-1 hover:ring-ruby-500 transition-all cursor-pointer group">
                                             <div className="flex justify-between items-start">
@@ -320,13 +322,24 @@ export default function WarehouseSelectPage() {
                                                     </button>
                                                 ) : (
                                                     <>
-                                                        {status === "APPROVED" && (
+                                                        {status === "APPROVED" && !isExpired && (
                                                             <button
                                                                 onClick={() => handleSelect(wh)}
                                                                 className="bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-green-100"
                                                             >
                                                                 Enter Warehouse <ArrowRight className="w-4 h-4" />
                                                             </button>
+                                                        )}
+                                                        {status === "APPROVED" && isExpired && (
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <span className="bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Access Expired</span>
+                                                                <button
+                                                                    onClick={() => handleRequest(wh.id)}
+                                                                    className="bg-gray-50 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200"
+                                                                >
+                                                                    Renew Access
+                                                                </button>
+                                                            </div>
                                                         )}
                                                         {status === "PENDING" && (
                                                             <button
@@ -337,12 +350,15 @@ export default function WarehouseSelectPage() {
                                                             </button>
                                                         )}
                                                         {status === "REJECTED" && (
-                                                            <button
-                                                                disabled
-                                                                className="bg-red-50 text-red-700 px-4 py-2 rounded-lg text-sm font-bold opacity-75 cursor-not-allowed"
-                                                            >
-                                                                Rejected
-                                                            </button>
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <span className="bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Rejected</span>
+                                                                <button
+                                                                    onClick={() => handleRequest(wh.id)}
+                                                                    className="bg-gray-50 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-lg text-sm font-medium border border-gray-200"
+                                                                >
+                                                                    Request Again
+                                                                </button>
+                                                            </div>
                                                         )}
                                                         {!status && (
                                                             <button
@@ -427,14 +443,19 @@ export default function WarehouseSelectPage() {
                             </div>
                         ) : (
                             <ul className="divide-y divide-gray-200">
-                                {staffList.map((req) => (
+                                {staffList.map((req: any) => (
                                     <li key={req.id} className="p-6 flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold">
                                                 {req.user.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <h4 className="text-lg font-bold text-gray-900">{req.user.name}</h4>
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-lg font-bold text-gray-900">{req.user.name}</h4>
+                                                    {req.isExpired && (
+                                                        <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold uppercase">Expired</span>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm text-gray-500">{req.user.email}</p>
                                                 <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                                                     <span className="font-medium">Access to:</span> {req.warehouse.name}

@@ -18,13 +18,23 @@ export async function GET() {
             .find({ userId: user._id })
             .toArray();
 
-        const formattedAccess = myAccess.map(a => ({
-            ...a,
-            id: a._id.toString(),
-            _id: undefined,
-            userId: a.userId.toString(),
-            warehouseId: a.warehouseId.toString()
-        }));
+        const now = new Date();
+        const ONE_YEAR_IN_MS = 365 * 24 * 60 * 60 * 1000;
+
+        const formattedAccess = myAccess.map(a => {
+            const isApproved = a.status === "APPROVED";
+            const updatedAt = a.updatedAt ? new Date(a.updatedAt) : new Date(a.createdAt);
+            const isExpired = isApproved && (now.getTime() - updatedAt.getTime() > ONE_YEAR_IN_MS);
+
+            return {
+                ...a,
+                id: a._id.toString(),
+                _id: undefined,
+                userId: a.userId.toString(),
+                warehouseId: a.warehouseId.toString(),
+                isExpired
+            };
+        });
 
         return NextResponse.json(formattedAccess ?? []);
     } catch (error) {

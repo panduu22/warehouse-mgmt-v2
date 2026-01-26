@@ -21,8 +21,8 @@ export async function POST(req: Request) {
             warehouseId: new ObjectId(warehouseId)
         });
 
-        if (existing) {
-            return NextResponse.json({ error: "Request already exists" }, { status: 400 });
+        if (existing && existing.status === "PENDING") {
+            return NextResponse.json({ error: "Request already pending" }, { status: 400 });
         }
 
         const newRequest = {
@@ -33,6 +33,15 @@ export async function POST(req: Request) {
             createdAt: new Date(),
             updatedAt: new Date()
         };
+
+        if (existing) {
+            // Update existing record instead of inserting a new one to avoid duplicates
+            await db.collection("WarehouseAccess").updateOne(
+                { _id: existing._id },
+                { $set: { status: "PENDING", updatedAt: new Date() } }
+            );
+            return NextResponse.json({ ...existing, status: "PENDING" });
+        }
 
         const result = await db.collection("WarehouseAccess").insertOne(newRequest);
 

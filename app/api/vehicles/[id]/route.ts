@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
@@ -35,6 +36,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         }
 
         await db.collection("Vehicle").deleteOne({ _id: new ObjectId(id) });
+        revalidatePath("/dashboard");
+        revalidatePath("/vehicles");
 
         return NextResponse.json({ success: true });
     } catch (error) {

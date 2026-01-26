@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -46,6 +47,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
 
+        revalidatePath("/dashboard");
+        revalidatePath("/stock");
+
         return NextResponse.json({
             ...result,
             id: result._id.toString(),
@@ -80,6 +84,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         if (result.deletedCount === 0) {
             return NextResponse.json({ error: "Product not found" }, { status: 404 });
         }
+
+        revalidatePath("/dashboard");
+        revalidatePath("/stock");
 
         return NextResponse.json({ message: "Product deleted successfully" });
     } catch (error) {

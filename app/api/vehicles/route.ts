@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
         };
 
         const result = await db.collection("Vehicle").insertOne(newVehicle);
+        revalidatePath("/dashboard");
+        revalidatePath("/vehicles");
 
         return NextResponse.json({
             ...newVehicle,

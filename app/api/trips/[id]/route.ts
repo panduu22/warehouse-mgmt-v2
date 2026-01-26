@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
@@ -95,6 +96,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         return NextResponse.json(updatedTripResponse);
     } catch (error: any) {
+        revalidatePath("/dashboard");
+        revalidatePath("/trips");
+        revalidatePath("/vehicles");
+        revalidatePath("/stock");
         console.error("Verification failed", error);
         return NextResponse.json({ error: error.message || "Verification failed" }, { status: 500 });
     } finally {

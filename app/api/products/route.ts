@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
     try {
@@ -54,6 +55,8 @@ export async function POST(req: Request) {
         };
 
         const result = await db.collection("Product").insertOne(newProduct);
+        revalidatePath("/dashboard");
+        revalidatePath("/stock");
 
         return NextResponse.json({
             ...newProduct,

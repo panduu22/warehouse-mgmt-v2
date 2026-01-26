@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
     try {
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
             },
             { upsert: true, returnDocument: "after" }
         );
+        revalidatePath("/dashboard");
+        revalidatePath("/stock");
 
         return NextResponse.json(result);
     } catch (error) {

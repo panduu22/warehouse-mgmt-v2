@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
 import { checkWarehouseAccess } from "@/lib/access";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -86,6 +87,11 @@ export async function POST(req: Request) {
             const result = await db.collection("Trip").insertOne(tripData, { session: mongoSession });
             newTrip = { ...tripData, id: result.insertedId.toString(), _id: undefined };
         });
+
+        revalidatePath("/dashboard");
+        revalidatePath("/trips");
+        revalidatePath("/vehicles");
+        revalidatePath("/stock");
 
         return NextResponse.json(newTrip, { status: 201 });
     } catch (error: any) {

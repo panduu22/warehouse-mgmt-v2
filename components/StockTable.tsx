@@ -312,12 +312,35 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                 </td>
                                                 <td className="px-6 py-4 text-gray-500">₹{product.salePrice || "-"}</td>
                                                 <td className="px-6 py-4 text-right font-medium">
-                                                    <span className={clsx(
-                                                        product.quantity < 10 ? "text-red-600" :
-                                                            product.quantity < 50 ? "text-amber-600" : "text-emerald-600"
-                                                    )}>
-                                                        {product.quantity}
-                                                    </span>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <input
+                                                            type="number"
+                                                            className={clsx(
+                                                                "border rounded px-2 py-1 w-20 text-right font-bold text-sm outline-none transition-all",
+                                                                product.quantity < 10 ? "border-red-200 bg-red-50 text-red-700" :
+                                                                    product.quantity < 50 ? "border-amber-200 bg-amber-50 text-amber-700" :
+                                                                        "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                                            )}
+                                                            defaultValue={product.quantity}
+                                                            onBlur={async (e) => {
+                                                                const newVal = Number(e.target.value);
+                                                                if (newVal !== product.quantity) {
+                                                                    try {
+                                                                        await axios.patch(`/api/products/${product.id}`, { quantity: newVal });
+                                                                        fetchProducts();
+                                                                    } catch (err) {
+                                                                        alert("Failed to update quantity");
+                                                                        e.target.value = product.quantity.toString();
+                                                                    }
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    (e.target as HTMLInputElement).blur();
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right space-x-2">
                                                     {/* Edit visible to everyone */}

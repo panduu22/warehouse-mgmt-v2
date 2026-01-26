@@ -305,33 +305,33 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
             {/* Add Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-lg">
-                        <h2 className="text-xl font-bold mb-4">Add New Stock</h2>
+                    <div className="bg-white rounded-xl p-6 w-full max-w-lg text-gray-900">
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">Add New Stock</h2>
                         <form onSubmit={handleAdd} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Product Name</label>
-                                <input required className="w-full border rounded-lg px-3 py-2" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
+                                <label className="block text-sm font-medium mb-1 text-gray-700">Product Name</label>
+                                <input required className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Quantity</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2" value={newProduct.quantity} onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} />
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Quantity</label>
+                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.quantity} onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">MRP</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">MRP</label>
+                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Invoice Cost</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2" value={newProduct.invoiceCost} onChange={e => setNewProduct({ ...newProduct, invoiceCost: e.target.value })} />
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Invoice Cost</label>
+                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.invoiceCost} onChange={e => setNewProduct({ ...newProduct, invoiceCost: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Sale Price</label>
-                                    <input type="number" className="w-full border rounded-lg px-3 py-2" value={newProduct.salePrice} onChange={e => setNewProduct({ ...newProduct, salePrice: e.target.value })} />
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Sale Price</label>
+                                    <input type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.salePrice} onChange={e => setNewProduct({ ...newProduct, salePrice: e.target.value })} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Location</label>
-                                    <input className="w-full border rounded-lg px-3 py-2" value={newProduct.location} onChange={e => setNewProduct({ ...newProduct, location: e.target.value })} />
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Location</label>
+                                    <input className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.location} onChange={e => setNewProduct({ ...newProduct, location: e.target.value })} />
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">

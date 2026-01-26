@@ -90,10 +90,20 @@ export async function GET(req: Request) {
             .sort({ createdAt: -1 })
             .toArray();
 
+        // Fetch today's daily pricing
+        const today = new Date().toISOString().split('T')[0];
+        const dailyPricings = await db.collection("DailyPricing").find({
+            warehouseId: new ObjectId(warehouseId),
+            date: today
+        }).toArray();
+
+        const pricingMap = new Map(dailyPricings.map(p => [p.productId.toString(), p.price]));
+
         const formattedProducts = products.map(p => ({
             ...p,
             id: p._id.toString(),
-            _id: undefined
+            _id: undefined,
+            dailyPrice: pricingMap.get(p._id.toString()) || null
         }));
 
         return NextResponse.json(formattedProducts);

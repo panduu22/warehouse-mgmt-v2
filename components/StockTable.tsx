@@ -12,6 +12,7 @@ interface Product {
     sku: string;
     quantity: number;
     price: number;
+    dailyPrice?: number | null;
     location?: string;
     invoiceCost?: number;
     salePrice?: number;
@@ -23,6 +24,9 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
     const { selectedWarehouse, isLoading: isWarehouseLoading } = useGodown();
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Daily Pricing State
+    const [updatingPricingId, setUpdatingPricingId] = useState<string | null>(null);
 
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -58,6 +62,24 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
             console.error("Failed to fetch products", error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleDailyPriceChange = async (productId: string, price: string) => {
+        if (!selectedWarehouse || !price) return;
+        setUpdatingPricingId(productId);
+        try {
+            await axios.post("/api/daily-pricing", {
+                productId,
+                warehouseId: selectedWarehouse.id,
+                price: Number(price),
+                date: new Date().toISOString()
+            });
+            fetchProducts();
+        } catch (error) {
+            alert("Failed to update daily price");
+        } finally {
+            setUpdatingPricingId(null);
         }
     };
 
@@ -117,7 +139,8 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                     onClick={() => setIsAddModalOpen(true)}
                     className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
                 >
-                    <Plus className="w-5 h-5" />
+                    <Loader2 className={clsx("w-5 h-5", !isLoading && "hidden")} />
+                    {!isLoading && <Plus className="w-5 h-5" />}
                     Add Stock
                 </button>
             </div>
@@ -128,18 +151,19 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                         <tr>
                             <th className="px-6 py-4">Product Name</th>
                             <th className="px-6 py-4">Invoice Cost</th>
-                            <th className="px-6 py-4">MRP</th>
+                            <th className="px-6 py-4">MRP (Base)</th>
+                            <th className="px-6 py-4">Today's Price</th>
                             <th className="px-6 py-4">Sale Price</th>
                             <th className="px-6 py-4 text-right">Quantity</th>
                             <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {isLoading ? (
-                            <tr><td colSpan={6} className="p-8 text-center">Loading stock...</td></tr>
+                        {isLoading && products.length === 0 ? (
+                            <tr><td colSpan={7} className="p-8 text-center">Loading stock...</td></tr>
                         ) : !Array.isArray(products) || products.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                                     No products found in {selectedWarehouse.name}.
                                 </td>
                             </tr>
@@ -172,6 +196,9 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                 />
                                             </td>
                                             <td className="px-6 py-4">
+                                                <span className="text-gray-400 text-xs italic">Set Daily Price in Main View</span>
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <input
                                                     type="number"
                                                     className="border rounded px-2 py-1 w-24"
@@ -199,7 +226,37 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                                                 <div className="text-xs text-gray-400">{product.pack} {product.flavour}</div>
                                             </td>
                                             <td className="px-6 py-4 text-gray-600">₹{product.invoiceCost || "-"}</td>
-                                            <td className="px-6 py-4 text-gray-600">₹{product.price || "-"}</td>
+                                            <td className="px-6 py-4 text-gray-600">
+                                                <span className={clsx(product.dailyPrice && "line-through text-gray-400")}>₹{product.price || "-"}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-600">
+                                                {isAdmin ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            placeholder={product.price.toString()}
+                                                            className={clsx(
+                                                                "border rounded px-2 py-1 w-24 text-sm font-bold",
+                                                                product.dailyPrice ? "border-ruby-200 bg-ruby-50 text-ruby-700" : "border-gray-200"
+                                                            )}
+                                                            defaultValue={product.dailyPrice || ""}
+                                                            onBlur={(e) => {
+                                                                if (e.target.value && Number(e.target.value) !== product.dailyPrice) {
+                                                                    handleDailyPriceChange(product.id, e.target.value);
+                                                                }
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    handleDailyPriceChange(product.id, (e.target as HTMLInputElement).value);
+                                                                }
+                                                            }}
+                                                        />
+                                                        {updatingPricingId === product.id && <Loader2 className="w-4 h-4 animate-spin text-ruby-600" />}
+                                                    </div>
+                                                ) : (
+                                                    <span className="font-bold text-ruby-700">{product.dailyPrice ? `₹${product.dailyPrice}` : "Using Base"}</span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 text-gray-600">₹{product.salePrice || "-"}</td>
                                             <td className="px-6 py-4 text-right font-medium">
                                                 <span className={clsx(

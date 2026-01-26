@@ -34,13 +34,24 @@ export async function POST(req: Request) {
 
         const productMap = new Map(products.map(p => [p._id.toString(), p]));
 
+        // Fetch Daily Pricing for the billing date
+        const billingDate = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        const dailyPricings = await db.collection("DailyPricing").find({
+            warehouseId: trip.warehouseId,
+            date: billingDate,
+            productId: { $in: itemIds }
+        }).toArray();
+
+        const pricingMap = new Map(dailyPricings.map(p => [p.productId.toString(), p.price]));
+
         let totalAmount = 0;
 
         trip.loadedItems.forEach((item: any) => {
             const sold = item.qtyLoaded - (item.qtyReturned || 0);
             const product = productMap.get(item.productId.toString());
             if (product && sold > 0) {
-                totalAmount += sold * product.price;
+                const finalPrice = pricingMap.get(item.productId.toString()) ?? product.price;
+                totalAmount += sold * finalPrice;
             }
         });
 

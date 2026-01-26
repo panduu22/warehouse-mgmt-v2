@@ -101,6 +101,7 @@ export async function GET(req: Request) {
 
         const formattedProducts = products.map(p => {
             const pricingOverride = pricingMap.get(p._id.toString());
+            // Default to salePrice if available, otherwise price (MRP)
             const dailyPrice = pricingOverride ?? (p.salePrice || p.price);
 
             return {

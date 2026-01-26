@@ -140,9 +140,10 @@ export default function WarehouseSelectPage() {
             await axios.post("/api/warehouse-access/request", { warehouseId });
             alert("Access requested! Please wait for admin approval.");
             fetchMyRequests(); // Refresh status
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to request access", error);
-            alert("Failed to request access.");
+            const msg = error.response?.data?.error || "Failed to request access.";
+            alert(msg);
         } finally {
             setIsSubmitting(false);
         }

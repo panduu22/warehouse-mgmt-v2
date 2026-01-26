@@ -10,10 +10,24 @@ export async function POST(req: Request) {
         if (!session || !session.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { warehouseId } = await req.json();
+        if (!warehouseId) return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
+
         const db = await getDb();
 
-        const user = await db.collection("User").findOne({ email: session.user.email });
-        if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+        let user = await db.collection("User").findOne({ email: session.user.email });
+        if (!user) {
+            // Self-heal: Create user if missing
+            const result = await db.collection("User").insertOne({
+                email: session.user.email,
+                name: session.user.name || "User",
+                role: "STAFF",
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+            user = await db.collection("User").findOne({ _id: result.insertedId });
+        }
+
+        if (!user) return NextResponse.json({ error: "User record unavailable" }, { status: 500 });
 
         // Check for existing request
         const existing = await db.collection("WarehouseAccess").findOne({

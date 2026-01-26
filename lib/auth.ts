@@ -27,8 +27,21 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 // This only runs on first login/sign in
                 const db = await getDb();
-                const dbUser = await db.collection("User").findOne({ email: user.email });
-                if (dbUser) {
+                let dbUser = await db.collection("User").findOne({ email: user.email });
+
+                if (!dbUser) {
+                    // Auto-create user on first sign-in
+                    const result = await db.collection("User").insertOne({
+                        email: user.email,
+                        name: user.name,
+                        image: user.image,
+                        role: "STAFF", // Default role
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    });
+                    token.role = "STAFF";
+                    token.id = result.insertedId.toString();
+                } else {
                     token.role = dbUser.role;
                     token.id = (dbUser._id as ObjectId).toString();
                 }

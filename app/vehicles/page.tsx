@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Truck, User, Loader2 } from "lucide-react";
+import { Plus, Truck, User, Loader2, Trash2 } from "lucide-react";
 import { useGodown } from "@/components/GodownProvider";
 import axios from "axios";
 
@@ -17,6 +17,7 @@ export default function VehiclesPage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(false);
     const [adding, setAdding] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Form State
     const [number, setNumber] = useState("");
@@ -65,6 +66,19 @@ export default function VehiclesPage() {
         }
     }
 
+    async function handleDelete(id: string) {
+        if (!confirm("Are you sure you want to remove this vehicle?")) return;
+        setDeletingId(id);
+        try {
+            await axios.delete(`/api/vehicles/${id}`);
+            fetchVehicles();
+        } catch (error: any) {
+            alert(error.response?.data?.error || "Failed to delete vehicle");
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
     if (isWarehouseLoading) return <div className="p-8"><Loader2 className="animate-spin" /></div>;
     if (!selectedWarehouse) return <div className="p-8">Please select a warehouse.</div>;
 
@@ -81,7 +95,7 @@ export default function VehiclesPage() {
                         <p className="text-gray-500">No vehicles found in {selectedWarehouse.name}.</p>
                     ) : (
                         Array.isArray(vehicles) && vehicles.map((v) => (
-                            <div key={v.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div key={v.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between group">
                                 <div className="flex items-center gap-4">
                                     <div className="bg-ruby-50 p-3 rounded-full text-ruby-700">
                                         <Truck className="w-6 h-6" />
@@ -94,8 +108,17 @@ export default function VehiclesPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="text-xs uppercase font-bold tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                                    {v.status}
+                                <div className="flex items-center gap-4">
+                                    <div className="text-xs uppercase font-bold tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">
+                                        {v.status}
+                                    </div>
+                                    <button
+                                        onClick={() => handleDelete(v.id)}
+                                        disabled={deletingId === v.id}
+                                        className="text-gray-300 hover:text-red-600 transition-colors p-2"
+                                    >
+                                        {deletingId === v.id ? <Loader2 className="w-4 h-4 animate-spin text-red-600" /> : <Trash2 className="w-5 h-5" />}
+                                    </button>
                                 </div>
                             </div>
                         ))

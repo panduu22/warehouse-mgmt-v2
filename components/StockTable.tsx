@@ -35,6 +35,10 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
 
     // Add State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [addMode, setAddMode] = useState<"EXISTING" | "NEW">("EXISTING");
+    const [selectedExistingId, setSelectedExistingId] = useState("");
+    const [addQuantity, setAddQuantity] = useState("");
+
     const [newProduct, setNewProduct] = useState({
         name: "",
         quantity: "",
@@ -86,7 +90,8 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
 
     const handleEditClick = (product: Product) => {
         setEditingId(product.id);
-        setEditForm(product);
+        const { ...form } = product;
+        setEditForm(form);
     };
 
     const handleSave = async (id: string) => {
@@ -106,6 +111,28 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
             fetchProducts();
         } catch (error) {
             alert("Failed to delete product");
+        }
+    };
+
+    const handleAddExisting = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedExistingId || !addQuantity) return;
+        setIsSubmitting(true);
+        try {
+            const product = products.find(p => p.id === selectedExistingId);
+            if (!product) return;
+
+            const newQty = (product.quantity || 0) + Number(addQuantity);
+            await axios.patch(`/api/products/${selectedExistingId}`, { quantity: newQty });
+
+            setIsAddModalOpen(false);
+            setSelectedExistingId("");
+            setAddQuantity("");
+            fetchProducts();
+        } catch (error) {
+            alert("Failed to add stock");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -302,45 +329,113 @@ export function StockTable({ isAdmin }: { isAdmin: boolean }) {
                 </table>
             </div>
 
-            {/* Add Modal */}
+            {/* Redesigned Add Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-lg text-gray-900">
-                        <h2 className="text-xl font-bold mb-4 text-gray-900">Add New Stock</h2>
-                        <form onSubmit={handleAdd} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-gray-700">Product Name</label>
-                                <input required className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 text-gray-700">Quantity</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.quantity} onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} />
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[500px]">
+                        {/* Panel 1: Existing Stock */}
+                        <div className={clsx("flex-1 p-8 transition-all flex flex-col", addMode === "EXISTING" ? "bg-white" : "bg-gray-50/50 opacity-60")}>
+                            <button
+                                onClick={() => setAddMode("EXISTING")}
+                                className="text-left w-full mb-8 group"
+                            >
+                                <span className={clsx("text-xs font-bold uppercase tracking-widest block mb-1 transition-colors", addMode === "EXISTING" ? "text-ruby-600" : "text-gray-400 group-hover:text-gray-600")}>Section A</span>
+                                <h2 className={clsx("text-2xl font-black transition-colors", addMode === "EXISTING" ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600")}>Add Existing Stock</h2>
+                                <p className="text-sm text-gray-500 mt-1">Update quantity of items already in inventory.</p>
+                            </button>
+
+                            {addMode === "EXISTING" ? (
+                                <form onSubmit={handleAddExisting} className="space-y-6 flex-1 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300">
+                                    <div className="space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">1. Select Product</label>
+                                            <select
+                                                required
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-medium focus:ring-2 focus:ring-ruby-500 transition-all outline-none appearance-none cursor-pointer"
+                                                value={selectedExistingId}
+                                                onChange={e => setSelectedExistingId(e.target.value)}
+                                            >
+                                                <option value="">Search by flavour/pack...</option>
+                                                {products.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.flavour} — {p.pack} ({p.name})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">2. Quantity to Add</label>
+                                            <input
+                                                required
+                                                type="number"
+                                                placeholder="Enter amount..."
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-mono text-2xl font-bold focus:ring-2 focus:ring-ruby-500 transition-all outline-none"
+                                                value={addQuantity}
+                                                onChange={e => setAddQuantity(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mt-auto pt-6">
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className="w-full bg-ruby-700 text-white font-black py-5 rounded-2xl hover:bg-ruby-800 shadow-xl shadow-ruby-900/20 active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest"
+                                        >
+                                            {isSubmitting ? "Updating..." : "Increase Stock"}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center p-8">
+                                    <button onClick={() => setAddMode("EXISTING")} className="text-ruby-600 font-bold hover:underline">Click to use this section</button>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 text-gray-700">MRP</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
+                            )}
+                        </div>
+
+                        {/* Middle Divider */}
+                        <div className="w-px bg-gray-100 hidden md:block"></div>
+                        <div className="h-px bg-gray-100 md:hidden"></div>
+
+                        {/* Panel 2: New Stock */}
+                        <div className={clsx("flex-1 p-8 transition-all flex flex-col", addMode === "NEW" ? "bg-white" : "bg-gray-50/50 opacity-60")}>
+                            <button
+                                onClick={() => setAddMode("NEW")}
+                                className="text-left w-full mb-8 group"
+                            >
+                                <span className={clsx("text-xs font-bold uppercase tracking-widest block mb-1 transition-colors", addMode === "NEW" ? "text-emerald-600" : "text-gray-400 group-hover:text-gray-600")}>Section B</span>
+                                <h2 className={clsx("text-2xl font-black transition-colors", addMode === "NEW" ? "text-gray-900" : "text-gray-400 group-hover:text-gray-600")}>Register New Stock</h2>
+                                <p className="text-sm text-gray-500 mt-1">Add a completely new product to the system.</p>
+                            </button>
+
+                            {addMode === "NEW" ? (
+                                <form onSubmit={handleAdd} className="space-y-4 flex-1 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                                    <div className="space-y-3">
+                                        <input required placeholder="Product Name (e.g. Sprite 2.25L)" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <input required placeholder="Flavour" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500" value={newProduct.flavour} onChange={e => setNewProduct({ ...newProduct, flavour: e.target.value })} />
+                                            <input required placeholder="Pack Size" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500" value={newProduct.pack} onChange={e => setNewProduct({ ...newProduct, pack: e.target.value })} />
+                                            <input required type="number" placeholder="Quantity" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" value={newProduct.quantity} onChange={e => setNewProduct({ ...newProduct, quantity: e.target.value })} />
+                                            <input required type="number" placeholder="MRP" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
+                                            <input required type="number" placeholder="Inv. Cost" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" value={newProduct.invoiceCost} onChange={e => setNewProduct({ ...newProduct, invoiceCost: e.target.value })} />
+                                            <input type="number" placeholder="Sale Price" className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" value={newProduct.salePrice} onChange={e => setNewProduct({ ...newProduct, salePrice: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div className="mt-auto pt-6">
+                                        <button type="submit" disabled={isSubmitting} className="w-full bg-emerald-600 text-white font-black py-5 rounded-2xl hover:bg-emerald-700 shadow-xl shadow-emerald-900/20 active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest">
+                                            {isSubmitting ? "Registering..." : "Create Product"}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className="flex-1 flex items-center justify-center p-8">
+                                    <button onClick={() => setAddMode("NEW")} className="text-emerald-600 font-bold hover:underline">Click to use this section</button>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 text-gray-700">Invoice Cost</label>
-                                    <input required type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.invoiceCost} onChange={e => setNewProduct({ ...newProduct, invoiceCost: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 text-gray-700">Sale Price</label>
-                                    <input type="number" className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.salePrice} onChange={e => setNewProduct({ ...newProduct, salePrice: e.target.value })} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1 text-gray-700">Location</label>
-                                    <input className="w-full border rounded-lg px-3 py-2 text-gray-900 bg-white" value={newProduct.location} onChange={e => setNewProduct({ ...newProduct, location: e.target.value })} />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-ruby-600 text-white rounded-lg hover:bg-ruby-700 disabled:opacity-50">
-                                    {isSubmitting ? "Adding..." : "Add Stock"}
+                            )}
+
+                            <div className="mt-6 text-center">
+                                <button type="button" onClick={() => setIsAddModalOpen(false)} className="text-xs font-black text-gray-400 hover:text-red-500 uppercase tracking-tighter transition-colors flex items-center justify-center gap-1 mx-auto">
+                                    <X className="w-3 h-3" /> Dismiss Window
                                 </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             )}

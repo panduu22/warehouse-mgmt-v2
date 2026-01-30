@@ -41,6 +41,7 @@ export default function WarehouseSelectPage() {
     const [staffList, setStaffList] = useState<AccessRequest[]>([]);
     const [myRequests, setMyRequests] = useState<any[]>([]);
     const [view, setView] = useState<"SELECT" | "CREATE" | "REQUESTS" | "STAFF">("SELECT");
+    const [searchQuery, setSearchQuery] = useState("");
 
     // Form States
     const [newName, setNewName] = useState("");
@@ -56,11 +57,10 @@ export default function WarehouseSelectPage() {
 
     // Redirect to login if unauthenticated
     useEffect(() => {
-        console.log("SESSION STATUS:", status, session);
         if (status === "unauthenticated") {
             router.replace("/api/auth/signin?callbackUrl=/select-org");
         }
-    }, [status, router, session]);
+    }, [status, router]);
 
     // Initial Fetch
     useEffect(() => {
@@ -89,7 +89,6 @@ export default function WarehouseSelectPage() {
         try {
             const res = await axios.get("/api/warehouses");
             const data = Array.isArray(res.data) ? res.data : [];
-            console.log("WAREHOUSE DATA:", data, Array.isArray(data));
             setWarehouses(data);
             if (data.length === 0 && userRole === "ADMIN") {
                 setView("CREATE");
@@ -125,6 +124,8 @@ export default function WarehouseSelectPage() {
             await fetchWarehouses();
             setView("SELECT");
             setSelectedWarehouse({ ...res.data });
+            // Set cookie
+            document.cookie = `warehouseId=${res.data.id}; path=/; max-age=31536000`;
             router.push("/dashboard");
         } catch (error) {
             console.error("Failed to create warehouse", error);
@@ -167,6 +168,8 @@ export default function WarehouseSelectPage() {
 
     const handleSelect = (warehouse: Warehouse) => {
         setSelectedWarehouse(warehouse);
+        // Set cookie for server-side access (Dashboard)
+        document.cookie = `warehouseId=${warehouse.id}; path=/; max-age=31536000`; // 1 year
         router.push("/dashboard");
     };
 
@@ -176,12 +179,18 @@ export default function WarehouseSelectPage() {
         return myRequests.find((r: any) => r.warehouseId === warehouseId) || null;
     };
 
+    // Filter warehouses based on search
+    const filteredWarehouses = warehouses.filter(wh =>
+        wh.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        wh.location.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     if (status === "loading") {
         return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading...</div>;
     }
 
     if (status === "unauthenticated") {
-        return null;
+        return null; // Will redirect
     }
 
     return (
@@ -288,21 +297,37 @@ export default function WarehouseSelectPage() {
 
                 {view === "SELECT" && (
                     <div className="space-y-6">
-                        {userRole === "ADMIN" && (
-                            <div className="flex justify-end">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            {/* Search Bar */}
+                            <div className="relative w-full md:w-96">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-ruby-500 focus:border-ruby-500 sm:text-sm transition duration-150 ease-in-out"
+                                    placeholder="Search warehouses..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+
+                            {userRole === "ADMIN" && (
                                 <button
                                     onClick={() => setView("CREATE")}
-                                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium"
+                                    className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm font-medium w-full md:w-auto justify-center"
                                 >
                                     <Plus className="w-4 h-4" />
                                     New Warehouse
                                 </button>
-                            </div>
-                        )}
+                            )}
+                        </div>
 
-                        {Array.isArray(warehouses) && warehouses.length > 0 ? (
+                        {Array.isArray(filteredWarehouses) && filteredWarehouses.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {warehouses.map((wh) => {
+                                {filteredWarehouses.map((wh) => {
                                     const access = getMyAccess(wh.id);
                                     const status = access?.status;
                                     const isExpired = access?.isExpired;

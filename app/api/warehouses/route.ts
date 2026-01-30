@@ -73,6 +73,43 @@ export async function POST(req: Request) {
 
         const result = await db.collection("Warehouse").insertOne(newWarehouse);
 
+        // ---------------------------------------------------------
+        // COPY PRODUCTS FROM MAIN WAREHOUSE (TEMPLATE)
+        // ---------------------------------------------------------
+        // Find the "Main" warehouse (oldest one)
+        const templateWarehouse = await db.collection("Warehouse")
+            .find({ _id: { $ne: result.insertedId } }) // Exclude self
+            .sort({ createdAt: 1 })
+            .limit(1)
+            .next();
+
+        if (templateWarehouse) {
+            console.log("Found template warehouse:", templateWarehouse.name);
+            const templateProducts = await db.collection("Product")
+                .find({ warehouseId: templateWarehouse._id })
+                .toArray();
+
+            if (templateProducts.length > 0) {
+                const newProducts = templateProducts.map(p => ({
+                    name: p.name,
+                    sku: p.sku, // Keep same SKU? or generate new? Usually keep same for consistency across chain
+                    quantity: 0, // Reset quantity for new warehouse
+                    price: p.price,
+                    location: p.location, // Maybe clear location?
+                    pack: p.pack,
+                    flavour: p.flavour,
+                    invoiceCost: p.invoiceCost,
+                    salePrice: p.salePrice,
+                    warehouseId: result.insertedId,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                }));
+
+                await db.collection("Product").insertMany(newProducts);
+                console.log(`Copied ${newProducts.length} products to new warehouse.`);
+            }
+        }
+
         return NextResponse.json({
             ...newWarehouse,
             id: result.insertedId.toString(),

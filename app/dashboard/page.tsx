@@ -9,38 +9,61 @@ import DashboardDateFilter from "@/components/DashboardDateFilter";
 import LiveClock from "@/components/LiveClock";
 import { ObjectId } from "mongodb";
 
-async function getData(dateFilter?: string) {
+import { cookies } from "next/headers";
+
+async function getData(warehouseId: string, dateFilter?: string) {
     const db = await getDb();
+    const wId = new ObjectId(warehouseId);
 
     const dateQuery = dateFilter ? {
         $gte: new Date(dateFilter),
         $lt: new Date(new Date(dateFilter).getTime() + 24 * 60 * 60 * 1000)
     } : undefined;
 
-    // Build Queries
-    const tripQuery: any = dateFilter
-        ? { startTime: dateQuery }
-        : { status: { $ne: "VERIFIED" } };
+    // Build Queries - ALL Scoped by WarehouseId
+    const baseQuery = { warehouseId: wId };
+
+    const tripQuery: any = {
+        warehouseId: wId,
+        ...(dateFilter ? { startTime: dateQuery } : { status: { $ne: "VERIFIED" } })
+    };
 
     const verifiedTripsQuery: any = {
+        warehouseId: wId,
         status: "VERIFIED",
         ...(dateFilter ? { endTime: dateQuery } : {})
     };
 
-    const billQuery: any = dateFilter ? { generatedAt: dateQuery } : {};
-    const activityQuery: any = dateFilter ? { updatedAt: dateQuery } : {};
+    const billQuery: any = {
+        warehouseId: wId,
+        ...(dateFilter ? { generatedAt: dateQuery } : {})
+    };
 
-    const [productCount, tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips] = await Promise.all([
-        db.collection("Product").countDocuments(),
+    const activityQuery: any = {
+        warehouseId: wId,
+        ...(dateFilter ? { updatedAt: dateQuery } : {})
+    };
+
+    const lowStockQuery: any = {
+        warehouseId: wId,
+        quantity: { $lt: 20 }
+    };
+
+    const [productStock, tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips, warehouse] = await Promise.all([
+        db.collection("Product").aggregate([
+            { $match: baseQuery },
+            { $group: { _id: null, total: { $sum: "$quantity" } } }
+        ]).toArray(),
         db.collection("Trip").countDocuments(tripQuery),
         db.collection("Trip").countDocuments(verifiedTripsQuery),
         db.collection("Bill").countDocuments(billQuery),
-        db.collection("Product").countDocuments({ quantity: { $lt: 20 } }),
+        db.collection("Product").countDocuments(lowStockQuery),
         db.collection("Trip")
             .find(activityQuery)
             .sort({ updatedAt: -1 })
             .limit(dateFilter ? 50 : 5)
-            .toArray()
+            .toArray(),
+        db.collection("Warehouse").findOne({ _id: wId })
     ]);
 
     // Enrich recent trips with vehicle
@@ -59,7 +82,8 @@ async function getData(dateFilter?: string) {
     }));
 
     return {
-        productCount,
+        warehouseName: warehouse?.name || "Warehouse",
+        productCount: productStock[0]?.total || 0,
         tripMetricCount,
         verifiedTripsCount,
         billCount,
@@ -71,15 +95,21 @@ async function getData(dateFilter?: string) {
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
     const session = await getServerSession(authOptions);
+    const cookieStore = await cookies();
+    const warehouseId = cookieStore.get("warehouseId")?.value;
 
     if (!session) {
         redirect("/api/auth/signin");
     }
 
+    if (!warehouseId) {
+        redirect("/select-org");
+    }
+
     const resolvedParams = await searchParams;
     const dateFilter = resolvedParams?.date || undefined;
 
-    const data = await getData(dateFilter);
+    const data = await getData(warehouseId, dateFilter);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const user = session.user as any;
 
@@ -92,7 +122,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900">
-                        Good {greeting}, <span className="text-ruby-700">{user.name?.split(" ")[0]}</span>
+                        {data.warehouseName} <span className="text-gray-400 font-light">|</span> Good {greeting}, <span className="text-ruby-700">{user.name?.split(" ")[0]}</span>
                     </h1>
                     <p className="text-gray-500 mt-1">Here is what is happening in your warehouse.</p>
                 </div>

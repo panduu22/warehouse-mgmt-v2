@@ -123,9 +123,9 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                             type="number"
                                             min="0"
                                             max={item.qtyLoaded}
-                                            value={inputs[item.productId._id] || 0}
+                                            value={inputs[item.productId._id] ?? 0}
                                             onChange={(e) => setInputs({ ...inputs, [item.productId._id]: Number(e.target.value) })}
-                                            className="w-24 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-ruby-500 text-gray-900 font-medium text-center bg-white"
+                                            className="w-24 px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-ruby-500 text-gray-900 font-bold text-center bg-white shadow-inner"
                                         />
                                     </div>
                                 )}

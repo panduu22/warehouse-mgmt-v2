@@ -7,6 +7,7 @@ import Product from "@/models/Product";
 import Warehouse from "@/models/Warehouse";
 import { cookies } from "next/headers";
 import DeleteProductButton from "./DeleteProductButton";
+import { QuantityEditor } from "./QuantityEditor";
 
 async function getProducts() {
     await dbConnect();
@@ -71,18 +72,22 @@ export default async function StockPage() {
                                     <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
                                     <td className="px-6 py-4 text-gray-600">₹{product.invoiceCost || product.mrp || "-"}</td>
                                     <td className="px-6 py-4 text-gray-600">₹{product.price}</td>
-                                    <td className="px-6 py-4 text-right font-medium">
-                                        <span
-                                            className={
-                                                product.quantity < 10
-                                                    ? "text-red-600"
-                                                    : product.quantity < 50
-                                                        ? "text-amber-600"
-                                                        : "text-emerald-600"
-                                            }
-                                        >
-                                            {product.quantity}
-                                        </span>
+                                    <td className="px-6 py-4 text-right">
+                                        {isAdmin ? (
+                                            <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
+                                        ) : (
+                                            <span
+                                                className={
+                                                    product.quantity < 10
+                                                        ? "text-red-600 font-bold"
+                                                        : product.quantity < 50
+                                                            ? "text-amber-600 font-bold"
+                                                            : "text-emerald-600 font-bold"
+                                                }
+                                            >
+                                                {product.quantity}
+                                            </span>
+                                        )}
                                     </td>
                                     {isAdmin && (
                                         <td className="px-6 py-4 text-right">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Bill from "@/models/Bill";
+export const dynamic = "force-dynamic";
 import Trip from "@/models/Trip";
 import Product from "@/models/Product";
 // Need Product to get price history? 

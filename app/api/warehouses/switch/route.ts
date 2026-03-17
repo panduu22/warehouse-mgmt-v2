@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { cookies } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";

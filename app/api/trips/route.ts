@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Trip from "@/models/Trip";
+export const dynamic = "force-dynamic";
 import Product from "@/models/Product";
 import Vehicle from "@/models/Vehicle";
 import { getServerSession } from "next-auth";

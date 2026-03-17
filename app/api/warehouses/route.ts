@@ -3,6 +3,8 @@ import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
 import Product from "@/models/Product";
 import { getServerSession } from "next-auth";
+
+export const dynamic = "force-dynamic";
 import { authOptions } from "@/lib/auth";
 
 export async function GET() {

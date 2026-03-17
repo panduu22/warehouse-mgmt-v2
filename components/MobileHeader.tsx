@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
+import { WarehouseSwitcher } from "./WarehouseSwitcher";
 
 const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -82,7 +83,8 @@ export function MobileHeader() {
                             })}
                         </nav>
 
-                        <div className="p-4 border-t border-gray-100">
+                        <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
+                            <WarehouseSwitcher />
                             <button
                                 onClick={() => signOut({ callbackUrl: "/" })}
                                 className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors"

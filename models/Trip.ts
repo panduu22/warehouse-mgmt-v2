@@ -14,6 +14,7 @@ export interface ITrip extends Document {
     startTime: Date;
     endTime?: Date;
     verifiedBy?: mongoose.Types.ObjectId;
+    warehouseId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -36,6 +37,7 @@ const TripSchema: Schema<ITrip> = new Schema(
         startTime: { type: Date, default: Date.now },
         endTime: { type: Date },
         verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
     },
     { timestamps: true }
 );

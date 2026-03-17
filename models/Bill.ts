@@ -4,6 +4,7 @@ export interface IBill extends Document {
     tripId: mongoose.Types.ObjectId;
     totalAmount: number;
     generatedBy: mongoose.Types.ObjectId;
+    warehouseId: mongoose.Types.ObjectId;
     generatedAt: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -14,6 +15,7 @@ const BillSchema: Schema<IBill> = new Schema(
         tripId: { type: Schema.Types.ObjectId, ref: "Trip", required: true, unique: true },
         totalAmount: { type: Number, required: true },
         generatedBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
         generatedAt: { type: Date, default: Date.now },
     },
     { timestamps: true }

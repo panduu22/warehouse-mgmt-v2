@@ -5,6 +5,7 @@ export interface IUser extends Document {
     email: string;
     image?: string;
     role: "ADMIN" | "STAFF";
+    activeWarehouseId?: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -15,6 +16,7 @@ const UserSchema: Schema<IUser> = new Schema(
         email: { type: String, required: true, unique: true },
         image: { type: String },
         role: { type: String, enum: ["ADMIN", "STAFF"], default: "STAFF" },
+        activeWarehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse" },
     },
     { timestamps: true }
 );

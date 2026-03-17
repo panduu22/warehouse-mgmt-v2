@@ -4,15 +4,25 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
+import Warehouse from "@/models/Warehouse";
+import { cookies } from "next/headers";
 import DeleteProductButton from "./DeleteProductButton";
 
 async function getProducts() {
     await dbConnect();
-    // Using lean() for better performance if just reading, but standard allowed too.
-    // We can't pass Mongoose docs directly to client components due to serialization.
-    // We need to convert to POJOs or use an API. 
-    // Since this is a server component, we can query DB directly but must return plain objects or render here.
-    const products = await Product.find({}).sort({ createdAt: -1 });
+    
+    // Get active warehouse context
+    const cookieStore = await cookies();
+    let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+    
+    if (!warehouseId) {
+        const main = await Warehouse.findOne({ isMain: true });
+        if (main) warehouseId = main._id.toString();
+    }
+    
+    const filter = warehouseId ? { warehouseId } : {};
+
+    const products = await Product.find(filter).sort({ createdAt: -1 });
     return JSON.parse(JSON.stringify(products));
 }
 

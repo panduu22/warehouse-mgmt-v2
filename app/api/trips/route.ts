@@ -5,6 +5,8 @@ import Product from "@/models/Product";
 import Vehicle from "@/models/Vehicle";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import Warehouse from "@/models/Warehouse";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -12,6 +14,17 @@ export async function POST(req: Request) {
 
     try {
         const { vehicleId, items } = await req.json();
+
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        await dbConnect();
+
+        if (!warehouseId) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+            warehouseId = main._id.toString();
+        }
 
         if (!vehicleId || !items || items.length === 0) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 });
@@ -48,6 +61,7 @@ export async function POST(req: Request) {
             vehicleId,
             loadedItems: items,
             status: "LOADED",
+            warehouseId
         });
 
         return NextResponse.json(trip, { status: 201 });
@@ -58,9 +72,21 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-    await dbConnect();
     try {
-        const trips = await Trip.find({})
+        await dbConnect();
+        
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        
+        if (!warehouseId) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (main) warehouseId = main._id.toString();
+        }
+        
+        const filter = warehouseId ? { warehouseId } : {};
+
+        const trips = await Trip.find(filter)
             .populate("vehicleId")
             .populate("loadedItems.productId") // Populate product details in items
             .sort({ createdAt: -1 });

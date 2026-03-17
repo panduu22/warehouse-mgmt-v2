@@ -11,6 +11,8 @@ import Product from "@/models/Product";
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { cookies } from "next/headers";
+import Warehouse from "@/models/Warehouse";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -18,7 +20,17 @@ export async function POST(req: Request) {
 
     try {
         const { tripId, date } = await req.json();
+        
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         await dbConnect();
+
+        if (!warehouseId) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+            warehouseId = main._id.toString();
+        }
 
         // Check if bill exists
         const existingBill = await Bill.findOne({ tripId });
@@ -49,7 +61,8 @@ export async function POST(req: Request) {
             tripId,
             totalAmount,
             generatedBy: (session.user as any).id,
-            generatedAt: date ? new Date(date) : new Date()
+            generatedAt: date ? new Date(date) : new Date(),
+            warehouseId
         });
 
         return NextResponse.json(bill, { status: 201 });
@@ -61,16 +74,28 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-    await dbConnect();
-    // Get all bills
-    // And also we might want a way to get "Verified but unbilled trips".
-    // separate endpoint? Or just filter on client? 
-    // I'll return Bills here.
-    const bills = await Bill.find({})
-        .populate({
-            path: "tripId",
-            populate: { path: "vehicleId" }
-        })
-        .sort({ generatedAt: -1 });
-    return NextResponse.json(bills);
+    try {
+        await dbConnect();
+        
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        
+        if (!warehouseId) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (main) warehouseId = main._id.toString();
+        }
+        
+        const filter = warehouseId ? { warehouseId } : {};
+
+        const bills = await Bill.find(filter)
+            .populate({
+                path: "tripId",
+                populate: { path: "vehicleId" }
+            })
+            .sort({ generatedAt: -1 });
+        return NextResponse.json(bills);
+    } catch (e) {
+        return NextResponse.json({ error: "Failed to fetch bills" }, { status: 500 });
+    }
 }

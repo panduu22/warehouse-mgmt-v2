@@ -9,6 +9,8 @@ import { Package, Truck, Receipt, MoreHorizontal, ArrowRight, TrendingUp, Clock,
 import Link from "next/link";
 import clsx from "clsx";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
+import Warehouse from "@/models/Warehouse";
+import { cookies } from "next/headers";
 
 async function getData(dateFilter?: string) {
     await dbConnect();
@@ -18,10 +20,20 @@ async function getData(dateFilter?: string) {
         $lt: new Date(new Date(dateFilter).getTime() + 24 * 60 * 60 * 1000)
     } : null;
 
-    // If date is selected, we filter by date ranges
-    // If no date (or today), we might default to "Current Status" for some, but user asked for "Login date" -> probably specific day view.
-    // Let's assume if dateFilter is provided, we show stats for THAT day.
-    // If NOT provided, we show Global stats (as before).
+    // Get active warehouse context
+    const cookieStore = await cookies();
+    let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+    let warehouseName = cookieStore.get("activeWarehouseName")?.value || "Main Warehouse";
+    
+    if (!warehouseId) {
+        const main = await Warehouse.findOne({ isMain: true });
+        if (main) {
+            warehouseId = main._id.toString();
+            warehouseName = main.name;
+        }
+    }
+    
+    const filter = warehouseId ? { warehouseId } : {};
 
     // However, the user wants "enter login date also". 
     // "Active Trips" (Current) vs "Trips Started" (History).
@@ -36,22 +48,18 @@ async function getData(dateFilter?: string) {
     // - Active Trips -> Trips Started on Date
     // - Invoices -> Invoices Generated on Date
 
-    const tripQuery = dateFilter ? { startTime: dateQuery } : { status: { $ne: "VERIFIED" } };
-    const billQuery = dateFilter ? { generatedAt: dateQuery } : {};
-
-    // Recent Activity Query
-    // If date: updatedAt on date.
-    // If no date: limit 5
-    const activityQuery = dateFilter ? { updatedAt: dateQuery } : {};
+    const tripQuery = dateFilter ? { ...filter, startTime: dateQuery } : { ...filter, status: { $ne: "VERIFIED" } };
+    const billQuery = dateFilter ? { ...filter, generatedAt: dateQuery } : { ...filter };
+    const activityQuery = dateFilter ? { ...filter, updatedAt: dateQuery } : { ...filter };
     // If date selected, maybe show ALL activity for that date? Or still limit? 
     // Let's show all for that date (or limit 20).
 
     const [productCount, tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips] = await Promise.all([
-        Product.countDocuments({}), // Always total stock
+        Product.countDocuments(filter), // Always total stock in warehouse
         Trip.countDocuments(tripQuery as any),
-        Trip.countDocuments({ status: "VERIFIED", ...(dateFilter ? { endTime: dateQuery } : {}) }), // If date, trips verified on date. If global, total verified.
+        Trip.countDocuments({ ...filter, status: "VERIFIED", ...(dateFilter ? { endTime: dateQuery } : {}) }), // If date, trips verified on date. If global, total verified.
         Bill.countDocuments(billQuery as any),
-        Product.countDocuments({ quantity: { $lt: 20 } }),
+        Product.countDocuments({ ...filter, quantity: { $lt: 20 } }),
         Trip.find(activityQuery as any)
             .sort({ updatedAt: -1 })
             .limit(dateFilter ? 50 : 5)
@@ -65,7 +73,8 @@ async function getData(dateFilter?: string) {
         billCount,
         lowStockCount,
         recentTrips,
-        isFiltered: !!dateFilter
+        isFiltered: !!dateFilter,
+        warehouseName
     };
 }
 
@@ -90,7 +99,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <h1 className="text-3xl font-bold text-gray-900">
                         Good Evening, <span className="text-ruby-700">{user.name?.split(" ")[0]}</span>
                     </h1>
-                    <p className="text-gray-500 mt-1">Here is what is happening in your warehouse.</p>
+                    <p className="text-gray-500 mt-1 flex items-center gap-2">
+                        Welcome back to <span className="text-ruby-700 font-bold">{data.warehouseName}</span>
+                    </p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <DashboardDateFilter />

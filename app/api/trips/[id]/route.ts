@@ -6,6 +6,8 @@ import Vehicle from "@/models/Vehicle";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await getServerSession(authOptions);
     // Only ADMIN should verify? "ADMIN: Verify trips". Yes.

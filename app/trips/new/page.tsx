@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save, Trash2, Plus, ArrowRight, Check, PackagePlus, ArrowLeft, Truck } from "lucide-react";
+import { Loader2, Save, Trash2, Plus, ArrowRight, Check, PackagePlus, ArrowLeft, Truck, Printer } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
@@ -126,6 +126,10 @@ export default function NewTripPage() {
         setManifest(manifest.filter((_, i) => i !== index));
     };
 
+    const handlePrint = () => {
+        window.print();
+    };
+
     const handleSubmit = async () => {
         if (!selectedVehicle) return alert("Select a vehicle");
         if (manifest.length === 0) return alert("Add items to load");
@@ -158,9 +162,12 @@ export default function NewTripPage() {
         }
     };
 
+    // Find selected vehicle details
+    const activeVehicle = vehicles.find((v: any) => v._id === selectedVehicle) as any;
+
     return (
         <div className="max-w-6xl mx-auto pb-12">
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-8 print:hidden">
                 <Link href="/trips" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
@@ -172,8 +179,8 @@ export default function NewTripPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* LEFT: Selection Area */}
-                <div className="lg:col-span-2 space-y-6">
+                {/* LEFT: Selection Area (Hidden when printing) */}
+                <div className="lg:col-span-2 space-y-6 print:hidden">
 
                     {/* Vehicle Selector */}
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -295,28 +302,58 @@ export default function NewTripPage() {
                 </div>
 
                 {/* RIGHT: Manifest / Current Load */}
-                <div className="lg:col-span-1">
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 sticky top-6 overflow-hidden flex flex-col h-[calc(100vh-100px)]">
-                        <div className="p-4 bg-gray-50 border-b border-gray-100 flex flex-col justify-between">
-                            <h2 className="font-bold text-gray-900 justify-between items-center flex">
-                                Load Manifest
-                                <span className="text-xs bg-ruby-100 text-ruby-700 px-2 py-1 rounded-full">
-                                    {manifest.length} Items
-                                </span>
-                            </h2>
+                <div className="lg:col-span-1 print:col-span-3">
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 sticky top-6 overflow-hidden flex flex-col h-auto print:shadow-none print:border-none print:relative print:top-0">
+                        
+                        {/* Print Header (Visible only when printing) */}
+                        <div className="hidden print:block p-8 border-b-2 border-black mb-6">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h1 className="text-4xl font-black uppercase tracking-tighter text-black">Load Manifest</h1>
+                                    <p className="text-sm font-bold text-gray-600">Generated: {new Date().toLocaleString('en-IN')}</p>
+                                </div>
+                                {activeVehicle && (
+                                    <div className="text-right">
+                                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Vehicle Info</div>
+                                        <div className="text-3xl font-black text-black">{activeVehicle.number}</div>
+                                        <div className="text-lg font-bold text-gray-700">{activeVehicle.driverName}</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Screen Header */}
+                        <div className="p-4 bg-gray-50 border-b border-gray-100 flex flex-col justify-between print:bg-white print:border-b-2 print:border-black">
+                            <div className="flex justify-between items-center mb-2">
+                                <h2 className="font-bold text-gray-900 flex items-center gap-2 print:text-2xl print:font-black">
+                                    Manifest Items
+                                    <span className="text-xs bg-ruby-100 text-ruby-700 px-2 py-1 rounded-full print:bg-black print:text-white">
+                                        {manifest.length} Items
+                                    </span>
+                                </h2>
+                                {manifest.length > 0 && (
+                                    <button 
+                                        onClick={handlePrint}
+                                        className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-ruby-600 transition-all border border-transparent hover:border-gray-200 print:hidden"
+                                        title="Print Manifest"
+                                    >
+                                        <Printer className="w-5 h-5" />
+                                    </button>
+                                )}
+                            </div>
                             {manifest.length > 0 && (
-                                <div className="mt-2 flex justify-between items-center text-sm">
-                                    <span className="text-gray-500 font-medium">Grand Total</span>
-                                    <span className="font-bold text-ruby-700 text-lg">
+                                <div className="flex justify-between items-center text-sm print:mt-4">
+                                    <span className="text-gray-500 font-medium print:text-black print:font-bold print:text-lg">Grand Total</span>
+                                    <span className="font-bold text-ruby-700 text-lg print:text-3xl print:font-black print:text-black">
                                         ₹{manifest.reduce((acc, item) => acc + (item.price * item.qtyLoaded), 0).toLocaleString()}
                                     </span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 print:overflow-visible print:p-0 print:mt-6">
                             {manifest.length === 0 ? (
-                                <div className="text-center py-12 text-gray-400">
+                                <div className="text-center py-12 text-gray-400 print:hidden">
                                     <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                                         <PackagePlus className="w-8 h-8 text-gray-300" />
                                     </div>
@@ -324,28 +361,44 @@ export default function NewTripPage() {
                                     <p className="text-xs mt-1">Select items on the left to start loading.</p>
                                 </div>
                             ) : (
-                                manifest.map((item, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm group">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-gray-900 truncate">{item.name}</div>
-                                            <div className="text-xs text-gray-500">{item.flavour} • {item.pack}</div>
-                                            <div className="text-xs font-bold text-teal-600 mt-0.5">₹{(item.price * item.qtyLoaded).toLocaleString()} (₹{item.price} each)</div>
+                                <div className="space-y-3 print:space-y-0 print:border-t print:border-black">
+                                    {manifest.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm group print:shadow-none print:border-b print:border-gray-200 print:rounded-none print:p-4">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-gray-900 truncate print:text-xl print:font-black print:text-black">{item.name}</div>
+                                                <div className="text-xs text-gray-500 print:text-gray-700 print:font-bold">{item.flavour} • {item.pack}</div>
+                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">₹{(item.price * item.qtyLoaded).toLocaleString()} (₹{item.price} each)</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-black text-gray-900 text-lg print:text-3xl print:text-black">{item.qtyLoaded}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => removeFromManifest(idx)}
+                                                className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors print:hidden"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-bold text-gray-900 text-lg">{item.qtyLoaded}</div>
-                                        </div>
-                                        <button
-                                            onClick={() => removeFromManifest(idx)}
-                                            className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 bg-gray-50">
+                        {/* Print Footer */}
+                        <div className="hidden print:block mt-12 pt-8 border-t-2 border-black">
+                            <div className="flex justify-between items-center px-4">
+                                <div className="text-center">
+                                    <div className="w-48 border-b border-black mb-2"></div>
+                                    <div className="text-xs font-black uppercase text-black">Warehouse In-charge</div>
+                                </div>
+                                <div className="text-center">
+                                    <div className="w-48 border-b border-black mb-2"></div>
+                                    <div className="text-xs font-black uppercase text-black">Driver Signature</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 print:hidden">
                             <button
                                 onClick={handleSubmit}
                                 disabled={manifest.length === 0 || !selectedVehicle || loading}

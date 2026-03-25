@@ -14,17 +14,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         const { id } = await params;
-        const { quantityToAdd, invoiceCost, price } = await req.json();
-
-        if (!quantityToAdd || quantityToAdd <= 0) {
-            return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
-        }
+        const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice } = await req.json();
 
         await dbConnect();
 
-        const updateData: any = { $inc: { quantity: quantityToAdd } };
+        const updateData: any = {};
+        
+        // Handle Quantity (Absolute or Incremental)
+        if (quantity !== undefined) {
+            updateData.quantity = quantity;
+        } else if (quantityToAdd !== undefined) {
+            updateData.$inc = { quantity: quantityToAdd };
+        }
+
+        // Handle Other Fields (Absolute)
         if (invoiceCost !== undefined) updateData.invoiceCost = invoiceCost;
         if (price !== undefined) updateData.price = price;
+        if (mrp !== undefined) updateData.mrp = mrp;
+        if (salePrice !== undefined) updateData.salePrice = salePrice;
 
         const product = await Product.findByIdAndUpdate(
             id,
@@ -38,7 +45,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         return NextResponse.json(product);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to update stock" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
     }
 }
 

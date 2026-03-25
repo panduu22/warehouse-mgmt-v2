@@ -8,6 +8,7 @@ import Warehouse from "@/models/Warehouse";
 import { cookies } from "next/headers";
 import DeleteProductButton from "./DeleteProductButton";
 import { QuantityEditor } from "./QuantityEditor";
+import { PriceEditor } from "./PriceEditor";
 
 async function getProducts() {
     await dbConnect();
@@ -90,7 +91,13 @@ export default async function StockPage() {
                                         <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.invoiceCost)}</td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.price)}</td>
+                                        <td className="px-6 py-4">
+                                            {isAdmin ? (
+                                                <PriceEditor productId={product._id} initialPrice={product.price} />
+                                            ) : (
+                                                <span className="text-gray-600 font-medium">{formatCurrency(product.price)}</span>
+                                            )}
+                                        </td>
                                         <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {formatCurrency(profit)}
                                         </td>

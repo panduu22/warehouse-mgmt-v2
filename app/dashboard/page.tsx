@@ -58,10 +58,16 @@ async function getData(dateFilter?: string) {
     // If date selected, maybe show ALL activity for that date? Or still limit? 
     // Let's show all for that date (or limit 20).
 
-    const [productCount, tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips] = await Promise.all([
-        Product.countDocuments(filter), // Always total stock in warehouse
+    // Calculate total stock (sum of all quantities)
+    const stockResult = await Product.aggregate([
+        { $match: warehouseId ? { warehouseId: new mongoose.Types.ObjectId(warehouseId) } : {} },
+        { $group: { _id: null, total: { $sum: "$quantity" } } }
+    ]);
+    const totalStock = stockResult[0]?.total || 0;
+
+    const [tripMetricCount, verifiedTripsCount, billCount, lowStockCount, recentTrips] = await Promise.all([
         Trip.countDocuments(tripQuery as any),
-        Trip.countDocuments({ ...filter, status: "VERIFIED", ...(dateFilter ? { endTime: dateQuery } : {}) }), // If date, trips verified on date. If global, total verified.
+        Trip.countDocuments({ ...filter, status: "VERIFIED", ...(dateFilter ? { endTime: dateQuery } : {}) }),
         Bill.countDocuments(billQuery as any),
         Product.countDocuments({ ...filter, quantity: { $lt: 20 } }),
         Trip.find(activityQuery as any)
@@ -71,7 +77,7 @@ async function getData(dateFilter?: string) {
     ]);
 
     return {
-        productCount,
+        productCount: totalStock,
         tripMetricCount,
         verifiedTripsCount,
         billCount,

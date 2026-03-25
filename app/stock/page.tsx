@@ -95,9 +95,9 @@ export default async function StockPage() {
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
                                         <td className="px-6 py-4">
                                             {isAdmin ? (
-                                                <PriceEditor productId={product._id} initialPrice={product.price} />
+                                                <PriceEditor productId={product._id} initialPrice={product.price || product.salePrice} />
                                             ) : (
-                                                <span className="text-gray-600 font-medium">{formatCurrency(product.price)}</span>
+                                                <span className="text-gray-600 font-medium">{formatCurrency(product.price || product.salePrice)}</span>
                                             )}
                                         </td>
                                         <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>

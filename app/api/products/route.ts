@@ -16,7 +16,16 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
         }
 
-        let { name, sku, quantity, price, location, pack, flavour, invoiceCost, mrp, salePrice } = await req.json();
+        const body = await req.json();
+        const salePrice = Number(body.salePrice) || 0;
+        const price = Number(body.price) || salePrice; // Default Today's Price to Sale Price
+        
+        const data = {
+            ...body,
+            price,
+            salePrice,
+            // warehouseId: Handled below
+        };
         
         // Get active warehouse context
         const cookieStore = await cookies();
@@ -30,25 +39,18 @@ export async function POST(req: Request) {
         }
 
         // Auto-generate SKU if not provided
+        let sku = data.sku;
         if (!sku) {
-            const base = (name || "").substring(0, 3).toUpperCase();
-            const flav = (flavour || "").substring(0, 3).toUpperCase();
-            const pck = (pack || "").substring(0, 3).toUpperCase();
+            const base = (data.name || "").substring(0, 3).toUpperCase();
+            const flav = (data.flavour || "").substring(0, 3).toUpperCase();
+            const pck = (data.pack || "").substring(0, 3).toUpperCase();
             const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
             sku = `${base}-${flav}-${pck}-${random}`.replace(/-+/g, "-");
         }
 
         const product = await Product.create({
-            name,
-            sku,
-            quantity,
-            price,
-            location,
-            pack,
-            flavour,
-            invoiceCost,
-            mrp,
-            salePrice,
+            ...data,
+            sku, // Use the potentially auto-generated SKU
             warehouseId
         });
 

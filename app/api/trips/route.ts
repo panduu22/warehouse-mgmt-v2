@@ -4,6 +4,7 @@ import Trip from "@/models/Trip";
 export const dynamic = "force-dynamic";
 import Product from "@/models/Product";
 import Vehicle from "@/models/Vehicle";
+import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         await dbConnect();
 
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
             warehouseId = main._id.toString();
@@ -80,7 +81,7 @@ export async function GET() {
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (main) warehouseId = main._id.toString();
         }

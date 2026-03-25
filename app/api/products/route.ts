@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
+import mongoose from "mongoose";
 
 export async function POST(req: Request) {
     try {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         await dbConnect();
 
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
             warehouseId = main._id.toString();
@@ -65,7 +66,7 @@ export async function GET() {
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (main) warehouseId = main._id.toString();
         }

@@ -4,6 +4,8 @@ import Bill from "@/models/Bill";
 export const dynamic = "force-dynamic";
 import Trip from "@/models/Trip";
 import Product from "@/models/Product";
+import Vehicle from "@/models/Vehicle"; // Ensure model is registered for populate
+import mongoose from "mongoose";
 // Need Product to get price history? 
 // Current Price or Historical Price? 
 // Product model has current price. Trip doesn't store price snapshot.
@@ -27,7 +29,7 @@ export async function POST(req: Request) {
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         await dbConnect();
 
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
             warehouseId = main._id.toString();
@@ -82,7 +84,7 @@ export async function GET() {
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
-        if (!warehouseId) {
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (main) warehouseId = main._id.toString();
         }

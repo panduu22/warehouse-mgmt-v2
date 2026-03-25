@@ -87,7 +87,8 @@ export default async function StockPage() {
                         ) : (
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             products.map((product: any) => {
-                                const profit = (product.salePrice || 0) - (product.invoiceCost || 0);
+                                const currentPrice = product.price || product.salePrice || 0;
+                                const profit = currentPrice - (product.invoiceCost || 0);
                                 return (
                                     <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>

@@ -69,60 +69,62 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12 bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50">
                     <div>
-                        <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Customer / Trip Details</p>
-                        <h3 className="font-extrabold text-gray-900 text-xl mb-1">{bill.tripId?.vehicleId?.driverName || "Standard Delivery"}</h3>
-                        <p className="text-gray-600 font-medium flex items-center gap-2">
-                            <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs font-bold">{bill.tripId?.vehicleId?.number || "N/A"}</span>
+                        <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Customer / Delivery Partner</p>
+                        <h3 className="font-black text-black text-2xl mb-1">{bill.tripId?.vehicleId?.driverName || "N/A"}</h3>
+                        <p className="text-gray-700 font-bold flex items-center gap-2">
+                            <span className="bg-ruby-50 text-ruby-700 px-2 py-0.5 rounded text-xs font-black ring-1 ring-ruby-200">VEHICLE {bill.tripId?.vehicleId?.number || "N/A"}</span>
                             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                            Vehicle Trip #{bill.tripId?._id.slice(-6).toUpperCase()}
+                            Trip Ref #{bill.tripId?._id.slice(-6).toUpperCase()}
                         </p>
                     </div>
                     <div className="md:text-right">
                         <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Payment Summary</p>
-                        <p className="text-3xl font-black text-gray-900">₹{bill.totalAmount.toLocaleString('en-IN')}</p>
-                        <p className="text-emerald-600 font-bold text-xs uppercase tracking-wider mt-1">Paid / Settlement Pending</p>
+                        <p className="text-3xl font-black text-black">₹{bill.totalAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-emerald-700 font-black text-xs uppercase tracking-wider mt-1 flex items-center md:justify-end gap-1">
+                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                            Payment Settled
+                        </p>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full mb-12">
                         <thead>
-                            <tr className="border-b-2 border-gray-900 text-[11px] uppercase font-black text-gray-900 tracking-widest">
-                                <th className="px-4 py-4 text-left">Product Details</th>
+                            <tr className="border-b-4 border-black text-[11px] uppercase font-black text-black tracking-[0.2em]">
+                                <th className="px-4 py-4 text-left">Description</th>
                                 <th className="px-4 py-4 text-right">Qty</th>
-                                <th className="px-4 py-4 text-right">Unit Price</th>
-                                <th className="px-4 py-4 text-right">Amount</th>
+                                <th className="px-4 py-4 text-right w-32">Price</th>
+                                <th className="px-4 py-4 text-right w-32">Amount</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {bill.items && bill.items.length > 0 ? (
                                 bill.items.map((item: any, idx: number) => (
-                                    <tr key={`bill-item-${idx}`} className="group hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-4 py-5">
-                                            <div className="font-extrabold text-gray-900 text-base">{item.name}</div>
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <span className="text-ruby-700 font-bold text-[10px] uppercase">{item.flavour}</span>
-                                                <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                                                <span className="text-gray-500 font-medium text-[10px] uppercase">{item.pack}</span>
+                                    <tr key={`bill-item-${idx}`} className="hover:bg-gray-50/30">
+                                        <td className="px-4 py-6">
+                                            <div className="font-black text-black text-lg leading-tight mb-0.5">{item.name}</div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-ruby-700 font-black text-[11px] uppercase">{item.flavour}</span>
+                                                <span className="text-gray-400 font-black text-[11px]">•</span>
+                                                <span className="text-gray-500 font-black text-[11px] uppercase">{item.pack}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-5 text-right font-bold text-gray-900">{item.quantity}</td>
-                                        <td className="px-4 py-5 text-right font-medium text-gray-600">₹{item.price.toLocaleString('en-IN')}</td>
-                                        <td className="px-4 py-5 text-right font-black text-gray-900">₹{item.total.toLocaleString('en-IN')}</td>
+                                        <td className="px-4 py-6 text-right font-black text-black text-lg">{item.quantity}</td>
+                                        <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{item.price.toLocaleString('en-IN')}</td>
+                                        <td className="px-4 py-6 text-right font-black text-black text-lg">₹{item.total.toLocaleString('en-IN')}</td>
                                     </tr>
                                 ))
                             ) : (
-                                // Fallback for very old bills if migration missed them
-                                bill.tripId?.loadedItems.map((item: any, idx: number) => {
+                                bill.tripId?.loadedItems && bill.tripId.loadedItems.map((item: any, idx: number) => {
                                     const sold = item.qtyLoaded - (item.qtyReturned || 0);
                                     if (sold <= 0) return null;
-                                    const price = item.productId?.price || 0;
+                                    const price = item.productId?.price || item.productId?.salePrice || 0;
                                     return (
-                                        <tr key={`fallback-item-${idx}`}>
-                                            <td className="px-4 py-5 font-bold text-gray-900">{item.productId?.name}</td>
-                                            <td className="px-4 py-5 text-right font-bold">{sold}</td>
-                                            <td className="px-4 py-5 text-right">₹{price}</td>
-                                            <td className="px-4 py-5 text-right font-bold">₹{sold * price}</td>
+                                        <tr key={`fallback-${idx}`} className="hover:bg-gray-50/30">
+                                            <td className="px-4 py-6 font-black text-black text-lg">{item.productId?.name || "Product"}</td>
+                                            <td className="px-4 py-6 text-right font-black text-black text-lg">{sold}</td>
+                                            <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{price.toLocaleString('en-IN')}</td>
+                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{(sold * price).toLocaleString('en-IN')}</td>
                                         </tr>
                                     );
                                 })
@@ -131,15 +133,19 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     </table>
                 </div>
 
-                <div className="flex justify-end border-t-2 border-gray-900 pt-8 mt-12">
-                    <div className="w-full md:w-72 space-y-4">
-                        <div className="flex justify-between items-center text-sm font-bold text-gray-500 uppercase tracking-widest">
-                            <span>Net Total</span>
-                            <span className="text-gray-900">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
+                <div className="flex justify-end border-t-4 border-black pt-10 mt-12">
+                    <div className="w-full md:w-80 space-y-6">
+                        <div className="flex justify-between items-center text-xs font-black text-gray-500 uppercase tracking-widest">
+                            <span>Taxable Value</span>
+                            <span className="text-black">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
                         </div>
-                        <div className="flex justify-between items-center pt-6 border-t border-gray-100">
-                            <span className="text-lg font-black text-gray-900 uppercase tracking-tighter">Grand Total</span>
-                            <span className="text-3xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between items-center text-xs font-black text-gray-500 uppercase tracking-widest">
+                            <span>Discount / Adjust</span>
+                            <span className="text-black">₹0.00</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-8 border-t border-gray-100">
+                            <span className="text-xl font-black text-black uppercase tracking-tighter">Net Total Amount</span>
+                            <span className="text-4xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>

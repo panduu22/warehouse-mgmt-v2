@@ -106,7 +106,10 @@ export async function GET() {
         const bills = await Bill.find(filter)
             .populate({
                 path: "tripId",
-                populate: { path: "vehicleId" }
+                populate: [
+                    { path: "vehicleId" },
+                    { path: "loadedItems.productId" }
+                ]
             })
             .populate("warehouseId")
             .sort({ generatedAt: -1 });

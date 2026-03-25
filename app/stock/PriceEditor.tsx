@@ -74,7 +74,7 @@ export function PriceEditor({ productId, initialPrice }: { productId: string, in
             </span>
             <button
                 onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-300 hover:text-ruby-600 hover:bg-ruby-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                className="p-1 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded transition-all"
             >
                 <Edit2 className="w-3.5 h-3.5" />
             </button>

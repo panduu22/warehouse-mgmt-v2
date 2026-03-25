@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { Loader2, Check, X, Edit2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function PriceEditor({ productId, initialPrice }: { productId: string, initialPrice: number }) {
     const [isEditing, setIsEditing] = useState(false);
     const [price, setPrice] = useState(initialPrice);
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
     const handleUpdate = async () => {
         setLoading(true);
@@ -19,6 +21,7 @@ export function PriceEditor({ productId, initialPrice }: { productId: string, in
 
             if (!res.ok) throw new Error("Update failed");
             
+            router.refresh();
             setIsEditing(false);
         } catch (e) {
             alert("Failed to update price");

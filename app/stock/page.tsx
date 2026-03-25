@@ -10,6 +10,7 @@ import DeleteProductButton from "./DeleteProductButton";
 import { QuantityEditor } from "./QuantityEditor";
 import { PriceEditor } from "./PriceEditor";
 import mongoose from "mongoose";
+import StockSearch from "@/components/StockSearch";
 
 async function getProducts() {
     await dbConnect();
@@ -34,10 +35,20 @@ async function getProducts() {
     };
 }
 
-export default async function StockPage() {
+export default async function StockPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+    const { q: query } = await searchParams;
     const session = await getServerSession(authOptions);
-    const { products, warehouseName } = await getProducts();
+    const { products: allProducts, warehouseName } = await getProducts();
     const isAdmin = (session?.user as any)?.role === "ADMIN";
+
+    // Filtering
+    const products = query ? allProducts.filter((p: any) => 
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.flavour?.toLowerCase().includes(query.toLowerCase()) ||
+        p.pack?.toLowerCase().includes(query.toLowerCase()) ||
+        p.sku?.toLowerCase().includes(query.toLowerCase())
+    ) : allProducts;
+
 
     const formatCurrency = (amount?: number) => {
         if (amount === undefined || amount === null) return "₹0";
@@ -61,6 +72,10 @@ export default async function StockPage() {
                         Add Stock
                     </Link>
                 )}
+            </div>
+
+            <div className="mb-6">
+                <StockSearch />
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

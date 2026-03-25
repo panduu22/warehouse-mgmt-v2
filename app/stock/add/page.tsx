@@ -397,37 +397,59 @@ export default function AddStockPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Today's Price (₹)</label>
-                                <input
-                                    name="price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="0.00"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Sale Price (₹)</label>
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-gray-700">Sale Price (₹)</label>
+                                    <span className="text-[10px] text-ruby-600 font-bold uppercase">Required</span>
+                                </div>
                                 <input
                                     name="salePrice"
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    required
+                                    onChange={(e) => {
+                                        const priceInput = document.getElementsByName("price")[0] as HTMLInputElement;
+                                        if (priceInput && !priceInput.value) {
+                                            // Optional: auto-fill logic if desired, 
+                                            // but the backend handles it as well.
+                                        }
+                                    }}
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900 font-bold"
                                     placeholder="0.00"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-gray-700">Today's Price (₹)</label>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Default: Sale Price</span>
+                                </div>
+                                <input
+                                    name="price"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="Leave empty for Sale Price"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center gap-3">
+                            <div className="bg-emerald-100 p-2 rounded-lg">
+                                <Check className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <p className="text-sm font-medium text-emerald-800">
+                                <span className="font-bold">Pro Tip:</span> Profit will be calculated as <span className="underline decoration-emerald-300 underline-offset-4 font-black">Today's Price - Invoice Cost</span> automatically.
+                            </p>
                         </div>
 
                         <div className="pt-4 flex justify-end">
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-ruby-700 hover:bg-ruby-800 text-white px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                className="bg-ruby-700 hover:bg-ruby-800 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-ruby-900/10 active:scale-95"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
                                 Save New Product
                             </button>
                         </div>

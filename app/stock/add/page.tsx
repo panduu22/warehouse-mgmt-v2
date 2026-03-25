@@ -137,6 +137,8 @@ export default function AddStockPage() {
             quantity: Number(formData.get("quantity")),
             price: Number(formData.get("price")),
             invoiceCost: Number(formData.get("invoiceCost")),
+            mrp: Number(formData.get("mrp")),
+            salePrice: Number(formData.get("salePrice")),
             // location: Removed
             pack: formData.get("pack"),
             flavour: formData.get("flavour")
@@ -353,7 +355,7 @@ export default function AddStockPage() {
                         </div>
 
                         {/* Excel Fields (Optional) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-xl">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Flavour</label>
                                 <input
@@ -370,9 +372,19 @@ export default function AddStockPage() {
                                     placeholder="e.g. 24x500ml"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">MRP (Base) (₹)</label>
+                                <input
+                                    name="mrp"
+                                    type="number"
+                                    step="0.01"
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Initial Quantity</label>
                                 <input
@@ -385,13 +397,24 @@ export default function AddStockPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Price (₹)</label>
+                                <label className="text-sm font-medium text-gray-700">Today's Price (₹)</label>
                                 <input
                                     name="price"
                                     type="number"
                                     min="0"
                                     step="0.01"
                                     required
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Sale Price (₹)</label>
+                                <input
+                                    name="salePrice"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
                                     placeholder="0.00"
                                 />

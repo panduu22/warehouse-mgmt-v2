@@ -15,7 +15,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
         }
 
-        let { name, sku, quantity, price, location, pack, flavour, invoiceCost } = await req.json();
+        let { name, sku, quantity, price, location, pack, flavour, invoiceCost, mrp, salePrice } = await req.json();
         
         // Get active warehouse context
         const cookieStore = await cookies();
@@ -46,6 +46,8 @@ export async function POST(req: Request) {
             pack,
             flavour,
             invoiceCost,
+            mrp,
+            salePrice,
             warehouseId
         });
 

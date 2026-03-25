@@ -21,16 +21,29 @@ async function getProducts() {
         if (main) warehouseId = main._id.toString();
     }
     
+    const warehouse = warehouseId ? await Warehouse.findById(warehouseId) : null;
     const filter = warehouseId ? { warehouseId } : {};
 
     const products = await Product.find(filter).sort({ createdAt: -1 });
-    return JSON.parse(JSON.stringify(products));
+    return {
+        products: JSON.parse(JSON.stringify(products)),
+        warehouseName: warehouse?.name || "Unit"
+    };
 }
 
 export default async function StockPage() {
     const session = await getServerSession(authOptions);
-    const products = await getProducts();
+    const { products, warehouseName } = await getProducts();
     const isAdmin = (session?.user as any)?.role === "ADMIN";
+
+    const formatCurrency = (amount?: number) => {
+        if (amount === undefined || amount === null) return "₹0";
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 2
+        }).format(amount);
+    };
 
     return (
         <div>
@@ -42,60 +55,71 @@ export default async function StockPage() {
                         className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
                     >
                         <Plus className="w-5 h-5" />
-                        Add Product
+                        Add Stock
                     </Link>
                 )}
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-medium">
+                    <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold">
                         <tr>
                             <th className="px-6 py-4">Product Name</th>
                             <th className="px-6 py-4">Invoice Cost</th>
-                            <th className="px-6 py-4">Price</th>
+                            <th className="px-6 py-4">MRP (Base)</th>
+                            <th className="px-6 py-4">Today's Price</th>
+                            <th className="px-6 py-4">Profit/Margin</th>
+                            <th className="px-6 py-4">Sale Price</th>
                             <th className="px-6 py-4 text-right">Quantity</th>
-                            {isAdmin && <th className="px-6 py-4 w-10"></th>}
+                            <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {products.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                                    No products found. Add some stock to get started.
+                                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                                    No products found in {warehouseName}.
                                 </td>
                             </tr>
                         ) : (
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            products.map((product: any) => (
-                                <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
-                                    <td className="px-6 py-4 text-gray-600">₹{product.invoiceCost || product.mrp || "-"}</td>
-                                    <td className="px-6 py-4 text-gray-600">₹{product.price}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        {isAdmin ? (
-                                            <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
-                                        ) : (
-                                            <span
-                                                className={
-                                                    product.quantity < 10
-                                                        ? "text-red-600 font-bold"
-                                                        : product.quantity < 50
-                                                            ? "text-amber-600 font-bold"
-                                                            : "text-emerald-600 font-bold"
-                                                }
-                                            >
-                                                {product.quantity}
-                                            </span>
-                                        )}
-                                    </td>
-                                    {isAdmin && (
-                                        <td className="px-6 py-4 text-right">
-                                            <DeleteProductButton productId={product._id} />
+                            products.map((product: any) => {
+                                const profit = (product.salePrice || 0) - (product.invoiceCost || 0);
+                                return (
+                                    <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.invoiceCost)}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.price)}</td>
+                                        <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                            {formatCurrency(profit)}
                                         </td>
-                                    )}
-                                </tr>
-                            ))
+                                        <td className="px-6 py-4 text-gray-900 font-bold">{formatCurrency(product.salePrice)}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            {isAdmin ? (
+                                                <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
+                                            ) : (
+                                                <span
+                                                    className={
+                                                        product.quantity < 10
+                                                            ? "text-red-600 font-bold"
+                                                            : product.quantity < 50
+                                                                ? "text-amber-600 font-bold"
+                                                                : "text-emerald-600 font-bold"
+                                                    }
+                                                >
+                                                    {product.quantity}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {isAdmin && <DeleteProductButton productId={product._id} />}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

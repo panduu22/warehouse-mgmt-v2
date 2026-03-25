@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import DeleteProductButton from "./DeleteProductButton";
 import { QuantityEditor } from "./QuantityEditor";
 import { PriceEditor } from "./PriceEditor";
+import mongoose from "mongoose";
 
 async function getProducts() {
     await dbConnect();
@@ -17,9 +18,10 @@ async function getProducts() {
     const cookieStore = await cookies();
     let warehouseId = cookieStore.get("activeWarehouseId")?.value;
     
-    if (!warehouseId) {
+    if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
         const main = await Warehouse.findOne({ isMain: true });
         if (main) warehouseId = main._id.toString();
+        else warehouseId = undefined;
     }
     
     const warehouse = warehouseId ? await Warehouse.findById(warehouseId) : null;

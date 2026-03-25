@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
+import mongoose from "mongoose";
 export const dynamic = "force-dynamic";
 import User from "@/models/User";
 import { getServerSession } from "next-auth";
@@ -16,7 +17,7 @@ export async function GET() {
         const activeWarehouseId = cookieStore.get("activeWarehouseId")?.value;
         const activeWarehouseName = cookieStore.get("activeWarehouseName")?.value;
 
-        if (activeWarehouseId) {
+        if (activeWarehouseId && mongoose.Types.ObjectId.isValid(activeWarehouseId)) {
             return NextResponse.json({ activeWarehouseId, activeWarehouseName });
         }
 

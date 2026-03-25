@@ -10,7 +10,9 @@ import Link from "next/link";
 import clsx from "clsx";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
 import Warehouse from "@/models/Warehouse";
+import Vehicle from "@/models/Vehicle"; // Import to ensure model is registered for populate
 import { cookies } from "next/headers";
+import mongoose from "mongoose";
 
 async function getData(dateFilter?: string) {
     await dbConnect();
@@ -25,11 +27,13 @@ async function getData(dateFilter?: string) {
     let warehouseId = cookieStore.get("activeWarehouseId")?.value;
     let warehouseName = cookieStore.get("activeWarehouseName")?.value || "Main Warehouse";
     
-    if (!warehouseId) {
+    if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
         const main = await Warehouse.findOne({ isMain: true });
         if (main) {
             warehouseId = main._id.toString();
             warehouseName = main.name;
+        } else {
+            warehouseId = undefined; // Ensure it's not an invalid string
         }
     }
     

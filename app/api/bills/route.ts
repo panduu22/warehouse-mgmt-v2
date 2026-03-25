@@ -48,20 +48,32 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Trip must be verified before billing" }, { status: 400 });
         }
 
-        // Calculate Total
+        // Calculate Total and Items Snapshot
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: any[] = [];
         let totalAmount = 0;
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         trip.loadedItems.forEach((item: any) => {
             const sold = item.qtyLoaded - (item.qtyReturned || 0);
-            const price = item.productId.price;
+            const price = item.productId.price || item.productId.salePrice || 0;
             if (sold > 0) {
-                totalAmount += sold * price;
+                const lineTotal = sold * price;
+                totalAmount += lineTotal;
+                items.push({
+                    name: item.productId.name,
+                    pack: item.productId.pack || "Standard",
+                    flavour: item.productId.flavour || "Regular",
+                    quantity: sold,
+                    price: price,
+                    total: lineTotal
+                });
             }
         });
 
         const bill = await Bill.create({
             tripId,
+            items,
             totalAmount,
             generatedBy: (session.user as any).id,
             generatedAt: date ? new Date(date) : new Date(),
@@ -96,6 +108,7 @@ export async function GET() {
                 path: "tripId",
                 populate: { path: "vehicleId" }
             })
+            .populate("warehouseId")
             .sort({ generatedAt: -1 });
         return NextResponse.json(bills);
     } catch (e) {

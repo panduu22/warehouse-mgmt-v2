@@ -21,10 +21,6 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
     { timestamps: true }
 );
 
-// Force model recompilation to apply schema changes (temp fix for dev)
-if (mongoose.models.Vehicle) {
-    delete mongoose.models.Vehicle;
-}
-const Vehicle: Model<IVehicle> = mongoose.model<IVehicle>("Vehicle", VehicleSchema);
+const Vehicle: Model<IVehicle> = mongoose.models.Vehicle || mongoose.model<IVehicle>("Vehicle", VehicleSchema);
 
 export default Vehicle;

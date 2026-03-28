@@ -16,6 +16,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -75,9 +76,18 @@ export async function POST(req: Request) {
             tripId,
             items,
             totalAmount,
-            generatedBy: (session.user as any).id,
+            generatedBy: (session.user as any).id || (session.user as any)._id,
             generatedAt: date ? new Date(date) : new Date(),
             warehouseId
+        });
+
+        await logActivity({
+            userId: (session.user as any).id || (session.user as any)._id,
+            warehouseId: warehouseId.toString(),
+            action: "GENERATE_BILL",
+            details: `Generated invoice for trip ${trip.vehicleId.toString()} totaling ₹${totalAmount.toLocaleString()}.`,
+            targetId: bill._id.toString(),
+            targetModel: "Bill",
         });
 
         return NextResponse.json(bill, { status: 201 });

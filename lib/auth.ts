@@ -42,6 +42,10 @@ export const authOptions: NextAuthOptions = {
                     (session.user as any).role = dbUser.role;
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (session.user as any).id = dbUser._id.toString();
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (session.user as any).assignedWarehouses = dbUser.assignedWarehouses || [];
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (session.user as any).activeWarehouseId = dbUser.activeWarehouseId?.toString();
                 }
             }
             return session;

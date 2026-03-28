@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import { ArrowLeftRight, Loader2, Building2, Trash2 } from "lucide-react";
 import { useWarehouse } from "./WarehouseContext";
+import { useSession } from "next-auth/react";
 
 export function WarehouseSwitcher() {
     const { activeWarehouse, switchWarehouse, loading: ctxLoading } = useWarehouse();
+    const { data: session } = useSession();
+    const userRole = (session?.user as any)?.role;
     const [isOpen, setIsOpen] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -89,7 +92,7 @@ export function WarehouseSwitcher() {
                                                 {w.isMain && <div className="text-[10px] bg-ruby-100 text-ruby-700 px-2 py-0.5 rounded-full uppercase font-bold inline-block mt-1">Main API</div>}
                                             </div>
                                         </button>
-                                        {!w.isMain && (
+                                        {userRole === "ADMIN" && !w.isMain && (
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); handleDelete(w._id, w.name); }}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"

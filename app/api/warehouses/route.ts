@@ -9,10 +9,28 @@ import { authOptions } from "@/lib/auth";
 
 export async function GET() {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const user = session.user as any;
         await dbConnect();
-        const warehouses = await Warehouse.find().sort({ createdAt: 1 });
+
+        let query = {};
+        if (user.role !== "ADMIN") {
+            const now = new Date();
+            const validWarehouseIds = (user.assignedWarehouses || [])
+                .filter((w: any) => new Date(w.expiresAt) > now)
+                .map((w: any) => w.warehouseId);
+            
+            query = { _id: { $in: validWarehouseIds } };
+        }
+
+        const warehouses = await Warehouse.find(query).sort({ createdAt: 1 });
         return NextResponse.json(warehouses);
     } catch (e) {
+        console.error("Error fetching warehouses:", e);
         return NextResponse.json({ error: "Failed to fetch warehouses" }, { status: 500 });
     }
 }

@@ -8,13 +8,15 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
 import mongoose from "mongoose";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || (session.user as any).role !== "ADMIN") {
-            return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+        const user = session.user as any;
 
         const body = await req.json();
         const salePrice = Number(body.salePrice) || 0;
@@ -52,6 +54,15 @@ export async function POST(req: Request) {
             ...data,
             sku, // Use the potentially auto-generated SKU
             warehouseId
+        });
+
+        await logActivity({
+            userId: user.id || user._id,
+            warehouseId: product.warehouseId.toString(),
+            action: "CREATE_PRODUCT",
+            details: `Added new product ${product.name} (SKU: ${product.sku}).`,
+            targetId: product._id.toString(),
+            targetModel: "Product",
         });
 
         return NextResponse.json(product, { status: 201 });

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-export default async function DashboardLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -17,8 +17,7 @@ export default async function DashboardLayout({
 
     const user = session.user as any;
     
-    // If the user has no active warehouse, redirect them to the request landing page
-    if (!user.activeWarehouseId) {
+    if (user.role !== "ADMIN") {
         redirect("/");
     }
 

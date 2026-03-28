@@ -4,6 +4,7 @@ export interface IVehicle extends Document {
     number: string;
     driverName: string;
     status: "AVAILABLE" | "IN_TRANSIT" | "MAINTENANCE";
+    warehouseId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -17,6 +18,7 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
             enum: ["AVAILABLE", "IN_TRANSIT", "MAINTENANCE"],
             default: "AVAILABLE"
         },
+        warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
     },
     { timestamps: true }
 );

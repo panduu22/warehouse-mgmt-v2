@@ -9,6 +9,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
+import { logActivity } from "@/lib/activity";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -58,12 +59,20 @@ export async function POST(req: Request) {
         // Update Vehicle status
         await Vehicle.findByIdAndUpdate(vehicleId, { status: "IN_TRANSIT" });
 
-        // Create Trip
         const trip = await Trip.create({
             vehicleId,
             loadedItems: items,
             status: "LOADED",
             warehouseId
+        });
+
+        await logActivity({
+            userId: (session.user as any).id || (session.user as any)._id,
+            warehouseId: warehouseId.toString(),
+            action: "LOAD_VEHICLE",
+            details: `Loaded ${items.length} product(s) onto vehicle.`,
+            targetId: trip._id.toString(),
+            targetModel: "Trip",
         });
 
         return NextResponse.json(trip, { status: 201 });

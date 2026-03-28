@@ -63,15 +63,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">Stock Management</h1>
-                {isAdmin && (
-                    <Link
-                        href="/stock/add"
-                        className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Add Stock
-                    </Link>
-                )}
+                <Link
+                    href="/stock/add"
+                    className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                >
+                    <Plus className="w-5 h-5" />
+                    Add Stock
+                </Link>
             </div>
 
             <div className="mb-6">
@@ -110,36 +108,18 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.invoiceCost)}</td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
                                         <td className="px-6 py-4">
-                                            {isAdmin ? (
-                                                <PriceEditor productId={product._id} initialPrice={product.price || product.salePrice} />
-                                            ) : (
-                                                <span className="text-gray-600 font-medium">{formatCurrency(product.price || product.salePrice)}</span>
-                                            )}
+                                            <PriceEditor productId={product._id} initialPrice={product.price || product.salePrice} />
                                         </td>
                                         <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {formatCurrency(profit)}
                                         </td>
                                         <td className="px-6 py-4 text-gray-900 font-bold">{formatCurrency(product.salePrice)}</td>
                                         <td className="px-6 py-4 text-right">
-                                            {isAdmin ? (
-                                                <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
-                                            ) : (
-                                                <span
-                                                    className={
-                                                        product.quantity < 10
-                                                            ? "text-red-600 font-bold"
-                                                            : product.quantity < 50
-                                                                ? "text-amber-600 font-bold"
-                                                                : "text-emerald-600 font-bold"
-                                                    }
-                                                >
-                                                    {product.quantity}
-                                                </span>
-                                            )}
+                                            <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                {isAdmin && <DeleteProductButton productId={product._id} />}
+                                                <DeleteProductButton productId={product._id} />
                                             </div>
                                         </td>
                                     </tr>

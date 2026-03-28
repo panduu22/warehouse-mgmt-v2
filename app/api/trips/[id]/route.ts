@@ -5,23 +5,15 @@ import Product from "@/models/Product";
 import Vehicle from "@/models/Vehicle";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await getServerSession(authOptions);
-    // Only ADMIN should verify? "ADMIN: Verify trips". Yes.
-    // STAFF: Update returned stock?
-    // Flow: "Vehicle Return & Verification... Status: RETURNED -> VERIFIED".
-    // Let's assume ADMIN does the final verification button.
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    // Strict to admin for verification
-    if ((session.user as any).role !== "ADMIN") {
-        return NextResponse.json({ error: "Only Admins can verify trips" }, { status: 403 });
-    }
-
     try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
         const { id } = await params;
         const { returnedItems, status, verifiedAt } = await req.json(); // status should be "VERIFIED"
 
@@ -61,11 +53,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         trip.status = "VERIFIED";
         trip.endTime = verifiedAt ? new Date(verifiedAt) : new Date();
-        trip.verifiedBy = (session.user as any).id;
+        trip.verifiedBy = (session.user as any).id || (session.user as any)._id;
         await trip.save();
 
         // Release Vehicle
         await Vehicle.findByIdAndUpdate(trip.vehicleId, { status: "AVAILABLE" });
+
+        await logActivity({
+            userId: (session.user as any).id || (session.user as any)._id,
+            warehouseId: trip.warehouseId.toString(),
+            action: "VERIFY_TRIP",
+            details: `Unloaded and verified vehicle return.`,
+            targetId: trip._id.toString(),
+            targetModel: "Trip",
+        });
 
         return NextResponse.json(trip);
     } catch (error) {

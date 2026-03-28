@@ -3,10 +3,6 @@ import { NextResponse } from "next/server";
 
 export default withAuth(
     function middleware(req) {
-        // If user is on the homepage and authenticated, redirect to dashboard
-        if (req.nextUrl.pathname === "/" && req.nextauth.token) {
-            return NextResponse.redirect(new URL("/dashboard", req.url));
-        }
         return NextResponse.next();
     },
     {

@@ -8,7 +8,7 @@ import { useWarehouse } from "@/components/WarehouseContext";
 
 export default function NewWarehousePage() {
     const router = useRouter();
-    const { fetchActiveWarehouse } = useWarehouse();
+    const { switchWarehouse } = useWarehouse();
     const [name, setName] = useState("");
     const [address, setAddress] = useState("");
     const [loading, setLoading] = useState(false);
@@ -34,11 +34,13 @@ export default function NewWarehousePage() {
                 throw new Error(data.error || "Failed to create warehouse");
             }
             
-            // Re-fetch context so switcher logs it
-            await fetchActiveWarehouse();
+            const data = await res.json();
+            // Automatically switch context to the newly created warehouse
+            if (data._id) {
+                await switchWarehouse(data._id);
+            }
             
             router.push("/dashboard"); 
-            router.refresh();
         } catch (err: any) {
             alert(err.message);
         } finally {

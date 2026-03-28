@@ -72,3 +72,60 @@ export async function PATCH(
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    req: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!session || (session.user as any).role !== "ADMIN") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    try {
+        const { id: requestId } = await params;
+        await dbConnect();
+
+        const accessRequest = await AccessRequest.findById(requestId);
+        if (!accessRequest) {
+            return NextResponse.json({ error: "Request not found" }, { status: 404 });
+        }
+
+        // Only allow revoking APPROVED requests
+        if (accessRequest.status !== "APPROVED") {
+            return NextResponse.json({ error: "Only approved requests can be revoked" }, { status: 400 });
+        }
+
+        accessRequest.status = "REJECTED";
+        accessRequest.adminNotes = "Access revoked by administrator.";
+        await accessRequest.save();
+
+        const user = await User.findById(accessRequest.userId);
+        if (user) {
+            // Remove from assigned warehouses
+            if (user.assignedWarehouses) {
+                user.assignedWarehouses = user.assignedWarehouses.filter(
+                    (w: any) => w.warehouseId.toString() !== accessRequest.warehouseId.toString()
+                );
+            }
+
+            // If it was the active warehouse, reset it
+            if (user.activeWarehouseId && user.activeWarehouseId.toString() === accessRequest.warehouseId.toString()) {
+                // Try to fallback to another assigned warehouse, otherwise null
+                if (user.assignedWarehouses && user.assignedWarehouses.length > 0) {
+                    user.activeWarehouseId = user.assignedWarehouses[0].warehouseId;
+                } else {
+                    user.activeWarehouseId = undefined;
+                }
+            }
+
+            await user.save();
+        }
+
+        return NextResponse.json({ success: true, message: "Access revoked successfully" });
+    } catch (error) {
+        console.error("Error revoking access:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}

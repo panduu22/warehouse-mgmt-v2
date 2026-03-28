@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeftRight, Loader2, Building2, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Loader2, Building2, Trash2, Plus, LogOut } from "lucide-react";
 import { useWarehouse } from "./WarehouseContext";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 export function WarehouseSwitcher() {
     const { activeWarehouse, switchWarehouse, loading: ctxLoading } = useWarehouse();
@@ -31,7 +32,40 @@ export function WarehouseSwitcher() {
         setIsOpen(false);
     };
 
-    const handleDelete = async (id: string, name: string) => {
+  const handleLeave = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to LEAVE the warehouse "${name}"? You will need to request access again to rejoin.`)) return;
+    
+    try {
+      const res = await fetch("/api/warehouses/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ warehouseId: id })
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to leave");
+      }
+      
+      const data = await res.json();
+      // Remove from local list
+      setWarehouses(warehouses.filter(w => w._id !== id));
+      
+      // If they left the active one, switch to whatever the API returned or empty
+      if (activeWarehouse?.id === id) {
+        if (data.activeWarehouseId) {
+          switchWarehouse(data.activeWarehouseId);
+        } else {
+          // If no warehouses left, they will be redirected by layout guards
+          window.location.href = "/"; 
+        }
+      }
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
         if (!confirm(`Are you sure you want to delete the warehouse "${name}"? ALL associated stock and history will be permanently deleted.`)) return;
         
         try {
@@ -101,8 +135,41 @@ export function WarehouseSwitcher() {
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         )}
+                                        {userRole === "STAFF" && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleLeave(w._id, w.name); }}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Quit Warehouse"
+                                            >
+                                                <LogOut className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 ))
+                            )}
+                            {userRole === "ADMIN" && (
+                                <div className="border-t border-gray-100 p-2">
+                                    <Link 
+                                        href="/warehouses/new" 
+                                        onClick={() => setIsOpen(false)}
+                                        className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm font-bold text-ruby-700 hover:bg-ruby-50 rounded-lg transition-colors"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Create New Warehouse
+                                    </Link>
+                                </div>
+                            )}
+                            {userRole === "STAFF" && (
+                                <div className="border-t border-gray-100 p-2">
+                                    <Link 
+                                        href="/" 
+                                        onClick={() => setIsOpen(false)}
+                                        className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm font-bold text-ruby-700 hover:bg-ruby-50 rounded-lg transition-colors"
+                                    >
+                                        <ArrowLeftRight className="w-4 h-4" />
+                                        Request Access
+                                    </Link>
+                                </div>
                             )}
                         </div>
                     </div>

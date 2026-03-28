@@ -112,10 +112,32 @@ export async function DELETE(req: Request) {
              return NextResponse.json({ error: "Cannot delete the Main Warehouse" }, { status: 400 });
         }
 
-        // Delete all products associated with this warehouse
+        // 1. Remove this warehouse from all users' assignedWarehouses
+        // @ts-ignore
+        const User = (await import("@/models/User")).default;
+        await User.updateMany(
+            { "assignedWarehouses.warehouseId": warehouseId },
+            { $pull: { assignedWarehouses: { warehouseId: warehouseId } } }
+        );
+
+        // 2. Reset activeWarehouseId for users who were using this warehouse
+        await User.updateMany(
+            { activeWarehouseId: warehouseId },
+            { $set: { activeWarehouseId: null } }
+        );
+
+        // 3. Update all access requests for this warehouse to REJECTED
+        // @ts-ignore
+        const AccessRequest = (await import("@/models/AccessRequest")).default;
+        await AccessRequest.updateMany(
+            { warehouseId: warehouseId },
+            { $set: { status: "REJECTED", adminNotes: "Warehouse was deleted by administrator." } }
+        );
+
+        // 4. Delete all products associated with this warehouse
         await Product.deleteMany({ warehouseId });
         
-        // Delete warehouse
+        // 5. Delete warehouse
         await Warehouse.findByIdAndDelete(warehouseId);
 
         return NextResponse.json({ message: "Warehouse and its stock deleted successfully" }, { status: 200 });

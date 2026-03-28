@@ -11,12 +11,14 @@ import {
   ShieldCheck,
   MessageSquare,
   ChevronRight,
-  Loader2
+  Loader2,
+  Users
 } from "lucide-react";
 import clsx from "clsx";
 
 export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -26,10 +28,19 @@ export default function AdminRequestsPage() {
 
   const fetchRequests = async () => {
     try {
-      const res = await fetch("/api/requests");
-      if (res.ok) {
-        const data = await res.json();
+      const [reqsRes, usersRes] = await Promise.all([
+        fetch("/api/requests"),
+        fetch("/api/admin/users")
+      ]);
+      
+      if (reqsRes.ok) {
+        const data = await reqsRes.json();
         setRequests(data);
+      }
+      
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setActiveUsers(usersData);
       }
     } catch (error) {
       console.error("Error fetching requests:", error);
@@ -63,6 +74,23 @@ export default function AdminRequestsPage() {
       } else {
         const data = await res.json();
         alert(data.error || "Failed to update request");
+      }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRevoke = async (userId: string, warehouseId: string, userName: string, warehouseName: string) => {
+    if (!confirm(`Are you sure you want to completely REVOKE ${userName}'s access to ${warehouseName}? They will be immediately locked out.`)) return;
+    
+    setProcessingId(`${userId}-${warehouseId}`);
+    try {
+      const res = await fetch(`/api/admin/users/revoke?userId=${userId}&warehouseId=${warehouseId}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchRequests();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to revoke access");
       }
     } catch (error) {
       alert("An error occurred");
@@ -137,7 +165,7 @@ export default function AdminRequestsPage() {
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider font-sans">Target Warehouse</p>
-                      <p className="font-bold">{req.warehouseId.name}</p>
+                      <p className="font-bold">{req.warehouseId?.name || "Deleted Warehouse"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 text-gray-600">
@@ -182,6 +210,60 @@ export default function AdminRequestsPage() {
         )}
       </div>
 
+      {/* Active Directory Section */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+          <Users className="w-4 h-4" />
+          Active Directory
+        </h2>
+        
+        {activeUsers.length === 0 ? (
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center text-gray-400 font-bold">
+            No staff members currently have active warehouse assignments.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeUsers.map(user => (
+              <div key={user._id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 font-black text-lg">
+                    {user.name.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900 text-lg">{user.name}</h3>
+                    <p className="text-xs font-bold text-gray-400">{user.email}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 mt-2">
+                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Assigned Warehouses</p>
+                  {(user.assignedWarehouses || [])
+                    .filter((aw: any) => aw.warehouseId) // Only show valid warehouses
+                    .map((aw: any) => (
+                    <div key={aw.warehouseId?._id} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <Warehouse className="w-4 h-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm font-bold text-gray-700">{aw.warehouseId?.name}</p>
+                          <p className="text-xs text-gray-500">Expires: {new Date(aw.expiresAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRevoke(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
+                        disabled={processingId === `${user._id}-${aw.warehouseId?._id}`}
+                        className="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {processingId === `${user._id}-${aw.warehouseId?._id}` ? "Revoking..." : "Revoke"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Past Requests Section */}
       <div className="space-y-6">
         <h2 className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -211,7 +293,7 @@ export default function AdminRequestsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-medium text-gray-600">{req.warehouseId.name}</span>
+                    <span className="text-sm font-medium text-gray-600">{req.warehouseId?.name || "Deleted Warehouse"}</span>
                   </td>
                   <td className="px-6 py-4">
                     <span className={clsx(

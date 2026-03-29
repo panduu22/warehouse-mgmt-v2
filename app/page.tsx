@@ -13,6 +13,11 @@ export default async function Home() {
   if (session?.user) {
     const user = session.user as any;
 
+    // Admins don't need a warehouse — send them straight to the admin panel
+    if (user.role === "ADMIN") {
+      redirect("/admin/requests");
+    }
+
     // If they have an active warehouse, just redirect to dashboard
     if (user.activeWarehouseId) {
       redirect("/dashboard");

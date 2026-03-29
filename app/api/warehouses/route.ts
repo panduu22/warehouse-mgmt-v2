@@ -72,6 +72,8 @@ export async function POST(req: Request) {
                     location: p.location || "",
                     pack: p.pack,
                     flavour: p.flavour,
+                    mrp: p.mrp,
+                    salePrice: p.salePrice,
                     invoiceCost: p.invoiceCost,
                     warehouseId: warehouse._id
                 }));

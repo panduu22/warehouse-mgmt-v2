@@ -38,7 +38,7 @@ export default function StockSearch() {
                 type="text"
                 value={text}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="block w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent sm:text-sm transition-all shadow-sm"
+                className="block w-full pl-10 pr-10 py-2 border border-gray-200 rounded-lg leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 sm:text-sm transition-all shadow-sm"
                 placeholder="Search products by name, flavour, or pack..."
             />
             {text && (

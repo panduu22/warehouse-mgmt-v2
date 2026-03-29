@@ -1,13 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Truck, User } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Plus, Truck, User, Trash2, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export default function VehiclesPage() {
+    const { data: session } = useSession();
+    const isAdmin = (session?.user as any)?.role === "ADMIN";
+
     const [vehicles, setVehicles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [adding, setAdding] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Form State
     const [number, setNumber] = useState("");
@@ -38,16 +42,12 @@ export default function VehiclesPage() {
             const res = await fetch("/api/vehicles", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    number,
-                    driverName: driver
-                }),
+                body: JSON.stringify({ number, driverName: driver }),
             });
             if (!res.ok) {
                 const json = await res.json();
                 throw new Error(json.error || "Failed to add vehicle");
             }
-
             setNumber("");
             setDriver("");
             fetchVehicles();
@@ -59,22 +59,42 @@ export default function VehiclesPage() {
         }
     }
 
+    async function handleDelete(id: string, vehicleNumber: string) {
+        if (!confirm(`Delete vehicle ${vehicleNumber}? This cannot be undone.`)) return;
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/vehicles/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const json = await res.json();
+                throw new Error(json.error || "Failed to delete vehicle");
+            }
+            fetchVehicles();
+        } catch (e: any) {
+            alert(e.message || "Failed to delete vehicle");
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
     return (
         <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Vehicle Management</h1>
-
-            {/* Check Sidebar links if this page is accessible. I didn't add it to Sidebar.tsx yet. I should. */}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* List */}
                 <div className="lg:col-span-2 space-y-4">
                     {loading ? (
-                        <div className="flex justify-center p-8"><Loader2 className="animate-spin text-ruby-700" /></div>
+                        <div className="flex justify-center p-8">
+                            <Loader2 className="animate-spin text-ruby-700" />
+                        </div>
                     ) : vehicles.length === 0 ? (
                         <p className="text-gray-500">No vehicles found.</p>
                     ) : (
                         vehicles.map((v: any) => (
-                            <div key={v._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                            <div
+                                key={v._id}
+                                className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
+                            >
                                 <div className="flex items-center gap-4">
                                     <div className="bg-ruby-50 p-3 rounded-full text-ruby-700">
                                         <Truck className="w-6 h-6" />
@@ -88,6 +108,21 @@ export default function VehiclesPage() {
                                     </div>
                                 </div>
 
+                                {/* Admin-only delete button */}
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => handleDelete(v._id, v.number)}
+                                        disabled={deletingId === v._id}
+                                        title="Delete vehicle"
+                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                    >
+                                        {deletingId === v._id ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-4 h-4" />
+                                        )}
+                                    </button>
+                                )}
                             </div>
                         ))
                     )}
@@ -120,7 +155,6 @@ export default function VehiclesPage() {
                                 placeholder="John Doe"
                             />
                         </div>
-
                         <button
                             type="submit"
                             disabled={adding}

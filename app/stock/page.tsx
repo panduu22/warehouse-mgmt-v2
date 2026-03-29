@@ -11,6 +11,7 @@ import { QuantityEditor } from "./QuantityEditor";
 import { PriceEditor } from "./PriceEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
+import StockExcelImport from "@/components/StockExcelImport";
 
 async function getProducts() {
     await dbConnect();
@@ -63,13 +64,16 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-900">Stock Management</h1>
-                <Link
-                    href="/stock/add"
-                    className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-                >
-                    <Plus className="w-5 h-5" />
-                    Add Stock
-                </Link>
+                <div className="flex items-center gap-3">
+                    {isAdmin && <StockExcelImport />}
+                    <Link
+                        href="/stock/add"
+                        className="bg-ruby-700 hover:bg-ruby-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Add Stock
+                    </Link>
+                </div>
             </div>
 
             <div className="mb-6">

@@ -17,8 +17,9 @@ export default async function DashboardLayout({
 
     const user = session.user as any;
     
-    // If the user has no active warehouse, redirect them to the request landing page
-    if (!user.activeWarehouseId) {
+    // Only redirect if the user is explicitly STAFF and has no warehouse.
+    // This prevents ADMINS or users with loading roles from getting caught in a loop.
+    if (user.role === "STAFF" && !user.activeWarehouseId) {
         redirect("/");
     }
 

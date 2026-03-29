@@ -38,14 +38,13 @@ export const authOptions: NextAuthOptions = {
                 await dbConnect();
                 const dbUser = await User.findOne({ email: session.user.email });
                 if (dbUser) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).role = dbUser.role;
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).id = dbUser._id.toString();
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).assignedWarehouses = dbUser.assignedWarehouses || [];
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (session.user as any).activeWarehouseId = dbUser.activeWarehouseId?.toString();
+                    // Attach database fields to session
+                    session.user = {
+                        ...session.user,
+                        role: dbUser.role,
+                        id: dbUser._id.toString(),
+                        activeWarehouseId: dbUser.activeWarehouseId?.toString()
+                    } as any;
                 }
             }
             return session;

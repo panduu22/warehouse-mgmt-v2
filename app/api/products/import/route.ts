@@ -65,28 +65,45 @@ export async function POST(req: Request) {
                     return undefined;
                 };
 
-                const name = String(get(["name", "product name", "product"]) || "").trim();
+                const name = String(get(["name", "product name", "product", "description"]) || "").trim();
                 if (!name) { errors.push(`Row skipped: missing product name`); continue; }
 
-                let sku = String(get(["sku", "sku code", "code"]) || "").trim();
+                let sku = String(get(["sku", "sku code", "code", "barcode"]) || "").trim();
+                
+                const quantity = Number(get(["quantity", "qty", "stock", "balance", "opening stock"]) || 0);
+                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice", "cost", "purchase price"]) || 0);
+                const mrp = Number(get(["mrp", "mrp (base)", "base mrp", "label price"]) || 0);
+                const salePrice = Number(get(["sale price", "saleprice", "selling price", "retail price", "rate"]) || 0);
+                const price = Number(get(["today's price", "todays price", "price", "today price", "current price"]) || salePrice);
+                
+                let flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
+                let pack = String(get(["pack", "package", "packaging", "size", "volume", "vol", "unit"]) || "").trim();
+
+                // FALLBACK: Parse flavour and pack from Name if missing
+                if (!flavour || !pack) {
+                    const parts = name.split(" ");
+                    if (!flavour && parts.length > 0) {
+                        // If it's Thums Up, handle as two words
+                        if (parts[0].toLowerCase() === "thums" && parts[1]?.toLowerCase() === "up") {
+                            flavour = "Thums Up";
+                        } else {
+                            flavour = parts[0];
+                        }
+                    }
+                    if (!pack && flavour) {
+                        const remaining = name.slice(name.indexOf(flavour) + flavour.length).trim();
+                        if (remaining) pack = remaining;
+                    }
+                }
+
                 if (!sku) {
-                    // Auto-generate SKU
-                    const flavour = String(get(["flavour", "flavor"]) || "").trim();
-                    const pack = String(get(["pack", "package"]) || "").trim();
+                    // Auto-generate SKU based on the potentially parsed flavour/pack
                     const base = name.substring(0, 3).toUpperCase();
                     const flav = flavour.substring(0, 3).toUpperCase();
                     const pck = pack.substring(0, 3).toUpperCase();
                     const rand = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
                     sku = `${base}-${flav}-${pck}-${rand}`.replace(/-+/g, "-");
                 }
-
-                const quantity = Number(get(["quantity", "qty", "stock"]) || 0);
-                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice", "cost"]) || 0);
-                const mrp = Number(get(["mrp", "mrp (base)", "base mrp"]) || 0);
-                const salePrice = Number(get(["sale price", "saleprice", "selling price"]) || 0);
-                const price = Number(get(["today's price", "todays price", "price", "today price"]) || salePrice);
-                const flavour = String(get(["flavour", "flavor"]) || "").trim();
-                const pack = String(get(["pack", "package"]) || "").trim();
 
                 // Upsert by SKU + warehouseId
                 const existing = await Product.findOne({ sku, warehouseId });

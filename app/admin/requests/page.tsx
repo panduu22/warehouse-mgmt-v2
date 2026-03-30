@@ -145,15 +145,15 @@ export default function AdminRequestsPage() {
                 {/* User Info */}
                 <div className="flex items-center gap-4 w-full lg:w-1/3">
                   <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-sm">
-                    {req.userId.image ? (
+                    {req.userId?.image ? (
                       <img src={req.userId.image} alt={req.userId.name} className="w-full h-full object-cover" />
                     ) : (
                       <UserIcon className="w-8 h-8 text-gray-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-black text-gray-900 text-xl truncate">{req.userId.name}</h3>
-                    <p className="text-sm text-gray-500 font-bold truncate">{req.userId.email}</p>
+                    <h3 className="font-black text-gray-900 text-xl truncate">{req.userId?.name || "Unknown User"}</h3>
+                    <p className="text-sm text-gray-500 font-bold truncate">{req.userId?.email || "No Email"}</p>
                   </div>
                 </div>
 
@@ -190,7 +190,7 @@ export default function AdminRequestsPage() {
                     Reject
                   </button>
                   <button
-                    onClick={() => handleAction(req._id, "APPROVED", req.userId.email === "rkagencies321@gmail.com" ? 36500 : 365)}
+                    onClick={() => handleAction(req._id, "APPROVED", req.userId?.email === "rkagencies321@gmail.com" ? 36500 : 365)}
                     disabled={processingId === req._id}
                     className="flex-[2] lg:flex-none px-10 py-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black shadow-lg shadow-teal-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >
@@ -287,9 +287,9 @@ export default function AdminRequestsPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                        {req.userId.name.charAt(0)}
+                        {req.userId?.name?.charAt(0) || "?"}
                       </div>
-                      <span className="font-bold text-gray-900">{req.userId.name}</span>
+                      <span className="font-bold text-gray-900">{req.userId?.name || "Unknown"}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">

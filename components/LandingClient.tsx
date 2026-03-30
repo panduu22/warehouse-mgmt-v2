@@ -26,7 +26,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
       const res = await fetch("/api/requests");
       if (res.ok) {
         const data = await res.json();
-        const myRequests = data.filter((r: any) => r.userId._id === user.id);
+        const myRequests = data.filter((r: any) => r.userId?._id === user.id);
         setRequests(myRequests);
       }
     } catch (error) {
@@ -206,8 +206,8 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-gray-900 text-lg">{req.warehouseId.name}</h4>
-                        <p className="text-sm text-gray-500 font-medium">{req.warehouseId.location}</p>
+                        <h4 className="font-bold text-gray-900 text-lg">{req.warehouseId?.name || "Deleted Warehouse"}</h4>
+                        <p className="text-sm text-gray-500 font-medium">{req.warehouseId?.location || "N/A"}</p>
                       </div>
                       <span className={clsx(
                         "text-[10px] font-black px-2 py-1 rounded-full tracking-widest uppercase",

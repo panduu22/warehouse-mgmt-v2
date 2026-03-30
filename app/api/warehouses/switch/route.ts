@@ -26,9 +26,12 @@ export async function POST(req: Request) {
         }
 
         // Set Cookies
+        const isAdmin = session?.user?.email === "rkagencies321@gmail.com";
+        const maxAge = isAdmin ? 60 * 60 * 24 * 36500 : 60 * 60 * 24 * 365; // 100 years for admin, 1 year for others
+
         const cookieStore = await cookies();
-        cookieStore.set("activeWarehouseId", warehouseId.toString(), { path: "/", maxAge: 60 * 60 * 24 * 30 }); // 30 days
-        cookieStore.set("activeWarehouseName", warehouse.name, { path: "/", maxAge: 60 * 60 * 24 * 30 });
+        cookieStore.set("activeWarehouseId", warehouseId.toString(), { path: "/", maxAge });
+        cookieStore.set("activeWarehouseName", warehouse.name, { path: "/", maxAge });
 
         return NextResponse.json({ 
             success: true, 

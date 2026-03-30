@@ -75,7 +75,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
             <Warehouse className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-ruby-700 tracking-tight">WM v2</h1>
+            <h1 className="text-2xl font-black text-ruby-700 tracking-tight">WM</h1>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Access Control</p>
           </div>
         </div>

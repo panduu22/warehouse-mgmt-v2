@@ -35,10 +35,19 @@ export async function PATCH(
         await accessRequest.save();
 
         if (status === "APPROVED") {
-            const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + (durationDays || accessRequest.requestedDuration || 30));
+            const targetUser = await User.findById(accessRequest.userId);
+            if (!targetUser) {
+                return NextResponse.json({ error: "Target user not found" }, { status: 404 });
+            }
 
-            const user = await User.findById(accessRequest.userId);
+            const isTargetAdmin = targetUser.email === "rkagencies321@gmail.com";
+            const effectiveDuration = durationDays || accessRequest.requestedDuration || (isTargetAdmin ? 36500 : 365);
+
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + effectiveDuration);
+
+            // Access user via variable to avoid re-fetching
+            const user = targetUser;
             if (user) {
                 // Safely ensure assignedWarehouses is an array
                 user.assignedWarehouses = user.assignedWarehouses || [];

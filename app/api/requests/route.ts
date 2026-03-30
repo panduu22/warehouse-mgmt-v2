@@ -29,10 +29,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Request already pending" }, { status: 400 });
         }
 
+        const isAdmin = (session.user as any).email === "rkagencies321@gmail.com";
+        const defaultDuration = isAdmin ? 36500 : 365;
+
         const request = new AccessRequest({
             userId: (session.user as any).id,
             warehouseId,
-            requestedDuration: requestedDuration || 30, // Default 30 days
+            requestedDuration: requestedDuration || defaultDuration,
             status: "PENDING"
         });
 

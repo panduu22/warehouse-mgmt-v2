@@ -8,7 +8,7 @@ export interface IUser extends Document {
     activeWarehouseId?: mongoose.Types.ObjectId;
     assignedWarehouses: {
         warehouseId: mongoose.Types.ObjectId;
-        expiresAt: Date;
+        expiresAt?: Date;
     }[];
     createdAt: Date;
     updatedAt: Date;
@@ -23,7 +23,7 @@ const UserSchema: Schema<IUser> = new Schema(
         activeWarehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse" },
         assignedWarehouses: [{
             warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
-            expiresAt: { type: Date, required: true }
+            expiresAt: { type: Date }
         }],
     },
     { timestamps: true }

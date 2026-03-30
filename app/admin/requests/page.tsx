@@ -65,7 +65,7 @@ export default function AdminRequestsPage() {
         body: JSON.stringify({
           status,
           adminNotes: adminNotes || "",
-          durationDays: duration || 30
+          durationDays: duration || 365
         })
       });
 
@@ -190,7 +190,7 @@ export default function AdminRequestsPage() {
                     Reject
                   </button>
                   <button
-                    onClick={() => handleAction(req._id, "APPROVED")}
+                    onClick={() => handleAction(req._id, "APPROVED", req.userId.email === "rkagencies321@gmail.com" ? 36500 : 365)}
                     disabled={processingId === req._id}
                     className="flex-[2] lg:flex-none px-10 py-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-black shadow-lg shadow-teal-900/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                   >

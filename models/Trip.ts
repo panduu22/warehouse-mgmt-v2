@@ -1,11 +1,18 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface ISchemeSlab {
+    packs: number;
+    bottles: number;
+    discountPerPack: number;
+}
+
 export interface ITripItem {
     productId: mongoose.Types.ObjectId;
     qtyLoaded: number;
     qtyReturned: number;
-    qtyScheme?: number; // Bottles sold under scheme
-    discountPerPack?: number; // Discount in ₹ per pack
+    qtyScheme?: number; // Legacy: Bottles sold under scheme
+    discountPerPack?: number; // Legacy: Discount in ₹ per pack
+    schemes?: ISchemeSlab[]; // New: Multiple scheme slabs
     qtySold?: number; // Calculated: Loaded - Returned
 }
 
@@ -27,6 +34,11 @@ const TripItemSchema = new Schema({
     qtyReturned: { type: Number, default: 0 },
     qtyScheme: { type: Number, default: 0 },
     discountPerPack: { type: Number, default: 0 },
+    schemes: [{
+        packs: { type: Number, required: true },
+        bottles: { type: Number, required: true },
+        discountPerPack: { type: Number, required: true },
+    }],
 }, { _id: false });
 
 const TripSchema: Schema<ITrip> = new Schema(

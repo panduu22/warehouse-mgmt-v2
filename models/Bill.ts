@@ -1,14 +1,21 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
+export interface IBillItemScheme {
+    qty: number; // Bottles
+    price: number; // ₹ per pack
+    discount: number; // total ₹ discount for this slab
+}
+
 export interface IBillItem {
     name: string;
     pack: string;
     flavour: string;
     normalQty: number; // Bottles
-    schemeQty: number; // Bottles
+    schemeQty: number; // Bottles (Total)
     normalPrice: number; // ₹ per pack
-    schemePrice: number; // ₹ per pack
+    schemePrice: number; // ₹ per pack (Legacy/Average)
     discount: number; // Total ₹ discount for this line
+    schemes?: IBillItemScheme[]; // New: Detailed scheme slabs
     total: number; // Normal Total + Scheme Total
     bottlesPerPack: number;
 }
@@ -33,6 +40,11 @@ const BillItemSchema = new Schema({
     normalPrice: { type: Number, required: true },
     schemePrice: { type: Number, required: true },
     discount: { type: Number, required: true },
+    schemes: [{
+        qty: { type: Number, required: true },
+        price: { type: Number, required: true },
+        discount: { type: Number, required: true },
+    }],
     total: { type: Number, required: true },
     bottlesPerPack: { type: Number, required: true },
 }, { _id: false });

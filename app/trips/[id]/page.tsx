@@ -3,12 +3,16 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Package } from "lucide-react";
+import { ArrowLeft, CheckCircle, Package, Plus, Trash2 } from "lucide-react";
 import { parsePack, toBottlesRaw, formatPacksAndBottles, toPacksAndBottles } from "@/lib/stock-utils";
 
 interface PackBottleInput {
     packs: string;
     bottles: string;
+}
+
+interface SchemeSlabInput extends PackBottleInput {
+    discount: string;
 }
 
 export default function VerifyTripPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,8 +23,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(false);
     const [inputs, setInputs] = useState<Record<string, PackBottleInput>>({});
-    const [schemeInputs, setSchemeInputs] = useState<Record<string, PackBottleInput>>({});
-    const [discountInputs, setDiscountInputs] = useState<Record<string, string>>({});
+    const [productSchemes, setProductSchemes] = useState<Record<string, SchemeSlabInput[]>>({});
     const [verifyDate, setVerifyDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
@@ -32,8 +35,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 if (found) {
                     setTrip(found);
                     const initial: Record<string, PackBottleInput> = {};
-                    const initialScheme: Record<string, PackBottleInput> = {};
-                    const initialDiscount: Record<string, string> = {};
+                    const initialScheme: Record<string, SchemeSlabInput[]> = {};
                     
                     found.loadedItems.forEach((item: any) => {
                         const bpp = parsePack(item.productId.pack, item.productId.name);
@@ -43,19 +45,29 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 packs: String(Math.floor((item.qtyReturned || 0) / bpp)),
                                 bottles: String((item.qtyReturned || 0) % bpp)
                             };
-                            initialScheme[item.productId._id] = {
-                                packs: String(Math.floor((item.qtyScheme || 0) / bpp)),
-                                bottles: String((item.qtyScheme || 0) % bpp)
-                            };
+                            
+                            // Load existing schemes
+                            if (item.schemes && item.schemes.length > 0) {
+                                initialScheme[item.productId._id] = item.schemes.map((s: any) => ({
+                                    packs: String(s.packs),
+                                    bottles: String(s.bottles),
+                                    discount: String(s.discountPerPack)
+                                }));
+                            } else {
+                                // Fallback for legacy data
+                                initialScheme[item.productId._id] = [{
+                                    packs: String(Math.floor((item.qtyScheme || 0) / bpp)),
+                                    bottles: String((item.qtyScheme || 0) % bpp),
+                                    discount: String(item.discountPerPack || "0")
+                                }];
+                            }
                         } else {
                             initial[item.productId._id] = { packs: "0", bottles: "0" };
-                            initialScheme[item.productId._id] = { packs: "0", bottles: "0" };
+                            initialScheme[item.productId._id] = [{ packs: "0", bottles: "0", discount: "0" }];
                         }
-                        initialDiscount[item.productId._id] = String(item.discountPerPack || "0");
                     });
                     setInputs(initial);
-                    setSchemeInputs(initialScheme);
-                    setDiscountInputs(initialDiscount);
+                    setProductSchemes(initialScheme);
                 }
                 setLoading(false);
             });
@@ -68,27 +80,60 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
         field: 'packs' | 'bottles', 
         value: string, 
         type: 'returns' | 'scheme',
-        bpp: number
+        bpp: number,
+        schemeIndex?: number
     ) => {
-        const current = type === 'returns' ? inputs[productId] : schemeInputs[productId];
-        const next = { ...current, [field]: value };
-        
-        // Auto-normalization: If bottles >= bpp, carry over to packs
-        if (field === 'bottles' && value) {
-            const b = parseInt(value, 10);
-            if (!isNaN(b) && b >= bpp) {
-                const extraPacks = Math.floor(b / bpp);
-                const remBottles = b % bpp;
-                const prevPacks = parseInt(next.packs || "0", 10);
-                next.packs = String(prevPacks + extraPacks);
-                next.bottles = String(remBottles);
-            }
-        }
-
         if (type === 'returns') {
+            const current = inputs[productId];
+            const next = { ...current, [field]: value };
+            
+            if (field === 'bottles' && value) {
+                const b = parseInt(value, 10);
+                if (!isNaN(b) && b >= bpp) {
+                    const extraPacks = Math.floor(b / bpp);
+                    const remBottles = b % bpp;
+                    const prevPacks = parseInt(next.packs || "0", 10);
+                    next.packs = String(prevPacks + extraPacks);
+                    next.bottles = String(remBottles);
+                }
+            }
             setInputs({ ...inputs, [productId]: next });
-        } else {
-            setSchemeInputs({ ...schemeInputs, [productId]: next });
+        } else if (type === 'scheme' && schemeIndex !== undefined) {
+            const currentSlabs = [...(productSchemes[productId] || [])];
+            const next = { ...currentSlabs[schemeIndex], [field]: value };
+
+            if (field === 'bottles' && value) {
+                const b = parseInt(value, 10);
+                if (!isNaN(b) && b >= bpp) {
+                    const extraPacks = Math.floor(b / bpp);
+                    const remBottles = b % bpp;
+                    const prevPacks = parseInt(next.packs || "0", 10);
+                    next.packs = String(prevPacks + extraPacks);
+                    next.bottles = String(remBottles);
+                }
+            }
+            currentSlabs[schemeIndex] = next;
+            setProductSchemes({ ...productSchemes, [productId]: currentSlabs });
+        }
+    };
+
+    const updateDiscount = (productId: string, index: number, value: string) => {
+        const currentSlabs = [...(productSchemes[productId] || [])];
+        currentSlabs[index] = { ...currentSlabs[index], discount: value };
+        setProductSchemes({ ...productSchemes, [productId]: currentSlabs });
+    };
+
+    const addSchemeRow = (productId: string) => {
+        const currentSlabs = [...(productSchemes[productId] || [])];
+        currentSlabs.push({ packs: "0", bottles: "0", discount: "0" });
+        setProductSchemes({ ...productSchemes, [productId]: currentSlabs });
+    };
+
+    const removeSchemeRow = (productId: string, index: number) => {
+        const currentSlabs = [...(productSchemes[productId] || [])];
+        if (currentSlabs.length > 1) {
+            currentSlabs.splice(index, 1);
+            setProductSchemes({ ...productSchemes, [productId]: currentSlabs });
         }
     };
 
@@ -112,27 +157,56 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 ? Math.round(Number(item.qtyReturned || 0)) 
                 : toBottlesRaw(r.packs, r.bottles, bpp);
 
-            const s = schemeInputs[item.productId._id] || { packs: "0", bottles: "0" };
-            const schemeBottles = isVerified 
-                ? Math.round(Number(item.qtyScheme || 0)) 
-                : toBottlesRaw(s.packs, s.bottles, bpp);
-            
-            const discountPerPack = isVerified ? (item.discountPerPack || 0) : Number(discountInputs[item.productId._id] || "0");
-            
             const totalSoldBottles = loadedBottles - returnedBottles;
-            const normalSoldBottles = totalSoldBottles - schemeBottles;
+            
+            // Calculate total scheme bottles and total scheme discount
+            let itemSchemeBottles = 0;
+            let itemSchemeSalesValue = 0;
+            let itemSchemeDiscountValue = 0;
 
             const packPrice = item.productId.price || item.productId.salePrice || 0;
             const bottlePrice = packPrice / bpp;
-            
-            // Proportional pricing
+
+            if (isVerified) {
+                // If verified, use stored schemes if available, otherwise legacy fields
+                if (item.schemes && item.schemes.length > 0) {
+                    item.schemes.forEach((s: any) => {
+                        const sBottles = s.packs * bpp + s.bottles;
+                        itemSchemeBottles += sBottles;
+                        const sPrice = packPrice - s.discountPerPack;
+                        itemSchemeSalesValue += (s.packs * sPrice) + (s.bottles * (sPrice / bpp));
+                        itemSchemeDiscountValue += (sBottles / bpp) * s.discountPerPack;
+                    });
+                } else {
+                    const sBottles = Math.round(Number(item.qtyScheme || 0));
+                    itemSchemeBottles = sBottles;
+                    const discountPerPack = item.discountPerPack || 0;
+                    const sPrice = packPrice - discountPerPack;
+                    const schemeP = toPacksAndBottles(sBottles, bpp);
+                    itemSchemeSalesValue = (schemeP.packs * sPrice) + (schemeP.bottles * (sPrice / bpp));
+                    itemSchemeDiscountValue = (sBottles / bpp) * discountPerPack;
+                }
+            } else {
+                const slabs = productSchemes[item.productId._id] || [];
+                slabs.forEach((s) => {
+                    const sBottles = toBottlesRaw(s.packs, s.bottles, bpp);
+                    itemSchemeBottles += sBottles;
+                    const discountPerPack = Number(s.discount || "0");
+                    const sPrice = packPrice - discountPerPack;
+                    
+                    const p = parseInt(s.packs || "0", 10);
+                    const b = parseInt(s.bottles || "0", 10);
+                    itemSchemeSalesValue += (p * sPrice) + (b * (sPrice / bpp));
+                    itemSchemeDiscountValue += (sBottles / bpp) * discountPerPack;
+                });
+            }
+
+            const normalSoldBottles = totalSoldBottles - itemSchemeBottles;
             const normalP = toPacksAndBottles(normalSoldBottles, bpp);
             totalNormalSales += (normalP.packs * packPrice) + (normalP.bottles * bottlePrice);
 
-            const schemeP = toPacksAndBottles(schemeBottles, bpp);
-            totalSchemeSales += (schemeP.packs * (packPrice - discountPerPack)) + (schemeP.bottles * ((packPrice - discountPerPack) / bpp));
-            
-            totalDiscount += (schemeBottles / bpp) * discountPerPack;
+            totalSchemeSales += itemSchemeSalesValue;
+            totalDiscount += itemSchemeDiscountValue;
         });
 
         return {
@@ -151,21 +225,31 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
         for (const item of trip.loadedItems) {
             const bpp = parsePack(item.productId.pack, item.productId.name);
             const r = inputs[item.productId._id] || { packs: "0", bottles: "0" };
-            const s = schemeInputs[item.productId._id] || { packs: "0", bottles: "0" };
+            const slabs = productSchemes[item.productId._id] || [];
             
             const retBottles = toBottlesRaw(r.packs, r.bottles, bpp);
-            const schBottles = toBottlesRaw(s.packs, s.bottles, bpp);
+            let totalSchBottles = 0;
+            const schemes = slabs.map(s => {
+                const b = toBottlesRaw(s.packs, s.bottles, bpp);
+                totalSchBottles += b;
+                return {
+                    packs: parseInt(s.packs || "0", 10),
+                    bottles: parseInt(s.bottles || "0", 10),
+                    discountPerPack: Number(s.discount || "0")
+                };
+            });
             
-            if (retBottles + schBottles > item.qtyLoaded) {
-                alert(`Error for ${item.productId.name}: Returned + Scheme (${formatPacksAndBottles(retBottles + schBottles, bpp)}) exceeds Loaded (${formatPacksAndBottles(item.qtyLoaded, bpp)})`);
+            if (retBottles + totalSchBottles > item.qtyLoaded) {
+                alert(`Error for ${item.productId.name}: Returned + Scheme (${formatPacksAndBottles(retBottles + totalSchBottles, bpp)}) exceeds Loaded (${formatPacksAndBottles(item.qtyLoaded, bpp)})`);
                 return;
             }
 
             returnedItems.push({
                 productId: item.productId._id,
                 qtyReturned: retBottles,
-                qtyScheme: schBottles,
-                discountPerPack: Number(discountInputs[item.productId._id] || "0")
+                qtyScheme: totalSchBottles, // Legacy support
+                discountPerPack: schemes.length > 0 ? schemes[0].discountPerPack : 0, // Legacy support (first slab)
+                schemes: schemes
             });
         }
 
@@ -266,62 +350,100 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     </div>
                                                 </div>
 
-                                                {/* Scheme Inputs */}
-                                                <div className="flex flex-col gap-1.5">
-                                                    <label className="text-[10px] font-black text-ruby-500 uppercase tracking-widest">Scheme (P / B)</label>
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            type="number"
-                                                            placeholder="P"
-                                                            value={schemeInputs[item.productId._id]?.packs || "0"}
-                                                            onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'scheme', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm"
-                                                        />
-                                                        <span className="text-ruby-200 font-bold">+</span>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="B"
-                                                            value={schemeInputs[item.productId._id]?.bottles || "0"}
-                                                            onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'scheme', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm"
-                                                        />
+                                                 {/* Scheme Inputs (Multi-Row) */}
+                                                <div className="flex flex-col gap-2 bg-ruby-50/50 p-3 rounded-2xl border border-ruby-100">
+                                                    <div className="flex items-center justify-between px-1">
+                                                        <label className="text-[10px] font-black text-ruby-500 uppercase tracking-widest">Scheme Slabs</label>
+                                                        <button 
+                                                            onClick={() => addSchemeRow(item.productId._id)}
+                                                            className="text-ruby-600 hover:bg-ruby-100 p-1 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"
+                                                        >
+                                                            <Plus className="w-3 h-3" /> Add
+                                                        </button>
                                                     </div>
-                                                </div>
+                                                    
+                                                    <div className="space-y-2">
+                                                        {(productSchemes[item.productId._id] || []).map((slab, idx) => (
+                                                            <div key={`${item.productId._id}-scheme-${idx}`} className="flex items-center gap-3">
+                                                                <div className="flex items-center gap-1">
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="P"
+                                                                        value={slab.packs}
+                                                                        onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'scheme', bpp, idx)}
+                                                                        className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                    />
+                                                                    <span className="text-ruby-200 font-bold">+</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        placeholder="B"
+                                                                        value={slab.bottles}
+                                                                        onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'scheme', bpp, idx)}
+                                                                        className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                    />
+                                                                </div>
 
-                                                {/* Discount Input */}
-                                                <div className="flex flex-col gap-1.5">
-                                                    <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Disc / P (₹)</label>
-                                                    <input
-                                                        type="number"
-                                                        value={discountInputs[item.productId._id] || "0"}
-                                                        onChange={(e) => setDiscountInputs({ ...discountInputs, [item.productId._id]: e.target.value })}
-                                                        className="w-20 px-3 py-2 rounded-xl border-2 border-amber-100 focus:border-amber-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm"
-                                                    />
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-1.5 min-w-[100px]">
+                                                                        <span className="text-[10px] font-bold text-ruby-400">₹</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            placeholder="Disc"
+                                                                            value={slab.discount}
+                                                                            onChange={(e) => updateDiscount(item.productId._id, idx, e.target.value)}
+                                                                            className="w-20 px-3 py-2 rounded-xl border-2 border-amber-100 focus:border-amber-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                        />
+                                                                        {idx > 0 && (
+                                                                            <button 
+                                                                                onClick={() => removeSchemeRow(item.productId._id, idx)}
+                                                                                className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </>
                                         ) : (
-                                            <div className="flex gap-6 text-right pr-4">
+                                            <div className="flex flex-col gap-2 text-right pr-4">
                                                 <div>
                                                     <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Returned</p>
                                                     <p className="font-black text-gray-900">{formatPacksAndBottles(item.qtyReturned, bpp, true)}</p>
                                                 </div>
-                                                {item.qtyScheme > 0 && (
-                                                    <div>
-                                                        <p className="text-[10px] text-ruby-400 uppercase font-black tracking-widest">Scheme</p>
-                                                        <p className="font-black text-ruby-600">{formatPacksAndBottles(item.qtyScheme, bpp, true)}</p>
-                                                    </div>
-                                                )}
+                                                {(() => {
+                                                    const slabs = item.schemes || [];
+                                                    if (slabs.length > 0) {
+                                                        return slabs.map((s: any, idx: number) => (
+                                                            <div key={idx} className="bg-ruby-50/50 px-3 py-1 rounded-lg border border-ruby-100 mt-1">
+                                                                <p className="text-[10px] text-ruby-400 uppercase font-black tracking-widest leading-none mb-1">Scheme Slab {idx + 1}</p>
+                                                                <p className="font-black text-ruby-600 text-sm leading-none">
+                                                                    {formatPacksAndBottles(s.packs * bpp + s.bottles, bpp, true)} @ ₹{s.discountPerPack}
+                                                                </p>
+                                                            </div>
+                                                        ));
+                                                    } else if (item.qtyScheme > 0) {
+                                                        return (
+                                                            <div>
+                                                                <p className="text-[10px] text-ruby-400 uppercase font-black tracking-widest">Scheme</p>
+                                                                <p className="font-black text-ruby-600">{formatPacksAndBottles(item.qtyScheme, bpp, true)} @ ₹{item.discountPerPack}</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
                                         )}
 
-                                        <div className="text-right min-w-[140px] lg:border-l lg:border-gray-100 lg:pl-8">
+                                        <div className="text-right min-w-[140px] lg:border-l lg:border-gray-100 lg:pl-8 self-center">
                                             <p className="text-[10px] text-teal-600 uppercase font-black tracking-widest mb-1">Net Sold</p>
                                             <p className="font-black text-teal-600 text-2xl leading-none tracking-tighter">
                                                 {(() => {
                                                     const r = inputs[item.productId._id] || { packs: "0", bottles: "0" };
-                                                    const s = schemeInputs[item.productId._id] || { packs: "0", bottles: "0" };
                                                     const ret = isVerified ? item.qtyReturned : toBottlesRaw(r.packs, r.bottles, bpp);
-                                                    const sch = isVerified ? item.qtyScheme : toBottlesRaw(s.packs, s.bottles, bpp);
                                                     const sold = item.qtyLoaded - ret;
                                                     return formatPacksAndBottles(sold, bpp, true);
                                                 })()}

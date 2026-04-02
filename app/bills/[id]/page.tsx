@@ -101,36 +101,56 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {bill.items && bill.items.length > 0 ? (
-                                bill.items.map((item: any, idx: number) => (
-                                    <React.Fragment key={`group-${idx}`}>
-                                        <tr key={`bill-item-${idx}-normal`} className="group hover:bg-gray-50/50">
-                                        <td className="px-3 py-4 border-b border-gray-100" rowSpan={item.schemeQty > 0 ? 2 : 1}>
-                                            <div className="font-black text-black text-base leading-tight">{item.name}</div>
-                                            <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className="text-ruby-700 font-bold text-[10px] uppercase">{item.flavour}</span>
-                                                <span className="text-gray-300 text-[10px]">•</span>
-                                                <span className="text-gray-500 font-bold text-[10px] uppercase">{item.pack}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-3 py-4 text-center border-b border-gray-50">
-                                            <span className="text-[10px] font-black uppercase text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">Normal</span>
-                                        </td>
-                                        <td className="px-3 py-4 text-right font-bold text-gray-900">{formatPacksAndBottles(item.normalQty, item.bottlesPerPack, true)}</td>
-                                        <td className="px-3 py-4 text-right font-bold text-gray-600">₹{item.normalPrice.toLocaleString('en-IN')}</td>
-                                        <td className="px-3 py-4 text-right font-black text-black">₹{((item.normalQty / item.bottlesPerPack) * item.normalPrice).toLocaleString('en-IN')}</td>
-                                    </tr>
-                                    {item.schemeQty > 0 && (
-                                        <tr key={`bill-item-${idx}-scheme`} className="bg-ruby-50/20 group">
-                                            <td className="px-3 py-4 text-center border-b border-ruby-100/50">
-                                                <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
-                                            </td>
-                                            <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(item.schemeQty, item.bottlesPerPack, true)}</td>
-                                            <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{item.schemePrice.toLocaleString('en-IN')}</td>
-                                            <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((item.schemeQty / item.bottlesPerPack) * item.schemePrice).toLocaleString('en-IN')}</td>
-                                        </tr>
-                                    )}
-                                </React.Fragment>
-                                ))
+                                bill.items.map((item: any, idx: number) => {
+                                    const schemeSlabs = item.schemes && item.schemes.length > 0 ? item.schemes : [];
+                                    const hasLegacyScheme = !item.schemes && item.schemeQty > 0;
+                                    const totalSchemeRows = schemeSlabs.length + (hasLegacyScheme ? 1 : 0);
+
+                                    return (
+                                        <React.Fragment key={`group-${idx}`}>
+                                            <tr key={`bill-item-${idx}-normal`} className="group hover:bg-gray-50/50">
+                                                <td className="px-3 py-4 border-b border-gray-100" rowSpan={1 + totalSchemeRows}>
+                                                    <div className="font-black text-black text-base leading-tight">{item.name}</div>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <span className="text-ruby-700 font-bold text-[10px] uppercase">{item.flavour}</span>
+                                                        <span className="text-gray-300 text-[10px]">•</span>
+                                                        <span className="text-gray-500 font-bold text-[10px] uppercase">{item.pack}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-4 text-center border-b border-gray-50">
+                                                    <span className="text-[10px] font-black uppercase text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">Normal</span>
+                                                </td>
+                                                <td className="px-3 py-4 text-right font-bold text-gray-900">{formatPacksAndBottles(item.normalQty, item.bottlesPerPack, true)}</td>
+                                                <td className="px-3 py-4 text-right font-bold text-gray-600">₹{item.normalPrice.toLocaleString('en-IN')}</td>
+                                                <td className="px-3 py-4 text-right font-black text-black">₹{((item.normalQty / item.bottlesPerPack) * item.normalPrice).toLocaleString('en-IN')}</td>
+                                            </tr>
+
+                                            {/* Render each scheme slab */}
+                                            {schemeSlabs.map((slab: any, sIdx: number) => (
+                                                <tr key={`bill-item-${idx}-scheme-${sIdx}`} className="bg-ruby-50/20 group">
+                                                    <td className="px-3 py-4 text-center border-b border-ruby-100/50">
+                                                        <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
+                                                    </td>
+                                                    <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(slab.qty, item.bottlesPerPack, true)}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{(slab.price).toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((slab.qty / item.bottlesPerPack) * slab.price).toLocaleString('en-IN')}</td>
+                                                </tr>
+                                            ))}
+
+                                            {/* Legacy Fallback for older bills */}
+                                            {hasLegacyScheme && (
+                                                <tr key={`bill-item-${idx}-scheme-legacy`} className="bg-ruby-50/20 group">
+                                                    <td className="px-3 py-4 text-center border-b border-ruby-100/50">
+                                                        <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
+                                                    </td>
+                                                    <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(item.schemeQty, item.bottlesPerPack, true)}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{item.schemePrice.toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((item.schemeQty / item.bottlesPerPack) * item.schemePrice).toLocaleString('en-IN')}</td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })
                             ) : (
                                 bill.tripId?.loadedItems && bill.tripId.loadedItems.map((item: any, idx: number) => {
                                     const sold = item.qtyLoaded - (item.qtyReturned || 0);

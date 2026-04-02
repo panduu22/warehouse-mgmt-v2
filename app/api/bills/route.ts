@@ -59,27 +59,63 @@ export async function POST(req: Request) {
             const totalSoldBottles = item.qtyLoaded - (item.qtyReturned || 0);
 
             if (totalSoldBottles > 0) {
-                const schemeBottles = item.qtyScheme || 0;
-                const normalBottles = totalSoldBottles - schemeBottles;
-
                 const normalPrice = item.productId.price || item.productId.salePrice || 0;
                 const bottlePrice = normalPrice / bpp;
-                const discountPerPack = item.discountPerPack || 0;
-                const schemePrice = normalPrice - discountPerPack;
-                const schemeBottlePrice = schemePrice / bpp;
+                
+                let lineSchemeBottles = 0;
+                let lineSchemeTotal = 0;
+                let lineDiscount = 0;
+                const billItemSchemes: any[] = [];
 
-                // Split normal bottles into packs/bottles for precise pricing
+                if (item.schemes && item.schemes.length > 0) {
+                    item.schemes.forEach((s: any) => {
+                        const sBottles = (s.packs * bpp) + s.bottles;
+                        lineSchemeBottles += sBottles;
+                        
+                        const sPrice = normalPrice - s.discountPerPack;
+                        const sBottlePrice = sPrice / bpp;
+                        
+                        const slabTotal = (s.packs * sPrice) + (s.bottles * sBottlePrice);
+                        const slabDiscount = (sBottles / bpp) * s.discountPerPack;
+                        
+                        lineSchemeTotal += slabTotal;
+                        lineDiscount += slabDiscount;
+                        
+                        billItemSchemes.push({
+                            qty: sBottles,
+                            price: sPrice,
+                            discount: slabDiscount
+                        });
+                    });
+                } else {
+                    // Fallback for legacy items without schemes array
+                    const legacySchemeBottles = item.qtyScheme || 0;
+                    lineSchemeBottles = legacySchemeBottles;
+                    const discountPerPack = item.discountPerPack || 0;
+                    const sPrice = normalPrice - discountPerPack;
+                    const sBottlePrice = sPrice / bpp;
+                    
+                    const sPacks = Math.floor(legacySchemeBottles / bpp);
+                    const sBottles = legacySchemeBottles % bpp;
+                    const slabTotal = (sPacks * sPrice) + (sBottles * sBottlePrice);
+                    const slabDiscount = (legacySchemeBottles / bpp) * discountPerPack;
+                    
+                    lineSchemeTotal += slabTotal;
+                    lineDiscount += slabDiscount;
+                    
+                    billItemSchemes.push({
+                        qty: legacySchemeBottles,
+                        price: sPrice,
+                        discount: slabDiscount
+                    });
+                }
+
+                const normalBottles = totalSoldBottles - lineSchemeBottles;
                 const nPacks = Math.floor(normalBottles / bpp);
                 const nBottles = normalBottles % bpp;
                 const normalTotal = (nPacks * normalPrice) + (nBottles * bottlePrice);
 
-                // Split scheme bottles into packs/bottles
-                const sPacks = Math.floor(schemeBottles / bpp);
-                const sBottles = schemeBottles % bpp;
-                const schemeTotal = (sPacks * schemePrice) + (sBottles * schemeBottlePrice);
-                
-                const lineTotal = normalTotal + schemeTotal;
-                const lineDiscount = (schemeBottles / bpp) * discountPerPack;
+                const lineTotal = normalTotal + lineSchemeTotal;
 
                 totalAmount += lineTotal;
                 items.push({
@@ -87,10 +123,11 @@ export async function POST(req: Request) {
                     pack: item.productId.pack || "Standard",
                     flavour: item.productId.flavour || "Regular",
                     normalQty: normalBottles,
-                    schemeQty: schemeBottles,
+                    schemeQty: lineSchemeBottles,
                     normalPrice: normalPrice,
-                    schemePrice: schemePrice,
+                    schemePrice: lineSchemeBottles > 0 ? (lineSchemeTotal / (lineSchemeBottles / bpp)) : normalPrice, // Average for legacy compatibility
                     discount: lineDiscount,
+                    schemes: billItemSchemes,
                     total: lineTotal,
                     bottlesPerPack: bpp
                 });

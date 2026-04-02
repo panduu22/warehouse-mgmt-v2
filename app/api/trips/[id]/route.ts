@@ -42,6 +42,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 tripItem.qtyReturned = item.qtyReturned;
                 tripItem.qtyScheme = item.qtyScheme || 0;
                 tripItem.discountPerPack = item.discountPerPack || 0;
+                tripItem.schemes = item.schemes || []; // New field
             }
         }
 

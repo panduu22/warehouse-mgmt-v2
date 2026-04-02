@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import { Loader2, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { formatPacksAndBottles } from "@/lib/stock-utils";
 import dbConnect from "@/lib/mongodb";
 // Note: Client Component cannot import dbConnect directly if we were calling it? 
 // No, I'm fetching data.
@@ -90,29 +91,45 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                 <div className="overflow-x-auto">
                     <table className="w-full mb-12">
                         <thead>
-                            <tr className="border-b-4 border-black text-[11px] uppercase font-black text-black tracking-[0.2em]">
-                                <th className="px-4 py-4 text-left">Description</th>
-                                <th className="px-4 py-4 text-right">Qty</th>
-                                <th className="px-4 py-4 text-right w-32">Price</th>
-                                <th className="px-4 py-4 text-right w-32">Amount</th>
+                            <tr className="border-b-4 border-black text-[10px] uppercase font-black text-black tracking-widest bg-gray-50/50">
+                                <th className="px-3 py-4 text-left">Description</th>
+                                <th className="px-3 py-4 text-center">Type</th>
+                                <th className="px-3 py-4 text-right">Qty (P.B)</th>
+                                <th className="px-3 py-4 text-right">Price/P</th>
+                                <th className="px-3 py-4 text-right">Row Total</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {bill.items && bill.items.length > 0 ? (
                                 bill.items.map((item: any, idx: number) => (
-                                    <tr key={`bill-item-${idx}`} className="hover:bg-gray-50/30">
-                                        <td className="px-4 py-6">
-                                            <div className="font-black text-black text-lg leading-tight mb-0.5">{item.name}</div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-ruby-700 font-black text-[11px] uppercase">{item.flavour}</span>
-                                                <span className="text-gray-400 font-black text-[11px]">•</span>
-                                                <span className="text-gray-500 font-black text-[11px] uppercase">{item.pack}</span>
+                                    <React.Fragment key={`group-${idx}`}>
+                                        <tr key={`bill-item-${idx}-normal`} className="group hover:bg-gray-50/50">
+                                        <td className="px-3 py-4 border-b border-gray-100" rowSpan={item.schemeQty > 0 ? 2 : 1}>
+                                            <div className="font-black text-black text-base leading-tight">{item.name}</div>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-ruby-700 font-bold text-[10px] uppercase">{item.flavour}</span>
+                                                <span className="text-gray-300 text-[10px]">•</span>
+                                                <span className="text-gray-500 font-bold text-[10px] uppercase">{item.pack}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-6 text-right font-black text-black text-lg">{item.quantity}</td>
-                                        <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{item.price.toLocaleString('en-IN')}</td>
-                                        <td className="px-4 py-6 text-right font-black text-black text-lg">₹{item.total.toLocaleString('en-IN')}</td>
+                                        <td className="px-3 py-4 text-center border-b border-gray-50">
+                                            <span className="text-[10px] font-black uppercase text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">Normal</span>
+                                        </td>
+                                        <td className="px-3 py-4 text-right font-bold text-gray-900">{formatPacksAndBottles(item.normalQty, item.bottlesPerPack, true)}</td>
+                                        <td className="px-3 py-4 text-right font-bold text-gray-600">₹{item.normalPrice.toLocaleString('en-IN')}</td>
+                                        <td className="px-3 py-4 text-right font-black text-black">₹{((item.normalQty / item.bottlesPerPack) * item.normalPrice).toLocaleString('en-IN')}</td>
                                     </tr>
+                                    {item.schemeQty > 0 && (
+                                        <tr key={`bill-item-${idx}-scheme`} className="bg-ruby-50/20 group">
+                                            <td className="px-3 py-4 text-center border-b border-ruby-100/50">
+                                                <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
+                                            </td>
+                                            <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(item.schemeQty, item.bottlesPerPack, true)}</td>
+                                            <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{item.schemePrice.toLocaleString('en-IN')}</td>
+                                            <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((item.schemeQty / item.bottlesPerPack) * item.schemePrice).toLocaleString('en-IN')}</td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                                 ))
                             ) : (
                                 bill.tripId?.loadedItems && bill.tripId.loadedItems.map((item: any, idx: number) => {
@@ -135,14 +152,14 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
 
                 <div className="flex justify-end border-t-4 border-black pt-10 mt-12">
                     <div className="w-full md:w-80 space-y-6">
-                        <div className="flex justify-between items-center text-xs font-black text-gray-500 uppercase tracking-widest">
-                            <span>Taxable Value</span>
-                            <span className="text-black">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-xs font-black text-gray-500 uppercase tracking-widest">
-                            <span>Discount / Adjust</span>
-                            <span className="text-black">₹0.00</span>
-                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>Gross Value (Excl. Disc)</span>
+                                <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
+                                <span>Total Scheme Discount</span>
+                                <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
+                            </div>
                         <div className="flex justify-between items-center pt-8 border-t border-gray-100">
                             <span className="text-xl font-black text-black uppercase tracking-tighter">Net Total Amount</span>
                             <span className="text-4xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>

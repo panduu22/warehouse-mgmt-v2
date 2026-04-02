@@ -12,6 +12,7 @@ import { PriceEditor } from "./PriceEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
+import { parsePack } from "@/lib/stock-utils";
 
 async function getProducts() {
     await dbConnect();
@@ -86,10 +87,12 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         <tr>
                             <th className="px-6 py-4">Product Name</th>
                             <th className="px-6 py-4">Invoice Cost</th>
+                            <th className="px-6 py-4 text-right">Invoice Amount</th>
                             <th className="px-6 py-4">MRP (Base)</th>
                             <th className="px-6 py-4">Today's Price</th>
                             <th className="px-6 py-4">Profit/Margin</th>
                             <th className="px-6 py-4">Sale Price</th>
+                            <th className="px-6 py-4 text-right">Sales Amount</th>
                             <th className="px-6 py-4 text-right">Quantity</th>
                             <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
@@ -97,7 +100,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                     <tbody className="divide-y divide-gray-50">
                         {products.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                                     No products found in {warehouseName}.
                                 </td>
                             </tr>
@@ -106,10 +109,22 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                             products.map((product: any) => {
                                 const currentPrice = product.price || product.salePrice || 0;
                                 const profit = currentPrice - (product.invoiceCost || 0);
+                                
+                                // Amount calculations
+                                const bottlesPerPack = parsePack(product.pack, product.name);
+                                const totalPacks = product.quantity / bottlesPerPack;
+                                const invoiceAmount = totalPacks * (product.invoiceCost || 0);
+                                const salesAmount = totalPacks * (product.salePrice || 0);
+
                                 return (
                                     <tr key={product._id} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.invoiceCost)}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-medium">
+                                            <PriceEditor productId={product._id} initialPrice={product.invoiceCost || 0} field="invoiceCost" />
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-gray-500 italic">
+                                            {formatCurrency(invoiceAmount)}
+                                        </td>
                                         <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
                                         <td className="px-6 py-4">
                                             <PriceEditor productId={product._id} initialPrice={product.price || product.salePrice} />
@@ -117,9 +132,18 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                         <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {formatCurrency(profit)}
                                         </td>
-                                        <td className="px-6 py-4 text-gray-900 font-bold">{formatCurrency(product.salePrice)}</td>
+                                        <td className="px-6 py-4 text-gray-900 font-bold">
+                                            <PriceEditor productId={product._id} initialPrice={product.salePrice || 0} field="salePrice" />
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-ruby-600 font-extrabold">
+                                            {formatCurrency(salesAmount)}
+                                        </td>
                                         <td className="px-6 py-4 text-right">
-                                            <QuantityEditor productId={product._id} initialQuantity={product.quantity} />
+                                            <QuantityEditor 
+                                                productId={product._id} 
+                                                initialQuantity={product.quantity} 
+                                                bottlesPerPack={parsePack(product.pack, product.name)} 
+                                            />
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
@@ -131,6 +155,25 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                             })
                         )}
                     </tbody>
+                    {products.length > 0 && (
+                        <tfoot className="bg-gray-50/80 border-t-2 border-gray-100 font-extrabold text-gray-900">
+                            <tr>
+                                <td colSpan={2} className="px-6 py-4 text-right">Net Totals:</td>
+                                <td className="px-6 py-4 text-right text-gray-700">
+                                    {formatCurrency(
+                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / parsePack(p.pack, p.name)) * (p.invoiceCost || 0)), 0)
+                                    )}
+                                </td>
+                                <td colSpan={4}></td>
+                                <td className="px-6 py-4 text-right text-ruby-700">
+                                    {formatCurrency(
+                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / parsePack(p.pack, p.name)) * (p.salePrice || 0)), 0)
+                                    )}
+                                </td>
+                                <td colSpan={2}></td>
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
             </div>
         </div>

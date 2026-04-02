@@ -13,6 +13,7 @@ import Warehouse from "@/models/Warehouse";
 import Vehicle from "@/models/Vehicle"; // Import to ensure model is registered for populate
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
+import { parsePack } from "@/lib/stock-utils";
 
 async function getData(dateFilter?: string) {
     await dbConnect();
@@ -39,9 +40,27 @@ async function getData(dateFilter?: string) {
     
     const filter = warehouseId ? { warehouseId } : {};
 
-    // However, the user wants "enter login date also". 
-    // "Active Trips" (Current) vs "Trips Started" (History).
-    // I will return both sets or switch logic.
+    // Calculate detailed stock metrics
+    const products = await Product.find(filter);
+    let totalBottlesRaw = 0;
+    let totalPacksRaw = 0;
+    let totalRemainderBottles = 0;
+    let totalValuePrecision = 0;
+
+    products.forEach(p => {
+        const qty = p.quantity || 0;
+        const bpp = parsePack(p.pack, p.name);
+        const price = p.price || p.salePrice || 0;
+
+        totalBottlesRaw += qty;
+        totalPacksRaw += Math.floor(qty / bpp);
+        totalRemainderBottles += qty % bpp;
+        // Proportional value: (Total Bottles / BPP) * Price
+        // Using large multiplier to maintain precision before final rounding
+        totalValuePrecision += (qty * price) / bpp;
+    });
+
+    const totalValue = totalValuePrecision;
 
     // Logic Switch:
     // Global (No Date):
@@ -77,7 +96,12 @@ async function getData(dateFilter?: string) {
     ]);
 
     return {
-        productCount: totalStock,
+        stockMetrics: {
+            totalValue,
+            totalBottles: totalBottlesRaw,
+            totalPacks: totalPacksRaw,
+            totalRemainder: totalRemainderBottles
+        },
         tripMetricCount,
         verifiedTripsCount,
         billCount,
@@ -127,9 +151,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <StatCard
                     title="Total Stock"
-                    value={data.productCount.toLocaleString()}
+                    value={
+                        <div className="space-y-1">
+                            <div className="text-2xl font-black text-gray-900">₹{Math.round(data.stockMetrics.totalValue).toLocaleString()}</div>
+                            <div className="flex flex-col text-xs font-bold text-gray-500 uppercase tracking-tight">
+                                <span>{data.stockMetrics.totalBottles.toLocaleString()} bottles</span>
+                                <span className="text-ruby-600/70">{data.stockMetrics.totalPacks} P + {data.stockMetrics.totalRemainder} B</span>
+                            </div>
+                        </div>
+                    }
                     icon={Package}
-                    trend="Currently Available"
+                    trend="In Inventory"
                     color="ruby"
                 />
                 <StatCard
@@ -285,7 +317,11 @@ function StatCard({ title, value, icon: Icon, subtitle, trend, color }: any) {
             </div>
             <div>
                 <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
-                <h3 className="text-3xl font-extrabold text-gray-900">{value}</h3>
+                {typeof value === "string" || typeof value === "number" ? (
+                    <h3 className="text-3xl font-extrabold text-gray-900">{value}</h3>
+                ) : (
+                    value
+                )}
                 {subtitle && <p className="text-xs text-gray-400 mt-2 font-medium">{subtitle}</p>}
             </div>
         </div>

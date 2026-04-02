@@ -4,8 +4,9 @@ import Bill from "@/models/Bill";
 export const dynamic = "force-dynamic";
 import Trip from "@/models/Trip";
 import Product from "@/models/Product";
-import Vehicle from "@/models/Vehicle"; // Ensure model is registered for populate
+import Vehicle from "@/models/Vehicle"; 
 import mongoose from "mongoose";
+import { parsePack } from "@/lib/stock-utils";
 // Need Product to get price history? 
 // Current Price or Historical Price? 
 // Product model has current price. Trip doesn't store price snapshot.
@@ -50,24 +51,48 @@ export async function POST(req: Request) {
         }
 
         // Calculate Total and Items Snapshot
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const items: any[] = [];
         let totalAmount = 0;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         trip.loadedItems.forEach((item: any) => {
-            const sold = item.qtyLoaded - (item.qtyReturned || 0);
-            const price = item.productId.price || item.productId.salePrice || 0;
-            if (sold > 0) {
-                const lineTotal = sold * price;
+            const bpp = parsePack(item.productId.pack, item.productId.name);
+            const totalSoldBottles = item.qtyLoaded - (item.qtyReturned || 0);
+
+            if (totalSoldBottles > 0) {
+                const schemeBottles = item.qtyScheme || 0;
+                const normalBottles = totalSoldBottles - schemeBottles;
+
+                const normalPrice = item.productId.price || item.productId.salePrice || 0;
+                const bottlePrice = normalPrice / bpp;
+                const discountPerPack = item.discountPerPack || 0;
+                const schemePrice = normalPrice - discountPerPack;
+                const schemeBottlePrice = schemePrice / bpp;
+
+                // Split normal bottles into packs/bottles for precise pricing
+                const nPacks = Math.floor(normalBottles / bpp);
+                const nBottles = normalBottles % bpp;
+                const normalTotal = (nPacks * normalPrice) + (nBottles * bottlePrice);
+
+                // Split scheme bottles into packs/bottles
+                const sPacks = Math.floor(schemeBottles / bpp);
+                const sBottles = schemeBottles % bpp;
+                const schemeTotal = (sPacks * schemePrice) + (sBottles * schemeBottlePrice);
+                
+                const lineTotal = normalTotal + schemeTotal;
+                const lineDiscount = (schemeBottles / bpp) * discountPerPack;
+
                 totalAmount += lineTotal;
                 items.push({
                     name: item.productId.name,
                     pack: item.productId.pack || "Standard",
                     flavour: item.productId.flavour || "Regular",
-                    quantity: sold,
-                    price: price,
-                    total: lineTotal
+                    normalQty: normalBottles,
+                    schemeQty: schemeBottles,
+                    normalPrice: normalPrice,
+                    schemePrice: schemePrice,
+                    discount: lineDiscount,
+                    total: lineTotal,
+                    bottlesPerPack: bpp
                 });
             }
         });

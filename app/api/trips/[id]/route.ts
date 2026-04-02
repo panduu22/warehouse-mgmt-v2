@@ -30,24 +30,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Trip already verified" }, { status: 400 });
         }
 
-        // specific logic for returnedItems: [{ productId, qtyReturned }]
-        // We need to update trip loadedItems with returned quantities or just store returnedItems separately?
-        // Trip Model has `returnedItems: [{ productId, qtyReturned }]`? 
-        // Wait, my Trip Model definition had `loadedItems: [ { productId, qtyLoaded, qtyReturned } ]` ?
-        // Let's check Trip.ts ... 
-        // it had `TripItemSchema` with `qtyReturned`.
-        // So I will update the `loadedItems` array with `qtyReturned` values.
-
-        // Update stock for returned items
+        // specific logic for returnedItems: [{ productId, qtyReturned, qtyScheme, discountPerPack }]
         for (const item of returnedItems) {
             await Product.findByIdAndUpdate(item.productId, {
                 $inc: { quantity: item.qtyReturned }
             });
-
+ 
             // Update trip item
             const tripItem = trip.loadedItems.find((i: any) => i.productId.toString() === item.productId);
             if (tripItem) {
                 tripItem.qtyReturned = item.qtyReturned;
+                tripItem.qtyScheme = item.qtyScheme || 0;
+                tripItem.discountPerPack = item.discountPerPack || 0;
             }
         }
 

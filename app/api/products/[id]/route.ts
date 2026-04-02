@@ -33,7 +33,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (invoiceCost !== undefined) updateData.invoiceCost = invoiceCost;
         if (price !== undefined) updateData.price = price;
         if (mrp !== undefined) updateData.mrp = mrp;
-        if (salePrice !== undefined) updateData.salePrice = salePrice;
+        if (salePrice !== undefined) {
+            updateData.salePrice = salePrice;
+            updateData.price = salePrice; // Todays price is updated when we change sales price
+        }
 
         const product = await Product.findByIdAndUpdate(
             id,

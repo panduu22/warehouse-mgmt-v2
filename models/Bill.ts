@@ -4,9 +4,13 @@ export interface IBillItem {
     name: string;
     pack: string;
     flavour: string;
-    quantity: number;
-    price: number;
-    total: number;
+    normalQty: number; // Bottles
+    schemeQty: number; // Bottles
+    normalPrice: number; // ₹ per pack
+    schemePrice: number; // ₹ per pack
+    discount: number; // Total ₹ discount for this line
+    total: number; // Normal Total + Scheme Total
+    bottlesPerPack: number;
 }
 
 export interface IBill extends Document {
@@ -24,9 +28,13 @@ const BillItemSchema = new Schema({
     name: { type: String, required: true },
     pack: { type: String, required: true },
     flavour: { type: String, required: true },
-    quantity: { type: Number, required: true },
-    price: { type: Number, required: true },
+    normalQty: { type: Number, required: true },
+    schemeQty: { type: Number, required: true },
+    normalPrice: { type: Number, required: true },
+    schemePrice: { type: Number, required: true },
+    discount: { type: Number, required: true },
     total: { type: Number, required: true },
+    bottlesPerPack: { type: Number, required: true },
 }, { _id: false });
 
 const BillSchema: Schema<IBill> = new Schema(

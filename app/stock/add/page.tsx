@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2, Plus, Box, PackagePlus, ArrowRight, Check } from "lucide-react";
 import clsx from "clsx";
+import { parsePack, formatPacksAndBottles } from "@/lib/stock-utils";
 
 export default function AddStockPage() {
     const router = useRouter();
@@ -24,7 +25,8 @@ export default function AddStockPage() {
     const [availablePacks, setAvailablePacks] = useState<string[]>([]);
     const [targetProduct, setTargetProduct] = useState<any>(null);
 
-    const [addQuantity, setAddQuantity] = useState(0);
+    const [addPacks, setAddPacks] = useState("0");
+    const [addBottles, setAddBottles] = useState("0");
 
     useEffect(() => {
         if (mode === "existing") {
@@ -95,6 +97,18 @@ export default function AddStockPage() {
         }
     }, [selectedFlavour, selectedPack, products]);
 
+    const handleAddBottleChange = (val: string, bpp: number) => {
+        const b = parseInt(val, 10);
+        if (!isNaN(b) && b >= bpp) {
+            const extraPacks = Math.floor(b / bpp);
+            const remBottles = b % bpp;
+            setAddPacks(prev => String(parseInt(prev || "0", 10) + extraPacks));
+            setAddBottles(String(remBottles));
+        } else {
+            setAddBottles(val);
+        }
+    };
+
     const handleRestock = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -102,12 +116,15 @@ export default function AddStockPage() {
 
         if (!targetProduct) return;
 
+        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const bottlesAdded = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
+
         try {
             const res = await fetch(`/api/products/${targetProduct._id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    quantityToAdd: Number(addQuantity)
+                    quantityToAdd: bottlesAdded
                 }),
             });
 
@@ -131,16 +148,22 @@ export default function AddStockPage() {
         setError("");
 
         const formData = new FormData(e.currentTarget);
+        const name = formData.get("name") as string;
+        const pack = formData.get("pack") as string;
+        const bpp = parsePack(pack, name);
+
+        const initialPacks = parseInt(formData.get("initialPacks") as string || "0", 10);
+        const initialBottles = parseInt(formData.get("initialBottles") as string || "0", 10);
+        const totalBottles = (initialPacks * bpp) + initialBottles;
+
         const data = {
-            name: formData.get("name"),
-            // sku: Auto-generated
-            quantity: Number(formData.get("quantity")),
+            name: name,
+            quantity: totalBottles,
             price: Number(formData.get("price")),
             invoiceCost: Number(formData.get("invoiceCost")),
             mrp: Number(formData.get("mrp")),
             salePrice: Number(formData.get("salePrice")),
-            // location: Removed
-            pack: formData.get("pack"),
+            pack: pack,
             flavour: formData.get("flavour")
         };
 
@@ -281,20 +304,27 @@ export default function AddStockPage() {
                                     <div className="flex items-center gap-8">
                                         <div className="text-center">
                                             <p className="text-xs text-ruby-600 font-bold uppercase tracking-wider">Current</p>
-                                            <p className="text-2xl font-bold text-ruby-900">{targetProduct.quantity}</p>
+                                            <p className="text-2xl font-bold text-ruby-900">{Math.floor(targetProduct.quantity / parsePack(targetProduct.pack, targetProduct.name))}P + {targetProduct.quantity % parsePack(targetProduct.pack, targetProduct.name)}B</p>
                                         </div>
                                         <div className="text-gray-300">
                                             <Plus className="w-6 h-6" />
                                         </div>
-                                        <div className="w-32">
+                                        <div className="w-48 flex items-center gap-2">
                                             <input
                                                 type="number"
-                                                min="1"
-                                                value={addQuantity}
-                                                onChange={(e) => setAddQuantity(Number(e.target.value))}
-                                                placeholder="+Qty"
-                                                className="w-full px-4 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
+                                                value={addPacks}
+                                                onChange={(e) => setAddPacks(e.target.value)}
+                                                placeholder="Packs"
+                                                className="w-full px-3 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
                                                 autoFocus
+                                            />
+                                            <span className="text-gray-300 font-bold">+</span>
+                                            <input
+                                                type="number"
+                                                value={addBottles}
+                                                onChange={(e) => handleAddBottleChange(e.target.value, parsePack(targetProduct.pack, targetProduct.name))}
+                                                placeholder="Bottles"
+                                                className="w-full px-3 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
                                             />
                                         </div>
                                         <div className="text-gray-300">
@@ -302,15 +332,22 @@ export default function AddStockPage() {
                                         </div>
                                         <div className="text-center">
                                             <p className="text-xs text-teal-600 font-bold uppercase tracking-wider">New Total</p>
-                                            <p className="text-3xl font-bold text-teal-700">{targetProduct.quantity + addQuantity}</p>
+                                            <p className="text-3xl font-bold text-teal-700">
+                                                {(() => {
+                                                    const bpp = parsePack(targetProduct.pack, targetProduct.name);
+                                                    const added = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
+                                                    const totalVal = targetProduct.quantity + added;
+                                                    return `${Math.floor(totalVal / bpp)}P + ${totalVal % bpp}B`;
+                                                })()}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-
+ 
                                 <div className="pt-8 flex justify-end">
                                     <button
                                         type="submit"
-                                        disabled={loading || addQuantity <= 0}
+                                        disabled={loading || ((parseInt(addPacks || "0", 10) * parsePack(targetProduct.pack, targetProduct.name)) + parseInt(addBottles || "0", 10)) <= 0}
                                         className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-900/10"
                                     >
                                         {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <PackagePlus className="w-6 h-6" />}
@@ -319,14 +356,14 @@ export default function AddStockPage() {
                                 </div>
                             </div>
                         )}
-
+ 
                         {!targetProduct && selectedFlavour && selectedPack && (
                             <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                                 Product not found for this specific combination.
                             </div>
                         )}
-
+ 
                     </form>
                 ) : (
                     <form onSubmit={handleCreate} className="space-y-6">
@@ -335,11 +372,11 @@ export default function AddStockPage() {
                             <input
                                 name="name"
                                 required
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900 md:text-gray-900"
-                                placeholder="e.g. Samsung 43 TV"
+                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                placeholder="e.g. Sprite 1.5 Ltr PET"
                             />
                         </div>
-
+ 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Invoice Cost (₹)</label>
@@ -353,23 +390,22 @@ export default function AddStockPage() {
                                 />
                             </div>
                         </div>
-
-                        {/* Excel Fields (Optional) */}
+ 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-xl">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Flavour</label>
                                 <input
                                     name="flavour"
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="e.g. Vanilla"
+                                    placeholder="e.g. Regular"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Pack</label>
+                                <label className="text-sm font-medium text-gray-700">Pack Description</label>
                                 <input
                                     name="pack"
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="e.g. 24x500ml"
+                                    placeholder="e.g. 12x1.5L"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -383,18 +419,27 @@ export default function AddStockPage() {
                                 />
                             </div>
                         </div>
-
+ 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Initial Quantity</label>
-                                <input
-                                    name="quantity"
-                                    type="number"
-                                    min="0"
-                                    required
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="0"
-                                />
+                                <label className="text-sm font-medium text-gray-700 text-ruby-700 font-bold">Initial Quantity</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        name="initialPacks"
+                                        type="number"
+                                        min="0"
+                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                        placeholder="Packs"
+                                    />
+                                    <span className="text-gray-400 font-bold">+</span>
+                                    <input
+                                        name="initialBottles"
+                                        type="number"
+                                        min="0"
+                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                        placeholder="Bottles"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
@@ -407,13 +452,6 @@ export default function AddStockPage() {
                                     min="0"
                                     step="0.01"
                                     required
-                                    onChange={(e) => {
-                                        const priceInput = document.getElementsByName("price")[0] as HTMLInputElement;
-                                        if (priceInput && !priceInput.value) {
-                                            // Optional: auto-fill logic if desired, 
-                                            // but the backend handles it as well.
-                                        }
-                                    }}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900 font-bold"
                                     placeholder="0.00"
                                 />

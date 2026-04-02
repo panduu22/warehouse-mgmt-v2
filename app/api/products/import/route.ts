@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
 import mongoose from "mongoose";
 import * as XLSX from "xlsx";
+import { parsePack } from "@/lib/stock-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -68,14 +69,6 @@ export async function POST(req: Request) {
                 const name = String(get(["name", "product name", "product", "description"]) || "").trim();
                 if (!name) { errors.push(`Row skipped: missing product name`); continue; }
 
-                let sku = String(get(["sku", "sku code", "code", "barcode"]) || "").trim();
-                
-                const quantity = Number(get(["quantity", "qty", "stock", "balance", "opening stock"]) || 0);
-                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice", "cost", "purchase price"]) || 0);
-                const mrp = Number(get(["mrp", "mrp (base)", "base mrp", "label price"]) || 0);
-                const salePrice = Number(get(["sale price", "saleprice", "selling price", "retail price", "rate"]) || 0);
-                const price = Number(get(["today's price", "todays price", "price", "today price", "current price"]) || salePrice);
-                
                 let flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
                 let pack = String(get(["pack", "package", "packaging", "size", "volume", "vol", "unit"]) || "").trim();
 
@@ -96,6 +89,32 @@ export async function POST(req: Request) {
                     }
                 }
 
+                const rawQuantity = get(["quantity", "qty", "stock", "balance", "opening stock"]);
+                let quantity = 0;
+                const bpp = parsePack(pack, name);
+
+                if (typeof rawQuantity === "number") {
+                    if (!Number.isInteger(rawQuantity)) {
+                        // Legacy P.B format detected (e.g. 2.9)
+                        const packs = Math.floor(rawQuantity);
+                        const bottles = Math.round((rawQuantity % 1) * 10);
+                        quantity = (packs * bpp) + bottles;
+                    } else {
+                        quantity = rawQuantity;
+                    }
+                } else if (typeof rawQuantity === "string" && rawQuantity.includes(".")) {
+                    const [pStr, bStr] = rawQuantity.split(".");
+                    quantity = (parseInt(pStr || "0", 10) * bpp) + parseInt(bStr || "0", 10);
+                } else {
+                    quantity = Number(rawQuantity || 0);
+                }
+
+                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice", "cost", "purchase price"]) || 0);
+                const mrp = Number(get(["mrp", "mrp (base)", "base mrp", "label price"]) || 0);
+                const salePrice = Number(get(["sale price", "saleprice", "selling price", "retail price", "rate"]) || 0);
+                const price = Number(get(["today's price", "todays price", "price", "today price", "current price"]) || salePrice);
+
+                let sku = String(get(["sku", "sku code", "code", "barcode"]) || "").trim();
                 if (!sku) {
                     // Auto-generate SKU based on the potentially parsed flavour/pack
                     const base = name.substring(0, 3).toUpperCase();
@@ -104,7 +123,7 @@ export async function POST(req: Request) {
                     const rand = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
                     sku = `${base}-${flav}-${pck}-${rand}`.replace(/-+/g, "-");
                 }
-
+                
                 // Upsert by SKU + warehouseId
                 const existing = await Product.findOne({ sku, warehouseId });
                 if (existing) {

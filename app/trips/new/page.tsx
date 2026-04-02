@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, Trash2, Plus, ArrowRight, Check, PackagePlus, ArrowLeft, Truck, Printer } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import { parsePack, toBottles, formatPacksAndBottles } from "@/lib/stock-utils";
 
 export default function NewTripPage() {
     const router = useRouter();
@@ -22,13 +23,27 @@ export default function NewTripPage() {
     // Guided Selection State
     const [selectedFlavour, setSelectedFlavour] = useState("");
     const [selectedPack, setSelectedPack] = useState("");
-    const [addQuantity, setAddQuantity] = useState(1);
+    const [addPacks, setAddPacks] = useState<string>("1");
+    const [addBottles, setAddBottles] = useState<string>("0");
 
     // Derived Data
     const [availableFlavours, setAvailableFlavours] = useState<string[]>([]);
     const [availablePacks, setAvailablePacks] = useState<string[]>([]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [targetProduct, setTargetProduct] = useState<any>(null);
+
+    // Auto-normalize bottles to packs
+    useEffect(() => {
+        if (!targetProduct) return;
+        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const b = parseInt(addBottles || "0");
+        if (b >= bpp) {
+            const extraPacks = Math.floor(b / bpp);
+            const remainingBottles = b % bpp;
+            setAddPacks(prev => (parseInt(prev || "0") + extraPacks).toString());
+            setAddBottles(remainingBottles.toString());
+        }
+    }, [addBottles, targetProduct]);
 
     useEffect(() => {
         // Fetch vehicles and products
@@ -62,16 +77,11 @@ export default function NewTripPage() {
 
                 const isAMl = aLower.includes("ml");
                 const isBMl = bLower.includes("ml");
-                const isALtr = aLower.includes("ltr") || aLower.includes("liter");
-                const isBLtr = bLower.includes("ltr") || bLower.includes("liter");
-
                 if (isAMl && !isBMl) return -1;
                 if (!isAMl && isBMl) return 1;
-                if ((isAMl && isBMl) || (isALtr && isBLtr)) {
-                    const numA = parseFloat(a.replace(/[^0-9.]/g, ""));
-                    const numB = parseFloat(b.replace(/[^0-9.]/g, ""));
-                    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                }
+                const numA = parseFloat(a.replace(/[^0-9.]/g, ""));
+                const numB = parseFloat(b.replace(/[^0-9.]/g, ""));
+                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
                 return a.localeCompare(b);
             });
 
@@ -86,14 +96,21 @@ export default function NewTripPage() {
         if (selectedFlavour && selectedPack) {
             const prod = products.find(p => p.flavour === selectedFlavour && p.pack === selectedPack);
             setTargetProduct(prod || null);
-            if (prod) setAddQuantity(1); // Default to 1 when product is found
+            if (prod) {
+                setAddPacks("1");
+                setAddBottles("0");
+            }
         } else {
             setTargetProduct(null);
         }
     }, [selectedFlavour, selectedPack, products]);
 
     const addToManifest = () => {
-        if (!targetProduct || addQuantity <= 0) return;
+        if (!targetProduct) return;
+        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const bottlesTotal = (parseInt(addPacks || "0") * bpp) + parseInt(addBottles || "0");
+        
+        if (bottlesTotal <= 0) return;
 
         // Check if already in manifest
         const existingIndex = manifest.findIndex(item => item.productId === targetProduct._id);
@@ -101,7 +118,7 @@ export default function NewTripPage() {
         if (existingIndex >= 0) {
             // Update quantity
             const newManifest = [...manifest];
-            newManifest[existingIndex].qtyLoaded += addQuantity;
+            newManifest[existingIndex].qtyLoaded += bottlesTotal;
             setManifest(newManifest);
         } else {
             // Add new line
@@ -110,14 +127,15 @@ export default function NewTripPage() {
                 name: targetProduct.name,
                 flavour: targetProduct.flavour,
                 pack: targetProduct.pack,
-                qtyLoaded: addQuantity,
+                qtyLoaded: bottlesTotal,
                 currentStock: targetProduct.quantity,
                 price: targetProduct.price
             }]);
         }
 
-        // Reset Selection (Keep Flavour? Maybe better UX to reset just One level? Let's reset quantity and pack)
-        setAddQuantity(1);
+        // Reset Selection
+        setAddPacks("1");
+        setAddBottles("0");
         setSelectedPack("");
         // Keep flavour selected as user might want to add another pack of same flavour
     };
@@ -225,6 +243,8 @@ export default function NewTripPage() {
                                         onClick={() => {
                                             setSelectedFlavour(flav);
                                             setSelectedPack("");
+                                            setAddPacks("1");
+                                            setAddBottles("0");
                                         }}
                                         className={clsx("p-3 rounded-lg border text-sm font-medium transition-all text-center", {
                                             "border-ruby-500 bg-ruby-50 text-ruby-900 ring-1 ring-ruby-500": selectedFlavour === flav,
@@ -245,7 +265,11 @@ export default function NewTripPage() {
                                     {availablePacks.map(pack => (
                                         <button
                                             key={pack}
-                                            onClick={() => setSelectedPack(pack)}
+                                            onClick={() => {
+                                                setSelectedPack(pack);
+                                                setAddPacks("1");
+                                                setAddBottles("0");
+                                            }}
                                             className={clsx("px-4 py-2 rounded-full border text-sm font-bold transition-all flex items-center gap-2", {
                                                 "border-teal-500 bg-teal-50 text-teal-800 ring-1 ring-teal-500": selectedPack === pack,
                                                 "border-gray-200 bg-white text-gray-600 hover:border-teal-200": selectedPack !== pack
@@ -265,26 +289,34 @@ export default function NewTripPage() {
                                 <div className="flex-1 text-center sm:text-left">
                                     <div className="text-xs text-gray-500 font-bold uppercase">Selected</div>
                                     <div className="font-bold text-gray-900 text-lg">{targetProduct.name}</div>
-                                    <div className="text-sm text-gray-500">Available Stock: {targetProduct.quantity}</div>
+                                    <div className="text-sm text-gray-500">Available Stock: {formatPacksAndBottles(targetProduct.quantity, parsePack(targetProduct.pack, targetProduct.name))}</div>
                                 </div>
 
                                 <div className="flex items-center gap-4">
-                                    <div className="w-24">
-                                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Load Qty</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={addQuantity || ""}
-                                            onChange={(e) => setAddQuantity(Number(e.target.value))}
-                                            placeholder="0"
-                                            className="w-full px-3 py-2 text-center font-bold text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-ruby-500 outline-none text-gray-900 bg-white placeholder-gray-400"
-                                            autoFocus
-                                        />
+                                    <div className="flex gap-2">
+                                        <div className="w-20">
+                                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Packs</label>
+                                            <input
+                                                type="number"
+                                                value={addPacks}
+                                                onChange={(e) => setAddPacks(e.target.value)}
+                                                className="w-full px-3 py-2 text-center font-bold text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-ruby-500 outline-none text-gray-900"
+                                            />
+                                        </div>
+                                        <div className="w-20">
+                                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Bottles</label>
+                                            <input
+                                                type="number"
+                                                value={addBottles}
+                                                onChange={(e) => setAddBottles(e.target.value)}
+                                                className="w-full px-3 py-2 text-center font-bold text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-ruby-500 outline-none text-gray-900"
+                                            />
+                                        </div>
                                     </div>
                                     <button
                                         onClick={addToManifest}
-                                        disabled={addQuantity <= 0}
-                                        className="bg-ruby-700 hover:bg-ruby-800 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                        disabled={(parseInt(addPacks || "0") * parsePack(targetProduct.pack, targetProduct.name) + parseInt(addBottles || "0")) <= 0}
+                                        className="bg-ruby-700 hover:bg-ruby-800 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm h-[46px] mt-5"
                                     >
                                         <Plus className="w-5 h-5" />
                                         Add
@@ -342,11 +374,31 @@ export default function NewTripPage() {
                                 )}
                             </div>
                             {manifest.length > 0 && (
-                                <div className="flex justify-between items-center text-sm print:mt-4">
-                                    <span className="text-gray-500 font-medium print:text-black print:font-bold print:text-lg">Grand Total</span>
-                                    <span className="font-bold text-ruby-700 text-lg print:text-3xl print:font-black print:text-black">
-                                        ₹{manifest.reduce((acc, item) => acc + (item.price * item.qtyLoaded), 0).toLocaleString()}
-                                    </span>
+                                <div className="flex flex-col gap-1 print:mt-4">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-500 font-medium print:text-black print:font-bold print:text-lg">Total Loaded</span>
+                                        <span className="font-bold text-gray-900 text-lg print:text-2xl print:font-black">
+                                            {(() => {
+                                                let totalP = 0;
+                                                let totalB = 0;
+                                                manifest.forEach(item => {
+                                                    const bpp = parsePack(item.pack, item.name);
+                                                    totalP += Math.floor(item.qtyLoaded / bpp);
+                                                    totalB += item.qtyLoaded % bpp;
+                                                });
+                                                return `${totalP} Packs + ${totalB} Bottles`;
+                                            })()}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-500 font-medium print:text-black print:font-bold print:text-lg">Grand Total</span>
+                                        <span className="font-bold text-ruby-700 text-lg print:text-3xl print:font-black print:text-black">
+                                            ₹{manifest.reduce((acc, item) => {
+                                                const bottlesPerPack = parsePack(item.pack, item.name);
+                                                return acc + (item.price * (item.qtyLoaded / bottlesPerPack));
+                                            }, 0).toLocaleString()}
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -367,10 +419,10 @@ export default function NewTripPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate print:text-xl print:font-black print:text-black">{item.name}</div>
                                                 <div className="text-xs text-gray-500 print:text-gray-700 print:font-bold">{item.flavour} • {item.pack}</div>
-                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">₹{(item.price * item.qtyLoaded).toLocaleString()} (₹{item.price} each)</div>
+                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">₹{(item.price * (item.qtyLoaded / parsePack(item.pack, item.name))).toLocaleString()} (₹{item.price} per pack)</div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="font-black text-gray-900 text-lg print:text-3xl print:text-black">{item.qtyLoaded}</div>
+                                                <div className="font-black text-gray-900 text-lg print:text-3xl print:text-black">{formatPacksAndBottles(item.qtyLoaded, parsePack(item.pack, item.name))}</div>
                                             </div>
                                             <button
                                                 onClick={() => removeFromManifest(idx)}

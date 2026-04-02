@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Check, X, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function PriceEditor({ productId, initialPrice }: { productId: string, initialPrice: number }) {
+export function PriceEditor({ productId, initialPrice, field = "price" }: { productId: string, initialPrice: number, field?: string }) {
     const [isEditing, setIsEditing] = useState(false);
     const [price, setPrice] = useState(initialPrice);
     const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export function PriceEditor({ productId, initialPrice }: { productId: string, in
             const res = await fetch(`/api/products/${productId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ price })
+                body: JSON.stringify({ [field]: price })
             });
 
             if (!res.ok) throw new Error("Update failed");
@@ -24,7 +24,7 @@ export function PriceEditor({ productId, initialPrice }: { productId: string, in
             router.refresh();
             setIsEditing(false);
         } catch (e) {
-            alert("Failed to update price");
+            alert(`Failed to update ${field}`);
             setPrice(initialPrice);
         } finally {
             setLoading(false);

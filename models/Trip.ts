@@ -4,6 +4,8 @@ export interface ITripItem {
     productId: mongoose.Types.ObjectId;
     qtyLoaded: number;
     qtyReturned: number;
+    qtyScheme?: number; // Bottles sold under scheme
+    discountPerPack?: number; // Discount in ₹ per pack
     qtySold?: number; // Calculated: Loaded - Returned
 }
 
@@ -23,6 +25,8 @@ const TripItemSchema = new Schema({
     productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     qtyLoaded: { type: Number, required: true },
     qtyReturned: { type: Number, default: 0 },
+    qtyScheme: { type: Number, default: 0 },
+    discountPerPack: { type: Number, default: 0 },
 }, { _id: false });
 
 const TripSchema: Schema<ITrip> = new Schema(

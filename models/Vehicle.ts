@@ -11,7 +11,7 @@ export interface IVehicle extends Document {
 
 const VehicleSchema: Schema<IVehicle> = new Schema(
     {
-        number: { type: String, required: true, unique: true },
+        number: { type: String, required: true },
         driverName: { type: String, required: true },
         status: {
             type: String,
@@ -22,6 +22,8 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
     },
     { timestamps: true }
 );
+
+VehicleSchema.index({ number: 1, warehouseId: 1 }, { unique: true });
 
 const Vehicle: Model<IVehicle> = mongoose.models.Vehicle || mongoose.model<IVehicle>("Vehicle", VehicleSchema);
 

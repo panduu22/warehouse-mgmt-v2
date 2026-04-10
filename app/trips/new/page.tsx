@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Save, Trash2, Plus, ArrowRight, Check, PackagePlus, ArrowLeft, Truck, Printer } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
-import { parsePack, toBottles, formatPacksAndBottles } from "@/lib/stock-utils";
+import { parsePack, toBottles, formatPacksAndBottles, PRODUCT_SORT_ORDER } from "@/lib/stock-utils";
 
 export default function NewTripPage() {
     const router = useRouter();
@@ -35,7 +35,7 @@ export default function NewTripPage() {
     // Auto-normalize bottles to packs
     useEffect(() => {
         if (!targetProduct) return;
-        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const bpp = targetProduct.bottlesPerPack;
         const b = parseInt(addBottles || "0");
         if (b >= bpp) {
             const extraPacks = Math.floor(b / bpp);
@@ -52,10 +52,18 @@ export default function NewTripPage() {
             .then(res => res.json())
             .then(data => {
                 setProducts(data);
-                // Extract unique flavours
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const flavs = Array.from(new Set(data.map((p: any) => p.flavour).filter(Boolean))) as string[];
-                setAvailableFlavours(flavs.sort());
+                // Extract unique flavours in the custom order
+                const flavoursInOrder: string[] = [];
+                PRODUCT_SORT_ORDER.forEach(item => {
+                    const flav = item.split(" - ")[1];
+                    if (flav && !flavoursInOrder.includes(flav)) {
+                        const hasProduct = data.some((p: any) => p.flavour === flav);
+                        if (hasProduct) flavoursInOrder.push(flav);
+                    }
+                });
+                // Add any leftovers
+                const others = Array.from(new Set(data.map((p: any) => p.flavour).filter((f: any) => f && !flavoursInOrder.includes(f)))) as string[];
+                setAvailableFlavours([...flavoursInOrder, ...others.sort()]);
             })
             .catch(console.error);
     }, []);
@@ -71,18 +79,13 @@ export default function NewTripPage() {
             const uniquePacks = Array.from(new Set(packs)) as string[];
 
             // Sort logic: ml first, then Ltr (Same as Stock Page)
+            // Custom sort for packs based on the sequence
             uniquePacks.sort((a, b) => {
-                const aLower = a.toLowerCase();
-                const bLower = b.toLowerCase();
-
-                const isAMl = aLower.includes("ml");
-                const isBMl = bLower.includes("ml");
-                if (isAMl && !isBMl) return -1;
-                if (!isAMl && isBMl) return 1;
-                const numA = parseFloat(a.replace(/[^0-9.]/g, ""));
-                const numB = parseFloat(b.replace(/[^0-9.]/g, ""));
-                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                return a.localeCompare(b);
+                const getPackIndex = (p: string) => {
+                    const idx = PRODUCT_SORT_ORDER.findIndex(s => s.toLowerCase().startsWith(p.toLowerCase()));
+                    return idx === -1 ? 999 : idx;
+                };
+                return getPackIndex(a) - getPackIndex(b);
             });
 
             setAvailablePacks(uniquePacks);
@@ -107,7 +110,7 @@ export default function NewTripPage() {
 
     const addToManifest = () => {
         if (!targetProduct) return;
-        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const bpp = targetProduct.bottlesPerPack;
         const bottlesTotal = (parseInt(addPacks || "0") * bpp) + parseInt(addBottles || "0");
         
         if (bottlesTotal <= 0) return;
@@ -129,7 +132,8 @@ export default function NewTripPage() {
                 pack: targetProduct.pack,
                 qtyLoaded: bottlesTotal,
                 currentStock: targetProduct.quantity,
-                price: targetProduct.price
+                price: targetProduct.price,
+                bottlesPerPack: targetProduct.bottlesPerPack
             }]);
         }
 
@@ -289,7 +293,7 @@ export default function NewTripPage() {
                                 <div className="flex-1 text-center sm:text-left">
                                     <div className="text-xs text-gray-500 font-bold uppercase">Selected</div>
                                     <div className="font-bold text-gray-900 text-lg">{targetProduct.name}</div>
-                                    <div className="text-sm text-gray-500">Available Stock: {formatPacksAndBottles(targetProduct.quantity, parsePack(targetProduct.pack, targetProduct.name))}</div>
+                                    <div className="text-sm text-gray-500">Available Stock: {formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</div>
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -315,7 +319,7 @@ export default function NewTripPage() {
                                     </div>
                                     <button
                                         onClick={addToManifest}
-                                        disabled={(parseInt(addPacks || "0") * parsePack(targetProduct.pack, targetProduct.name) + parseInt(addBottles || "0")) <= 0}
+                                        disabled={(parseInt(addPacks || "0") * targetProduct.bottlesPerPack + parseInt(addBottles || "0")) <= 0}
                                         className="bg-ruby-700 hover:bg-ruby-800 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm h-[46px] mt-5"
                                     >
                                         <Plus className="w-5 h-5" />
@@ -382,7 +386,7 @@ export default function NewTripPage() {
                                                 let totalP = 0;
                                                 let totalB = 0;
                                                 manifest.forEach(item => {
-                                                    const bpp = parsePack(item.pack, item.name);
+                                                    const bpp = item.bottlesPerPack;
                                                     totalP += Math.floor(item.qtyLoaded / bpp);
                                                     totalB += item.qtyLoaded % bpp;
                                                 });
@@ -394,7 +398,7 @@ export default function NewTripPage() {
                                         <span className="text-gray-500 font-medium print:text-black print:font-bold print:text-lg">Grand Total</span>
                                         <span className="font-bold text-ruby-700 text-lg print:text-3xl print:font-black print:text-black">
                                             ₹{manifest.reduce((acc, item) => {
-                                                const bottlesPerPack = parsePack(item.pack, item.name);
+                                                const bottlesPerPack = item.bottlesPerPack;
                                                 return acc + (item.price * (item.qtyLoaded / bottlesPerPack));
                                             }, 0).toLocaleString()}
                                         </span>
@@ -419,10 +423,10 @@ export default function NewTripPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 truncate print:text-xl print:font-black print:text-black">{item.name}</div>
                                                 <div className="text-xs text-gray-500 print:text-gray-700 print:font-bold">{item.flavour} • {item.pack}</div>
-                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">₹{(item.price * (item.qtyLoaded / parsePack(item.pack, item.name))).toLocaleString()} (₹{item.price} per pack)</div>
+                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">₹{(item.price * (item.qtyLoaded / item.bottlesPerPack)).toLocaleString()} (₹{item.price} per pack)</div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="font-black text-gray-900 text-lg print:text-3xl print:text-black">{formatPacksAndBottles(item.qtyLoaded, parsePack(item.pack, item.name))}</div>
+                                                <div className="font-black text-gray-900 text-lg print:text-3xl print:text-black">{formatPacksAndBottles(item.qtyLoaded, item.bottlesPerPack)}</div>
                                             </div>
                                             <button
                                                 onClick={() => removeFromManifest(idx)}

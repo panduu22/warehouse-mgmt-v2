@@ -4,6 +4,7 @@ export interface ISchemeSlab {
     packs: number;
     bottles: number;
     discountPerPack: number;
+    freeItems?: { productId: mongoose.Types.ObjectId; packs?: number; bottles?: number; qty: number }[];
 }
 
 export interface ITripItem {
@@ -38,6 +39,12 @@ const TripItemSchema = new Schema({
         packs: { type: Number, required: true },
         bottles: { type: Number, required: true },
         discountPerPack: { type: Number, required: true },
+        freeItems: [{
+            productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+            packs: { type: Number, default: 0 },
+            bottles: { type: Number, default: 0 },
+            qty: { type: Number, required: true } // keeping qty as total bottles for legacy
+        }]
     }],
 }, { _id: false });
 

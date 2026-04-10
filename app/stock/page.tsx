@@ -12,7 +12,7 @@ import { PriceEditor } from "./PriceEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
-import { parsePack } from "@/lib/stock-utils";
+import { parsePack, sortProductsByCustomOrder } from "@/lib/stock-utils";
 
 async function getProducts() {
     await dbConnect();
@@ -44,12 +44,14 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
     const isAdmin = (session?.user as any)?.role === "ADMIN";
 
     // Filtering
-    const products = query ? allProducts.filter((p: any) => 
+    const filteredProducts = query ? allProducts.filter((p: any) => 
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.flavour?.toLowerCase().includes(query.toLowerCase()) ||
         p.pack?.toLowerCase().includes(query.toLowerCase()) ||
         p.sku?.toLowerCase().includes(query.toLowerCase())
     ) : allProducts;
+
+    const products = sortProductsByCustomOrder(filteredProducts);
 
 
     const formatCurrency = (amount?: number) => {
@@ -89,7 +91,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                             <th className="px-6 py-4">Invoice Cost</th>
                             <th className="px-6 py-4 text-right">Invoice Amount</th>
                             <th className="px-6 py-4">MRP (Base)</th>
-                            <th className="px-6 py-4">Today's Price</th>
+
                             <th className="px-6 py-4">Profit/Margin</th>
                             <th className="px-6 py-4">Sale Price</th>
                             <th className="px-6 py-4 text-right">Sales Amount</th>
@@ -100,7 +102,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                     <tbody className="divide-y divide-gray-50">
                         {products.length === 0 ? (
                             <tr>
-                                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                                     No products found in {warehouseName}.
                                 </td>
                             </tr>
@@ -111,7 +113,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                 const profit = currentPrice - (product.invoiceCost || 0);
                                 
                                 // Amount calculations
-                                const bottlesPerPack = parsePack(product.pack, product.name);
+                                const bottlesPerPack = product.bottlesPerPack;
                                 const totalPacks = product.quantity / bottlesPerPack;
                                 const invoiceAmount = totalPacks * (product.invoiceCost || 0);
                                 const salesAmount = totalPacks * (product.salePrice || 0);
@@ -125,10 +127,10 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                         <td className="px-6 py-4 text-right text-gray-500 italic">
                                             {formatCurrency(invoiceAmount)}
                                         </td>
-                                        <td className="px-6 py-4 text-gray-600 font-medium">{formatCurrency(product.mrp)}</td>
-                                        <td className="px-6 py-4">
-                                            <PriceEditor productId={product._id} initialPrice={product.price || product.salePrice} />
+                                        <td className="px-6 py-4 text-gray-600 font-medium">
+                                            <PriceEditor productId={product._id} initialPrice={product.mrp || 0} field="mrp" />
                                         </td>
+
                                         <td className={`px-6 py-4 font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {formatCurrency(profit)}
                                         </td>
@@ -142,7 +144,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                             <QuantityEditor 
                                                 productId={product._id} 
                                                 initialQuantity={product.quantity} 
-                                                bottlesPerPack={parsePack(product.pack, product.name)} 
+                                                bottlesPerPack={product.bottlesPerPack} 
                                             />
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -161,13 +163,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                 <td colSpan={2} className="px-6 py-4 text-right">Net Totals:</td>
                                 <td className="px-6 py-4 text-right text-gray-700">
                                     {formatCurrency(
-                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / parsePack(p.pack, p.name)) * (p.invoiceCost || 0)), 0)
+                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / p.bottlesPerPack) * (p.invoiceCost || 0)), 0)
                                     )}
                                 </td>
-                                <td colSpan={4}></td>
+                                <td colSpan={3}></td>
                                 <td className="px-6 py-4 text-right text-ruby-700">
                                     {formatCurrency(
-                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / parsePack(p.pack, p.name)) * (p.salePrice || 0)), 0)
+                                        products.reduce((sum: number, p: any) => sum + ((p.quantity / p.bottlesPerPack) * (p.salePrice || 0)), 0)
                                     )}
                                 </td>
                                 <td colSpan={2}></td>

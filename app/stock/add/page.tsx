@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2, Plus, Box, PackagePlus, ArrowRight, Check } from "lucide-react";
 import clsx from "clsx";
-import { parsePack, formatPacksAndBottles } from "@/lib/stock-utils";
+import { parsePack, formatPacksAndBottles, PRODUCT_SORT_ORDER } from "@/lib/stock-utils";
 
 export default function AddStockPage() {
     const router = useRouter();
@@ -34,11 +34,18 @@ export default function AddStockPage() {
                 .then(res => res.json())
                 .then(data => {
                     setProducts(data);
-                    // Extract unique flavours
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const flavs = Array.from(new Set(data.map((p: any) => p.flavour).filter(Boolean))) as string[];
-                    // Sort alphabetically
-                    setAvailableFlavours(flavs.sort());
+                    // Extract unique flavours in the custom order
+                    const flavoursInOrder: string[] = [];
+                    PRODUCT_SORT_ORDER.forEach(item => {
+                        const flav = item.split(" - ")[1];
+                        if (flav && !flavoursInOrder.includes(flav)) {
+                            const hasProduct = data.some((p: any) => p.flavour === flav);
+                            if (hasProduct) flavoursInOrder.push(flav);
+                        }
+                    });
+                    // Add any leftovers
+                    const others = Array.from(new Set(data.map((p: any) => p.flavour).filter((f: any) => f && !flavoursInOrder.includes(f)))) as string[];
+                    setAvailableFlavours([...flavoursInOrder, ...others.sort()]);
                 })
                 .catch(console.error);
         }
@@ -56,30 +63,13 @@ export default function AddStockPage() {
             const uniquePacks = Array.from(new Set(packs)) as string[];
 
             // Sort logic: ml first, then Ltr
+            // Custom sort for packs based on the sequence
             uniquePacks.sort((a, b) => {
-                const aLower = a.toLowerCase();
-                const bLower = b.toLowerCase();
-
-                const isAMl = aLower.includes("ml");
-                const isBMl = bLower.includes("ml");
-                const isALtr = aLower.includes("ltr") || aLower.includes("liter");
-                const isBLtr = bLower.includes("ltr") || bLower.includes("liter");
-
-                // If one is ml and other isn't, ml comes first
-                if (isAMl && !isBMl) return -1;
-                if (!isAMl && isBMl) return 1;
-
-                // If both are same type (both ml or both ltr), try to sort by number
-                if ((isAMl && isBMl) || (isALtr && isBLtr)) {
-                    const numA = parseFloat(a.replace(/[^0-9.]/g, ""));
-                    const numB = parseFloat(b.replace(/[^0-9.]/g, ""));
-                    if (!isNaN(numA) && !isNaN(numB)) {
-                        return numA - numB;
-                    }
-                }
-
-                // Default string sort
-                return a.localeCompare(b);
+                const getPackIndex = (p: string) => {
+                    const idx = PRODUCT_SORT_ORDER.findIndex(s => s.toLowerCase().startsWith(p.toLowerCase()));
+                    return idx === -1 ? 999 : idx;
+                };
+                return getPackIndex(a) - getPackIndex(b);
             });
 
             setAvailablePacks(uniquePacks);
@@ -116,7 +106,7 @@ export default function AddStockPage() {
 
         if (!targetProduct) return;
 
-        const bpp = parsePack(targetProduct.pack, targetProduct.name);
+        const bpp = targetProduct.bottlesPerPack;
         const bottlesAdded = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
 
         try {
@@ -150,7 +140,7 @@ export default function AddStockPage() {
         const formData = new FormData(e.currentTarget);
         const name = formData.get("name") as string;
         const pack = formData.get("pack") as string;
-        const bpp = parsePack(pack, name);
+        const bpp = Number(formData.get("bottlesPerPack") || parsePack(pack, name));
 
         const initialPacks = parseInt(formData.get("initialPacks") as string || "0", 10);
         const initialBottles = parseInt(formData.get("initialBottles") as string || "0", 10);
@@ -164,7 +154,8 @@ export default function AddStockPage() {
             mrp: Number(formData.get("mrp")),
             salePrice: Number(formData.get("salePrice")),
             pack: pack,
-            flavour: formData.get("flavour")
+            flavour: formData.get("flavour"),
+            bottlesPerPack: bpp
         };
 
         try {
@@ -304,7 +295,7 @@ export default function AddStockPage() {
                                     <div className="flex items-center gap-8">
                                         <div className="text-center">
                                             <p className="text-xs text-ruby-600 font-bold uppercase tracking-wider">Current</p>
-                                            <p className="text-2xl font-bold text-ruby-900">{Math.floor(targetProduct.quantity / parsePack(targetProduct.pack, targetProduct.name))}P + {targetProduct.quantity % parsePack(targetProduct.pack, targetProduct.name)}B</p>
+                                            <p className="text-2xl font-bold text-ruby-900">{Math.floor(targetProduct.quantity / targetProduct.bottlesPerPack)}P + {targetProduct.quantity % targetProduct.bottlesPerPack}B</p>
                                         </div>
                                         <div className="text-gray-300">
                                             <Plus className="w-6 h-6" />
@@ -322,7 +313,7 @@ export default function AddStockPage() {
                                             <input
                                                 type="number"
                                                 value={addBottles}
-                                                onChange={(e) => handleAddBottleChange(e.target.value, parsePack(targetProduct.pack, targetProduct.name))}
+                                                onChange={(e) => handleAddBottleChange(e.target.value, targetProduct.bottlesPerPack)}
                                                 placeholder="Bottles"
                                                 className="w-full px-3 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
                                             />
@@ -334,7 +325,7 @@ export default function AddStockPage() {
                                             <p className="text-xs text-teal-600 font-bold uppercase tracking-wider">New Total</p>
                                             <p className="text-3xl font-bold text-teal-700">
                                                 {(() => {
-                                                    const bpp = parsePack(targetProduct.pack, targetProduct.name);
+                                                    const bpp = targetProduct.bottlesPerPack;
                                                     const added = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
                                                     const totalVal = targetProduct.quantity + added;
                                                     return `${Math.floor(totalVal / bpp)}P + ${totalVal % bpp}B`;
@@ -343,11 +334,11 @@ export default function AddStockPage() {
                                         </div>
                                     </div>
                                 </div>
- 
+
                                 <div className="pt-8 flex justify-end">
                                     <button
                                         type="submit"
-                                        disabled={loading || ((parseInt(addPacks || "0", 10) * parsePack(targetProduct.pack, targetProduct.name)) + parseInt(addBottles || "0", 10)) <= 0}
+                                        disabled={loading || ((parseInt(addPacks || "0", 10) * targetProduct.bottlesPerPack) + parseInt(addBottles || "0", 10)) <= 0}
                                         className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-900/10"
                                     >
                                         {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <PackagePlus className="w-6 h-6" />}
@@ -356,14 +347,14 @@ export default function AddStockPage() {
                                 </div>
                             </div>
                         )}
- 
+
                         {!targetProduct && selectedFlavour && selectedPack && (
                             <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                                 Product not found for this specific combination.
                             </div>
                         )}
- 
+
                     </form>
                 ) : (
                     <form onSubmit={handleCreate} className="space-y-6">
@@ -376,7 +367,7 @@ export default function AddStockPage() {
                                 placeholder="e.g. Sprite 1.5 Ltr PET"
                             />
                         </div>
- 
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Invoice Cost (₹)</label>
@@ -389,8 +380,19 @@ export default function AddStockPage() {
                                     placeholder="0.00"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Bottles Per Pack (BPP)</label>
+                                <input
+                                    name="bottlesPerPack"
+                                    type="number"
+                                    min="1"
+                                    defaultValue="24"
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="24"
+                                />
+                            </div>
                         </div>
- 
+
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-xl">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">Flavour</label>
@@ -419,7 +421,7 @@ export default function AddStockPage() {
                                 />
                             </div>
                         </div>
- 
+
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700 text-ruby-700 font-bold">Initial Quantity</label>

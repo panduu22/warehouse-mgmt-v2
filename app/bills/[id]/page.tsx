@@ -161,7 +161,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                             <td className="px-4 py-6 font-black text-black text-lg">{item.productId?.name || "Product"}</td>
                                             <td className="px-4 py-6 text-right font-black text-black text-lg">{sold}</td>
                                             <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{price.toLocaleString('en-IN')}</td>
-                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{(sold * price).toLocaleString('en-IN')}</td>
+                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{((sold / (item.productId?.bottlesPerPack || 24)) * price).toLocaleString('en-IN')}</td>
                                         </tr>
                                     );
                                 })
@@ -173,13 +173,13 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                 <div className="flex justify-end border-t-4 border-black pt-10 mt-12">
                     <div className="w-full md:w-80 space-y-6">
                         <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                <span>Gross Value (Excl. Disc)</span>
-                                <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
-                                <span>Total Scheme Discount</span>
-                                <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
-                            </div>
+                            <span>Gross Value (Excl. Disc)</span>
+                            <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
+                            <span>Total Scheme Discount</span>
+                            <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
+                        </div>
                         <div className="flex justify-between items-center pt-8 border-t border-gray-100">
                             <span className="text-xl font-black text-black uppercase tracking-tighter">Net Total Amount</span>
                             <span className="text-4xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
@@ -191,7 +191,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-[0.3em]">Signature / Stamp</p>
                     <div className="w-48 h-px bg-gray-200"></div>
                     <p className="text-[10px] text-gray-400 font-medium max-w-sm">
-                        This is a computer generated invoice and does not require a physical signature. 
+                        This is a computer generated invoice and does not require a physical signature.
                         Please contact us for any discrepancies within 24 hours.
                     </p>
                 </div>

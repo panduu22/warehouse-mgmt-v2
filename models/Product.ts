@@ -11,6 +11,7 @@ export interface IProduct extends Document {
     mrp?: number;
     invoiceCost?: number;
     salePrice?: number;
+    bottlesPerPack: number;
     warehouseId: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
@@ -28,6 +29,7 @@ const ProductSchema: Schema<IProduct> = new Schema(
         mrp: { type: Number },
         invoiceCost: { type: Number },
         salePrice: { type: Number },
+        bottlesPerPack: { type: Number, required: true, default: 24, min: 1 },
         warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
     },
     { timestamps: true }

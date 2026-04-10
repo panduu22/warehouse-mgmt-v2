@@ -128,11 +128,11 @@ export async function POST(req: Request) {
                 const existing = await Product.findOne({ sku, warehouseId });
                 if (existing) {
                     await Product.updateOne({ _id: existing._id }, {
-                        name, quantity, invoiceCost, mrp, salePrice, price, flavour, pack
+                        name, quantity, invoiceCost, mrp, salePrice, price, flavour, pack, bottlesPerPack: bpp
                     });
                     updated++;
                 } else {
-                    await Product.create({ name, sku, quantity, invoiceCost, mrp, salePrice, price, flavour, pack, warehouseId });
+                    await Product.create({ name, sku, quantity, invoiceCost, mrp, salePrice, price, flavour, pack, warehouseId, bottlesPerPack: bpp });
                     created++;
                 }
             } catch (rowErr: any) {

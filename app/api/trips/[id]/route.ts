@@ -42,7 +42,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 tripItem.qtyReturned = item.qtyReturned;
                 tripItem.qtyScheme = item.qtyScheme || 0;
                 tripItem.discountPerPack = item.discountPerPack || 0;
-                tripItem.schemes = item.schemes || []; // New field
+                tripItem.schemes = item.schemes || [];
+
+                // Deduct free items from stock
+                for (const slab of (item.schemes || [])) {
+                    for (const free of (slab.freeItems || [])) {
+                        await Product.findByIdAndUpdate(free.productId, {
+                            $inc: { quantity: -free.qty }
+                        });
+                    }
+                }
             }
         }
 

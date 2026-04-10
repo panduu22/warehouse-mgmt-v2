@@ -4,6 +4,7 @@ export interface IBillItemScheme {
     qty: number; // Bottles
     price: number; // ₹ per pack
     discount: number; // total ₹ discount for this slab
+    freeItems?: { productId: string, productName: string, qty: number, bottlesPerPack: number }[];
 }
 
 export interface IBillItem {
@@ -44,6 +45,12 @@ const BillItemSchema = new Schema({
         qty: { type: Number, required: true },
         price: { type: Number, required: true },
         discount: { type: Number, required: true },
+        freeItems: [{
+            productId: { type: String, required: true },
+            productName: { type: String, required: true },
+            qty: { type: Number, required: true },
+            bottlesPerPack: { type: Number, required: true }
+        }]
     }],
     total: { type: Number, required: true },
     bottlesPerPack: { type: Number, required: true },

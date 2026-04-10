@@ -49,7 +49,7 @@ async function getData(dateFilter?: string) {
 
     products.forEach(p => {
         const qty = p.quantity || 0;
-        const bpp = parsePack(p.pack, p.name);
+        const bpp = p.bottlesPerPack;
         const price = p.price || p.salePrice || 0;
 
         totalBottlesRaw += qty;

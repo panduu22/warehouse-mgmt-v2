@@ -54,12 +54,12 @@ export async function POST(req: Request) {
         const items: any[] = [];
         let totalAmount = 0;
 
-        trip.loadedItems.forEach((item: any) => {
-            const bpp = parsePack(item.productId.pack, item.productId.name);
+        for (const item of trip.loadedItems) {
+            const bpp = (item.productId as any).bottlesPerPack;
             const totalSoldBottles = item.qtyLoaded - (item.qtyReturned || 0);
 
             if (totalSoldBottles > 0) {
-                const normalPrice = item.productId.price || item.productId.salePrice || 0;
+                const normalPrice = (item.productId as any).price || (item.productId as any).salePrice || 0;
                 const bottlePrice = normalPrice / bpp;
                 
                 let lineSchemeBottles = 0;
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
                 const billItemSchemes: any[] = [];
 
                 if (item.schemes && item.schemes.length > 0) {
-                    item.schemes.forEach((s: any) => {
+                    for (const s of item.schemes) {
                         const sBottles = (s.packs * bpp) + s.bottles;
                         lineSchemeBottles += sBottles;
                         
@@ -81,12 +81,28 @@ export async function POST(req: Request) {
                         lineSchemeTotal += slabTotal;
                         lineDiscount += slabDiscount;
                         
+                        const freeItemDetails = [];
+                        if (s.freeItems && s.freeItems.length > 0) {
+                            for (const free of s.freeItems) {
+                                const freeProd = await Product.findById(free.productId);
+                                if (freeProd) {
+                                    freeItemDetails.push({
+                                        productId: free.productId.toString(),
+                                        productName: `${freeProd.name} (${freeProd.pack})`,
+                                        qty: free.qty,
+                                        bottlesPerPack: freeProd.bottlesPerPack
+                                    });
+                                }
+                            }
+                        }
+
                         billItemSchemes.push({
                             qty: sBottles,
                             price: sPrice,
-                            discount: slabDiscount
+                            discount: slabDiscount,
+                            freeItems: freeItemDetails
                         });
-                    });
+                    }
                 } else {
                     // Fallback for legacy items without schemes array
                     const legacySchemeBottles = item.qtyScheme || 0;
@@ -119,9 +135,9 @@ export async function POST(req: Request) {
 
                 totalAmount += lineTotal;
                 items.push({
-                    name: item.productId.name,
-                    pack: item.productId.pack || "Standard",
-                    flavour: item.productId.flavour || "Regular",
+                    name: (item.productId as any).name,
+                    pack: (item.productId as any).pack || "Standard",
+                    flavour: (item.productId as any).flavour || "Regular",
                     normalQty: normalBottles,
                     schemeQty: lineSchemeBottles,
                     normalPrice: normalPrice,
@@ -132,7 +148,7 @@ export async function POST(req: Request) {
                     bottlesPerPack: bpp
                 });
             }
-        });
+        }
 
         const bill = await Bill.create({
             tripId,

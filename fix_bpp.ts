@@ -19,7 +19,7 @@ const productSchema = new mongoose.Schema({
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);
 
 async function updateBPP() {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI as string);
     const products = await Product.find({});
     
     let updatedCount = 0;

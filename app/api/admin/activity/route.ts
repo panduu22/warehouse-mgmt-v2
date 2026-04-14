@@ -35,7 +35,11 @@ export async function GET(req: Request) {
         // Build filter
         const filter: any = {};
         if (warehouseId) {
-            filter.warehouseId = warehouseId;
+            filter.$or = [
+                { warehouseId: warehouseId },
+                { warehouseId: { $exists: false } },
+                { warehouseId: null }
+            ];
         }
 
         const activities = await Activity.find(filter)

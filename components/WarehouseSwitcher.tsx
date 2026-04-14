@@ -1,72 +1,79 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeftRight, Loader2, Building2, Trash2, Plus, LogOut } from "lucide-react";
+import { 
+  Building2, 
+  ChevronDown, 
+  Loader2, 
+  Plus, 
+  Trash2, 
+  LogOut,
+  Check,
+  ArrowLeftRight,
+  ShieldAlert
+} from "lucide-react";
 import { useWarehouse } from "./WarehouseContext";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger,
+  DropdownMenuGroup
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { CreateWarehouseDialog } from "./CreateWarehouseDialog";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function WarehouseSwitcher() {
     const { activeWarehouse, switchWarehouse, loading: ctxLoading } = useWarehouse();
     const { data: session } = useSession();
-    const userRole = (session?.user as any)?.role;
-    const [isOpen, setIsOpen] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user = session?.user as any;
+    const userRole = user?.role;
+    
     const [warehouses, setWarehouses] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        if (isOpen && warehouses.length === 0) {
+        if (open) {
             setLoading(true);
             fetch("/api/warehouses")
                 .then(res => res.json())
                 .then(data => {
-                    setWarehouses(data);
+                    if (Array.isArray(data)) {
+                        setWarehouses(data);
+                    }
+                    setLoading(false);
+                })
+                .catch(() => {
+                    toast.error("Failed to load warehouses");
                     setLoading(false);
                 });
         }
-    }, [isOpen]);
+    }, [open]);
 
-    const handleSwitch = (id: string) => {
-        switchWarehouse(id);
-        setIsOpen(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+    const handleSwitch = async (id: string, name: string) => {
+        if (id === activeWarehouse?.id) return;
+        setOpen(false); 
+        const success = await switchWarehouse(id);
+        if (success) {
+            toast.success(`Switched to ${name}`);
+        } else {
+            toast.error(`Failed to switch to ${name}`);
+        }
     };
 
-  const handleLeave = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to LEAVE the warehouse "${name}"? You will need to request access again to rejoin.`)) return;
-    
-    try {
-      const res = await fetch("/api/warehouses/leave", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ warehouseId: id })
-      });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to leave");
-      }
-      
-      const data = await res.json();
-      // Remove from local list
-      setWarehouses(warehouses.filter(w => w._id !== id));
-      
-      // If they left the active one, switch to whatever the API returned or empty
-      if (activeWarehouse?.id === id) {
-        if (data.activeWarehouseId) {
-          switchWarehouse(data.activeWarehouseId);
-        } else {
-          // If no warehouses left, they will be redirected by layout guards
-          window.location.href = "/"; 
-        }
-      }
-    } catch (e: any) {
-      alert(e.message);
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-        if (!confirm(`Are you sure you want to delete the warehouse "${name}"? ALL associated stock and history will be permanently deleted.`)) return;
+    const handleDelete = async (e: React.MouseEvent, id: string, name: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
         
         try {
             const res = await fetch(`/api/warehouses?id=${id}`, { method: "DELETE" });
@@ -74,107 +81,138 @@ export function WarehouseSwitcher() {
                 const data = await res.json();
                 throw new Error(data.error || "Failed to delete");
             }
-            // Remove from local list
+            toast.success(`Warehouse "${name}" deleted`);
             setWarehouses(warehouses.filter(w => w._id !== id));
-            // If they deleted the active one, switch to main
             if (activeWarehouse?.id === id) {
-                const main = warehouses.find(w => w.isMain);
-                if (main) switchWarehouse(main._id);
+                localStorage.removeItem("activeWarehouse");
+                window.location.reload();
             }
-        } catch (e: any) {
-            alert(e.message);
+        } catch (err: any) {
+            toast.error(err.message);
         }
     };
 
     return (
-        <div className="relative">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-3 px-4 py-3 w-full text-left text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors border border-gray-100"
-            >
-                {ctxLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                ) : (
-                    <ArrowLeftRight className="w-5 h-5" />
-                )}
-                <div className="flex-1 truncate">
-                    <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Storage Unit</div>
-                    <div className="font-bold text-gray-800 truncate">{activeWarehouse?.name || "Loading..."}</div>
-                </div>
-            </button>
-
-            {isOpen && (
-                <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-                    <div className="absolute bottom-full left-0 w-full mb-2 bg-white border border-gray-100 shadow-xl rounded-xl z-50 overflow-hidden transform animate-in slide-in-from-bottom-2">
-                        <div className="p-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                            Select Warehouse
-                        </div>
-                        <div className="max-h-60 overflow-y-auto">
-                            {loading ? (
-                                <div className="p-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+        <>
+            <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger
+                    render={
+                        <button 
+                            className="w-[240px] h-12 flex items-center gap-3 px-4 rounded-xl border border-border bg-card/50 backdrop-blur-sm hover:bg-muted/50 transition-all shrink-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        >
+                            {ctxLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                             ) : (
-                                warehouses.map(w => (
-                                    <div key={w._id} className="relative group">
-                                        <button
-                                            onClick={() => handleSwitch(w._id)}
-                                            className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-ruby-50 transition-colors ${activeWarehouse?.id === w._id ? 'bg-ruby-50/50' : ''}`}
-                                        >
-                                        <Building2 className={`w-5 h-5 ${activeWarehouse?.id === w._id ? 'text-ruby-600' : 'text-gray-400'}`} />
-                                            <div>
-                                                <div className={`font-medium pr-8 ${activeWarehouse?.id === w._id ? 'text-ruby-900' : 'text-gray-900'}`}>{w.name}</div>
-                                                {w.isMain && <div className="text-[10px] bg-ruby-100 text-ruby-700 px-2 py-0.5 rounded-full uppercase font-bold inline-block mt-1">Main API</div>}
+                                <Building2 className="w-5 h-5 text-primary" />
+                            )}
+                            <div className="flex flex-col items-start min-w-0 flex-1">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">
+                                    Storage Unit
+                                </span>
+                                <span className="text-sm font-bold truncate text-foreground">
+                                    {activeWarehouse?.name || "Select Unit"}
+                                </span>
+                            </div>
+                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                    }
+                />
+                
+                <DropdownMenuContent className="w-[280px] p-2 rounded-2xl shadow-2xl border-border bg-popover/95 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 z-50" align="end" sideOffset={8}>
+                    <DropdownMenuGroup>
+                        <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                            Available Units
+                            {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+                        </DropdownMenuLabel>
+                        
+                        <div className="space-y-1 my-1 max-h-[300px] overflow-y-auto pr-1">
+                            {warehouses.length === 0 && !loading ? (
+                                <div className="px-3 py-4 text-center text-muted-foreground">
+                                    <ShieldAlert className="w-8 h-8 opacity-20 mx-auto mb-2" />
+                                    <p className="text-xs font-bold">No units available</p>
+                                </div>
+                            ) : (
+                                warehouses.map((w) => (
+                                    <DropdownMenuItem 
+                                        key={w._id}
+                                        onClick={() => handleSwitch(w._id, w.name)}
+                                        className={cn(
+                                            "flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all active:scale-[0.98] outline-none",
+                                            activeWarehouse?.id === w._id ? "bg-primary/10 text-primary hover:bg-primary/15" : "hover:bg-muted"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                                            activeWarehouse?.id === w._id ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-muted text-muted-foreground"
+                                        )}>
+                                            <Building2 className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold truncate">{w.name}</p>
+                                            {w.isMain && (
+                                                <p className="text-[8px] font-black uppercase tracking-tighter text-ruby-600">Global Hub</p>
+                                            )}
+                                        </div>
+                                        {activeWarehouse?.id === w._id && (
+                                            <div className="w-5 h-5 bg-primary/20 rounded-full flex items-center justify-center">
+                                                <Check className="w-3 h-3 text-primary" />
                                             </div>
-                                        </button>
+                                        )}
                                         {userRole === "ADMIN" && !w.isMain && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleDelete(w._id, w.name); }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Delete Warehouse"
+                                            <div
+                                                role="button"
+                                                className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors ml-1"
+                                                onClick={(e) => handleDelete(e, w._id, w.name)}
                                             >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </div>
                                         )}
-                                        {userRole === "STAFF" && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleLeave(w._id, w.name); }}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                title="Quit Warehouse"
-                                            >
-                                                <LogOut className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
+                                    </DropdownMenuItem>
                                 ))
                             )}
-                            {userRole === "ADMIN" && (
-                                <div className="border-t border-gray-100 p-2">
-                                    <Link 
-                                        href="/warehouses/new" 
-                                        onClick={() => setIsOpen(false)}
-                                        className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm font-bold text-ruby-700 hover:bg-ruby-50 rounded-lg transition-colors"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Create New Warehouse
-                                    </Link>
-                                </div>
-                            )}
-                            {userRole === "STAFF" && (
-                                <div className="border-t border-gray-100 p-2">
-                                    <Link 
-                                        href="/" 
-                                        onClick={() => setIsOpen(false)}
-                                        className="w-full text-left px-4 py-2 flex items-center gap-2 text-sm font-bold text-ruby-700 hover:bg-ruby-50 rounded-lg transition-colors"
-                                    >
-                                        <ArrowLeftRight className="w-4 h-4" />
-                                        Request Access
-                                    </Link>
-                                </div>
-                            )}
                         </div>
-                    </div>
-                </>
-            )}
-        </div>
+                    </DropdownMenuGroup>
+
+                    {userRole === "ADMIN" && (
+                        <>
+                            <DropdownMenuSeparator className="my-2 bg-border/50" />
+                            <DropdownMenuItem 
+                                onSelect={() => setIsCreateDialogOpen(true)}
+                                className="flex items-center gap-3 p-3 rounded-xl text-primary font-bold text-sm bg-primary/5 hover:bg-primary/10 transition-all group active:scale-95 cursor-pointer outline-none"
+                            >
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus className="w-4 h-4" />
+                                </div>
+                                Add New Unit
+                            </DropdownMenuItem>
+                        </>
+                    )}
+
+                    {userRole === "STAFF" && (
+                        <>
+                            <DropdownMenuSeparator className="my-2 bg-border/50" />
+                            <Link href="/" className="w-full flex items-center gap-3 p-3 rounded-xl text-muted-foreground hover:text-foreground font-bold text-sm hover:bg-muted transition-all group active:scale-95">
+                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all">
+                                    <ArrowLeftRight className="w-4 h-4" />
+                                </div>
+                                Request Access
+                            </Link>
+                        </>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Render Dialog outside Dropdown to fix focus/typing issues */}
+            <CreateWarehouseDialog 
+                open={isCreateDialogOpen} 
+                onOpenChange={setIsCreateDialogOpen}
+                onSuccess={() => {
+                    setIsCreateDialogOpen(false);
+                    setOpen(false);
+                }}
+            />
+        </>
     );
 }
+
+

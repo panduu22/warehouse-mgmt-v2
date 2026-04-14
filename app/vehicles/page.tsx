@@ -77,31 +77,36 @@ export default function VehiclesPage() {
     }
 
     return (
-        <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Vehicle Management</h1>
+        <div className="max-w-[1200px] mx-auto animate-in fade-in duration-500 pb-10">
+            <h1 className="text-3xl font-black text-foreground mb-8 tracking-tight flex items-center gap-3">
+                <Truck className="w-8 h-8 text-primary" />
+                Vehicle Management
+            </h1>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* List */}
                 <div className="lg:col-span-2 space-y-4">
                     {loading ? (
-                        <div className="flex justify-center p-8">
-                            <Loader2 className="animate-spin text-ruby-700" />
+                        <div className="flex justify-center p-12 bg-card rounded-2xl border border-border">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : vehicles.length === 0 ? (
-                        <p className="text-gray-500">No vehicles found.</p>
+                        <div className="p-12 text-center bg-card rounded-2xl border border-dashed border-border">
+                            <p className="text-muted-foreground font-medium">No vehicles found in the fleet.</p>
+                        </div>
                     ) : (
                         vehicles.map((v: any) => (
                             <div
                                 key={v._id}
-                                className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
+                                className="bg-card p-6 rounded-2xl shadow-sm border border-border flex items-center justify-between hover:shadow-md transition-all group"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="bg-ruby-50 p-3 rounded-full text-ruby-700">
+                                    <div className="bg-primary/10 p-4 rounded-xl text-primary border border-primary/20 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                                         <Truck className="w-6 h-6" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900">{v.number}</h3>
-                                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                        <h3 className="font-bold text-foreground text-lg">{v.number}</h3>
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1 font-medium italic">
                                             <User className="w-4 h-4" />
                                             {v.driverName}
                                         </div>
@@ -114,12 +119,12 @@ export default function VehiclesPage() {
                                         onClick={() => handleDelete(v._id, v.number)}
                                         disabled={deletingId === v._id}
                                         title="Delete vehicle"
-                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                        className="p-3 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50 active:scale-90"
                                     >
                                         {deletingId === v._id ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            <Loader2 className="w-5 h-5 animate-spin" />
                                         ) : (
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-5 h-5" />
                                         )}
                                     </button>
                                 )}
@@ -129,38 +134,38 @@ export default function VehiclesPage() {
                 </div>
 
                 {/* Add Form */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Plus className="w-5 h-5 text-ruby-700" />
+                <div className="bg-card p-8 rounded-2xl shadow-sm border border-border h-fit sticky top-24">
+                    <h2 className="text-lg font-black text-foreground mb-6 flex items-center gap-2">
+                        <Plus className="w-5 h-5 text-primary" />
                         Add New Vehicle
                     </h2>
-                    <form onSubmit={handleAdd} className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-gray-700 block mb-1">Vehicle Number</label>
+                    <form onSubmit={handleAdd} className="space-y-5">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">Vehicle Number</label>
                             <input
                                 value={number}
                                 onChange={(e) => setNumber(e.target.value)}
                                 required
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 text-gray-900"
+                                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/50"
                                 placeholder="KA-05-AB-1234"
                             />
                         </div>
-                        <div>
-                            <label className="text-sm font-medium text-gray-700 block mb-1">Driver Name</label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">Driver Name</label>
                             <input
                                 value={driver}
                                 onChange={(e) => setDriver(e.target.value)}
                                 required
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 text-gray-900"
+                                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/50"
                                 placeholder="John Doe"
                             />
                         </div>
                         <button
                             type="submit"
                             disabled={adding}
-                            className="w-full bg-ruby-700 hover:bg-ruby-800 text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 rounded-xl font-black transition-all shadow-lg shadow-primary/20 disabled:opacity-50 active:scale-95 text-sm uppercase tracking-widest"
                         >
-                            {adding ? "Adding..." : "Add Vehicle"}
+                            {adding ? "Registering..." : "Add to Fleet"}
                         </button>
                     </form>
                 </div>

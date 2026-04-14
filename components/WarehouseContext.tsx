@@ -12,12 +12,24 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        // Fetch initially
+        // 1. Initial Load: Check localStorage first for immediate UI feedback
+        const savedWarehouse = localStorage.getItem("activeWarehouse");
+        if (savedWarehouse) {
+            try {
+                setActiveWarehouse(JSON.parse(savedWarehouse));
+            } catch (e) {
+                console.error("Failed to parse saved warehouse from localStorage");
+            }
+        }
+
+        // 2. Fetch ground truth from API/Cookies
         fetch("/api/warehouses/active")
             .then(res => res.json())
             .then(data => {
                 if (data.activeWarehouseId) {
-                    setActiveWarehouse({ id: data.activeWarehouseId, name: data.activeWarehouseName });
+                    const active = { id: data.activeWarehouseId, name: data.activeWarehouseName };
+                    setActiveWarehouse(active);
+                    localStorage.setItem("activeWarehouse", JSON.stringify(active));
                 }
                 setLoading(false);
             })
@@ -35,11 +47,16 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
 
             if (res.ok) {
                 const data = await res.json();
-                setActiveWarehouse({ id: data.activeWarehouseId, name: data.activeWarehouseName });
-                router.refresh(); // Reload server components
+                const active = { id: data.activeWarehouseId, name: data.activeWarehouseName };
+                setActiveWarehouse(active);
+                localStorage.setItem("activeWarehouse", JSON.stringify(active));
+                router.refresh(); // Reload server components to reflect warehouse change
+                return true;
             }
+            return false;
         } catch (e) {
             console.error("Failed to switch warehouse", e);
+            return false;
         } finally {
             setLoading(false);
         }

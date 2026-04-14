@@ -427,28 +427,28 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
         }
     };
 
-    if (loading) return <div className="p-12 text-center text-gray-500">Loading trip details...</div>;
-    if (!trip) return <div className="p-12 text-center text-red-500">Trip not found</div>;
+    if (loading) return <div className="p-12 text-center text-muted-foreground">Loading trip details...</div>;
+    if (!trip) return <div className="p-12 text-center text-destructive">Trip not found</div>;
 
     return (
-        <div className="max-w-5xl mx-auto py-8 px-4">
+        <div className="max-w-5xl mx-auto py-8">
             <div className="flex items-center gap-4 mb-8">
-                <Link href="/trips" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                <Link href="/trips" className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3">
+                    <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
                         Trip Verification
-                        {isVerified && <span className="bg-teal-100 text-teal-700 text-[10px] uppercase font-black px-3 py-1 rounded-full tracking-wider">VERIFIED</span>}
+                        {isVerified && <span className="bg-emerald-500/10 text-emerald-600 text-[10px] uppercase font-black px-3 py-1 rounded-full tracking-wider">VERIFIED</span>}
                     </h1>
-                    <p className="text-gray-500 text-sm font-medium">Vehicle: <span className="text-gray-900 font-bold">{trip.vehicleId?.number}</span></p>
+                    <p className="text-muted-foreground text-sm font-medium">Vehicle: <span className="text-foreground font-bold">{trip.vehicleId?.number}</span></p>
                 </div>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                    <h2 className="font-black text-gray-400 uppercase text-xs tracking-widest">Loaded Cargo Details</h2>
-                    <div className="text-xs font-bold text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100">
+            <div className="bg-card rounded-3xl shadow-xl border border-border overflow-hidden text-card-foreground">
+                <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+                    <h2 className="font-black text-muted-foreground uppercase text-xs tracking-widest">Loaded Cargo Details</h2>
+                    <div className="text-xs font-bold text-muted-foreground bg-background px-3 py-1 rounded-full border border-border">
                         {trip.loadedItems.length} Products
                     </div>
                 </div>
@@ -460,49 +460,49 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                             <div key={item.productId._id} className="p-6 hover:bg-gray-50/30 transition-colors">
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                     <div className="flex items-center gap-4 flex-1">
-                                        <div className="bg-ruby-50 p-4 rounded-2xl text-ruby-600 shadow-sm">
+                                        <div className="bg-primary/10 p-4 rounded-2xl text-primary shadow-sm">
                                             <Package className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="font-black text-gray-900 text-lg leading-tight">{item.productId.name}</p>
-                                            <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-tight">
-                                                LOADED: <span className="text-gray-900">{formatPacksAndBottles(item.qtyLoaded, bpp)}</span>
+                                            <p className="font-black text-foreground text-lg leading-tight">{item.productId.name}</p>
+                                            <p className="text-xs font-bold text-muted-foreground mt-1 uppercase tracking-tight">
+                                                LOADED: <span className="text-foreground">{formatPacksAndBottles(item.qtyLoaded, bpp)}</span>
                                             </p>
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap items-end gap-4 lg:gap-8 bg-gray-50 rounded-2xl p-4 lg:p-0 lg:bg-transparent">
+                                    <div className="flex flex-wrap items-end gap-4 lg:gap-8 bg-muted rounded-2xl p-4 lg:p-0 lg:bg-transparent">
                                         {!isVerified ? (
                                             <>
                                                 {/* Return Inputs */}
                                                 <div className="flex flex-col gap-1.5">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Returns (P / B)</label>
+                                                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Returns (P / B)</label>
                                                     <div className="flex items-center gap-1">
                                                         <input
                                                             type="number"
                                                             placeholder="P"
                                                             value={inputs[item.productId._id]?.packs || "0"}
                                                             onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'returns', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-gray-200 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm"
+                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background"
                                                         />
-                                                        <span className="text-gray-300 font-bold">+</span>
+                                                        <span className="text-muted-foreground/50 font-bold">+</span>
                                                         <input
                                                             type="number"
                                                             placeholder="B"
                                                             value={inputs[item.productId._id]?.bottles || "0"}
                                                             onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'returns', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-gray-200 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm"
+                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background"
                                                         />
                                                     </div>
                                                 </div>
 
                                                 {/* Scheme Inputs (Multi-Row) */}
-                                                <div className="flex flex-col gap-2 bg-ruby-50/50 p-3 rounded-2xl border border-ruby-100">
+                                                <div className="flex flex-col gap-2 bg-primary/5 p-3 rounded-2xl border border-primary/20">
                                                     <div className="flex items-center justify-between px-1">
-                                                        <label className="text-[10px] font-black text-ruby-500 uppercase tracking-widest">Scheme Slabs</label>
+                                                        <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">Scheme Slabs</label>
                                                         <button
                                                             onClick={() => addSchemeRow(item.productId._id)}
-                                                            className="text-ruby-600 hover:bg-ruby-100 p-1 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"
+                                                            className="text-primary hover:bg-primary/20 p-1 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"
                                                         >
                                                             <Plus className="w-3 h-3" /> Add
                                                         </button>
@@ -518,42 +518,42 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                             placeholder="P"
                                                                             value={slab.packs}
                                                                             onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'scheme', bpp, idx)}
-                                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-primary/20 focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-card"
                                                                         />
-                                                                        <span className="text-ruby-200 font-bold">+</span>
+                                                                        <span className="text-primary/50 font-bold">+</span>
                                                                         <input
                                                                             type="number"
                                                                             placeholder="B"
                                                                             value={slab.bottles}
                                                                             onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'scheme', bpp, idx)}
-                                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-ruby-100 focus:border-ruby-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-primary/20 focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-card"
                                                                         />
                                                                     </div>
 
                                                                     <div className="flex flex-col gap-2">
                                                                         <div className="flex items-center gap-1.5 min-w-[100px]">
-                                                                            <span className="text-[10px] font-bold text-ruby-400">₹</span>
+                                                                            <span className="text-[10px] font-bold text-primary/80">₹</span>
                                                                             <input
                                                                                 type="number"
                                                                                 placeholder="Disc"
                                                                                 value={slab.discount}
                                                                                 onChange={(e) => updateDiscount(item.productId._id, idx, e.target.value)}
-                                                                                className="w-20 px-3 py-2 rounded-xl border-2 border-amber-100 focus:border-amber-500 focus:ring-0 text-gray-900 font-black text-center text-sm transition-all shadow-sm bg-white"
+                                                                                className="w-20 px-3 py-2 rounded-xl border-2 border-amber-500/20 focus:border-amber-500 focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-card"
                                                                             />
                                                                             {idx > 0 && (
-                                                                                <button
-                                                                                    onClick={() => removeSchemeRow(item.productId._id, idx)}
-                                                                                    className="text-gray-400 hover:text-red-500 p-1 transition-colors"
-                                                                                >
-                                                                                    <Trash2 className="w-4 h-4" />
-                                                                                </button>
+                                                                                    <button
+                                                                                        onClick={() => removeSchemeRow(item.productId._id, idx)}
+                                                                                        className="text-muted-foreground hover:text-destructive p-1 transition-colors"
+                                                                                    >
+                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                    </button>
                                                                             )}
                                                                         </div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Free Items Section */}
-                                                                <div className="ml-4 pl-4 border-l-2 border-ruby-50 space-y-2">
+                                                                <div className="ml-4 pl-4 border-l-2 border-primary/5 space-y-2">
                                                                     <div className="flex items-center justify-between">
                                                                         <p className="text-[9px] font-black text-teal-600 uppercase tracking-widest">Free Stock Rewards</p>
                                                                         <button
@@ -594,7 +594,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                             </div>
                                                                             <button
                                                                                 onClick={() => removeFreeItem(item.productId._id, idx, fIdx)}
-                                                                                className="text-gray-300 hover:text-red-400 p-1"
+                                                                                className="text-muted-foreground/50 hover:text-destructive p-1"
                                                                             >
                                                                                 <Trash2 className="w-3.5 h-3.5" />
                                                                             </button>
@@ -610,16 +610,16 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                         ) : (
                                             <div className="flex flex-col gap-2 text-right pr-4">
                                                 <div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">Returned</p>
-                                                    <p className="font-black text-gray-900">{formatPacksAndBottles(item.qtyReturned, bpp, true)}</p>
+                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Returned</p>
+                                                    <p className="font-black text-foreground">{formatPacksAndBottles(item.qtyReturned, bpp, true)}</p>
                                                 </div>
                                                 {(() => {
                                                     const slabs = item.schemes || [];
                                                     if (slabs.length > 0) {
                                                         return slabs.map((s: any, idx: number) => (
-                                                            <div key={idx} className="bg-ruby-50/50 px-3 py-1 rounded-lg border border-ruby-100 mt-1">
-                                                                <p className="text-[10px] text-ruby-400 uppercase font-black tracking-widest leading-none mb-1">Scheme Slab {idx + 1}</p>
-                                                                <p className="font-black text-ruby-600 text-sm leading-none">
+                                                            <div key={idx} className="bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 mt-1">
+                                                                <p className="text-[10px] text-primary/80 uppercase font-black tracking-widest leading-none mb-1">Scheme Slab {idx + 1}</p>
+                                                                <p className="font-black text-primary text-sm leading-none">
                                                                     {formatPacksAndBottles(s.packs * bpp + s.bottles, bpp, true)} @ ₹{s.discountPerPack}
                                                                 </p>
                                                             </div>
@@ -627,8 +627,8 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     } else if (item.qtyScheme > 0) {
                                                         return (
                                                             <div>
-                                                                <p className="text-[10px] text-ruby-400 uppercase font-black tracking-widest">Scheme</p>
-                                                                <p className="font-black text-ruby-600">{formatPacksAndBottles(item.qtyScheme, bpp, true)} @ ₹{item.discountPerPack}</p>
+                                                                <p className="text-[10px] text-primary/80 uppercase font-black tracking-widest">Scheme</p>
+                                                                <p className="font-black text-primary">{formatPacksAndBottles(item.qtyScheme, bpp, true)} @ ₹{item.discountPerPack}</p>
                                                             </div>
                                                         );
                                                     }
@@ -637,9 +637,9 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                             </div>
                                         )}
 
-                                        <div className="text-right min-w-[140px] lg:border-l lg:border-gray-100 lg:pl-8 self-center">
-                                            <p className="text-[10px] text-teal-600 uppercase font-black tracking-widest mb-1">Net Sold</p>
-                                            <p className="font-black text-teal-600 text-2xl leading-none tracking-tighter">
+                                        <div className="text-right min-w-[140px] lg:border-l lg:border-border lg:pl-8 self-center">
+                                            <p className="text-[10px] text-emerald-500 uppercase font-black tracking-widest mb-1">Net Sold</p>
+                                            <p className="font-black text-emerald-500 text-2xl leading-none tracking-tighter">
                                                 {(() => {
                                                     const r = inputs[item.productId._id] || { packs: "0", bottles: "0" };
                                                     const ret = isVerified ? item.qtyReturned : toBottlesRaw(r.packs, r.bottles, bpp);
@@ -647,7 +647,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     return formatPacksAndBottles(sold, bpp, true);
                                                 })()}
                                             </p>
-                                            <p className="text-[9px] text-gray-400 mt-2 font-bold italic uppercase tracking-tighter">
+                                            <p className="text-[9px] text-muted-foreground mt-2 font-bold italic uppercase tracking-tighter">
                                                 Net Sold = Loads - Returns ({bpp} BPP)
                                             </p>
                                         </div>
@@ -658,26 +658,26 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     })}
                 </div>
 
-                <div className="p-8 bg-gray-900 relative overflow-hidden mt-2">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-ruby-500/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
+                <div className="p-8 bg-muted/50 relative overflow-hidden mt-2">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
 
                     <div className="relative grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Normal Sales</p>
-                            <p className="text-xl font-black text-white">₹{totalNormalSales.toLocaleString()}</p>
+                        <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
+                            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Normal Sales</p>
+                            <p className="text-xl font-black text-foreground">₹{totalNormalSales.toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                            <p className="text-[10px] text-ruby-400 font-black uppercase tracking-widest mb-1">Scheme Sales</p>
-                            <p className="text-xl font-black text-ruby-400">₹{totalSchemeSales.toLocaleString()}</p>
+                        <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
+                            <p className="text-[10px] text-primary/80 font-black uppercase tracking-widest mb-1">Scheme Sales</p>
+                            <p className="text-xl font-black text-primary">₹{totalSchemeSales.toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                            <p className="text-[10px] text-amber-400 font-black uppercase tracking-widest mb-1">Total Discount</p>
-                            <p className="text-xl font-black text-amber-400">₹{totalDiscount.toLocaleString()}</p>
+                        <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
+                            <p className="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-1">Total Discount</p>
+                            <p className="text-xl font-black text-amber-500">₹{totalDiscount.toLocaleString()}</p>
                         </div>
-                        <div className="bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Total Loaded</p>
-                            <p className="text-xl font-black text-white">
+                        <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
+                            <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Total Loaded</p>
+                            <p className="text-xl font-black text-foreground">
                                 {(() => {
                                     let totalP = 0;
                                     let totalB = 0;
@@ -690,28 +690,28 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 })()}
                             </p>
                         </div>
-                        <div className="col-span-2 md:col-span-1 bg-teal-500 p-4 rounded-2xl shadow-lg shadow-teal-500/20">
-                            <p className="text-[10px] text-teal-900 font-black uppercase tracking-widest mb-1">Grand Total</p>
+                        <div className="col-span-2 md:col-span-1 bg-emerald-500 p-4 rounded-2xl shadow-lg shadow-emerald-500/20">
+                            <p className="text-[10px] text-emerald-900 font-black uppercase tracking-widest mb-1">Grand Total</p>
                             <p className="text-2xl font-black text-white">₹{totalSales.toLocaleString()}</p>
                         </div>
                     </div>
                 </div>
 
                 {!isVerified && (
-                    <div className="p-8 bg-white border-t border-gray-100 flex flex-col md:flex-row items-end md:items-center justify-between gap-6">
+                    <div className="p-8 bg-card border-t border-border flex flex-col md:flex-row items-end md:items-center justify-between gap-6">
                         <div className="flex flex-col gap-2 w-full md:w-auto">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Verification Date</label>
+                            <label className="text-xs font-black text-muted-foreground uppercase tracking-widest">Verification Date</label>
                             <input
                                 type="date"
                                 value={verifyDate}
                                 onChange={(e) => setVerifyDate(e.target.value)}
-                                className="px-5 py-3 rounded-2xl border-2 border-gray-100 focus:border-teal-500 focus:ring-0 text-gray-900 font-bold bg-white transition-all shadow-sm"
+                                className="px-5 py-3 rounded-2xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-bold bg-background transition-all shadow-sm"
                             />
                         </div>
                         <button
                             onClick={handleVerify}
                             disabled={verifying}
-                            className="w-full md:w-auto bg-teal-600 hover:bg-teal-700 text-white px-10 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl shadow-teal-600/20 disabled:opacity-50 active:scale-95 text-sm uppercase tracking-widest"
+                            className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50 active:scale-95 text-sm uppercase tracking-widest"
                         >
                             {verifying ? "Processing..." : (
                                 <>

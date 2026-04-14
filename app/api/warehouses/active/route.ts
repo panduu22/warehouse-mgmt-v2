@@ -18,7 +18,10 @@ export async function GET() {
         const activeWarehouseName = cookieStore.get("activeWarehouseName")?.value;
 
         if (activeWarehouseId && mongoose.Types.ObjectId.isValid(activeWarehouseId)) {
-            return NextResponse.json({ activeWarehouseId, activeWarehouseName });
+            const exists = await Warehouse.exists({ _id: activeWarehouseId });
+            if (exists) {
+                return NextResponse.json({ activeWarehouseId, activeWarehouseName });
+            }
         }
 
         // 2. If no cookie, check User record

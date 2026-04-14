@@ -15,26 +15,16 @@ export async function GET() {
     try {
         await dbConnect();
         
-        // Find users who are STAFF and have at least one warehouse assignment
-        let users = await User.find({ 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            _id: { $ne: (session.user as any).id },
-            role: "STAFF",
-            "assignedWarehouses.0": { $exists: true }
+        // Find all users who are STAFF
+        const users = await User.find({ 
+            role: "STAFF"
         })
-        .select("name email image assignedWarehouses role")
+        .select("name email image assignedWarehouses role activeWarehouseId")
         .populate("assignedWarehouses.warehouseId", "name location")
+        .populate("activeWarehouseId", "name")
         .lean();
 
-        // Extra safety: Filter out users where all their warehouses were nullified (deleted previously)
-        users = users.filter((u: any) => 
-            u.assignedWarehouses && u.assignedWarehouses.some((aw: any) => aw.warehouseId !== null)
-        );
-
-        // Also fetch user's active warehouse object just in case we need it
-        const populatedUsers = await User.populate(users, { path: "activeWarehouseId", select: "name" });
-
-        return NextResponse.json(populatedUsers);
+        return NextResponse.json(users);
     } catch (error) {
         console.error("Error fetching admin users list:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

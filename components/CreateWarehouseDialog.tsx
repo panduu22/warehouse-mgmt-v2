@@ -22,7 +22,7 @@ export function CreateWarehouseDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange
 }: { 
-  children?: React.ReactNode, 
+  children?: React.ReactElement, 
   onSuccess?: () => void,
   open?: boolean,
   onOpenChange?: (open: boolean) => void

@@ -4,11 +4,11 @@ import mongoose from "mongoose";
 
 interface LogPayload {
     userId: string;
-    warehouseId: string;
+    warehouseId?: string;
     action: string;
     details: string;
     targetId?: string;
-    targetModel?: "Product" | "Vehicle" | "Trip" | "Bill";
+    targetModel?: "Product" | "Vehicle" | "Trip" | "Bill" | "User" | "Warehouse" | "AccessRequest";
 }
 
 export async function logActivity(payload: LogPayload) {
@@ -18,10 +18,13 @@ export async function logActivity(payload: LogPayload) {
         // Ensure valid ObjectIds to prevent Mongoose cast errors
         const activityData: any = {
             userId: new mongoose.Types.ObjectId(payload.userId),
-            warehouseId: new mongoose.Types.ObjectId(payload.warehouseId),
             action: payload.action,
             details: payload.details,
         };
+
+        if (payload.warehouseId && mongoose.Types.ObjectId.isValid(payload.warehouseId)) {
+            activityData.warehouseId = new mongoose.Types.ObjectId(payload.warehouseId);
+        }
 
         if (payload.targetId && payload.targetModel && mongoose.Types.ObjectId.isValid(payload.targetId)) {
             activityData.targetId = new mongoose.Types.ObjectId(payload.targetId);

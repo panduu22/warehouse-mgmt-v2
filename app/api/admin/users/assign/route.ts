@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Warehouse from "@/models/Warehouse";
 import { logActivity } from "@/lib/activity";
+import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -53,10 +54,14 @@ export async function POST(req: Request) {
 
         await userToUpdate.save();
 
+        const cookieStore = await cookies();
+        const activeWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+
         // Log it
         await logActivity({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             userId: (session.user as any).id,
+            warehouseId: activeWarehouseId,
             action: "ASSIGN_WAREHOUSE",
             details: `Assigned ${warehouseIds.length} warehouse(s) to ${userToUpdate.name}.`,
             targetId: userToUpdate._id.toString(),

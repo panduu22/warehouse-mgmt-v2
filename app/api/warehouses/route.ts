@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
+import { logActivity } from "@/lib/activity";
 import Product from "@/models/Product";
 import { getServerSession } from "next-auth";
 
@@ -81,6 +82,16 @@ export async function POST(req: Request) {
             }
         }
 
+        await logActivity({
+            // @ts-ignore
+            userId: session.user.id,
+            warehouseId: warehouse._id.toString(),
+            action: "CREATE_WAREHOUSE",
+            details: `Created new warehouse "${warehouse.name}".`,
+            targetId: warehouse._id.toString(),
+            targetModel: "Warehouse"
+        });
+
         return NextResponse.json(warehouse, { status: 201 });
     } catch (e) {
         console.error(e);
@@ -141,6 +152,15 @@ export async function DELETE(req: Request) {
         
         // 5. Delete warehouse
         await Warehouse.findByIdAndDelete(warehouseId);
+
+        await logActivity({
+            // @ts-ignore
+            userId: session.user.id,
+            action: "DELETE_WAREHOUSE",
+            details: `Deleted warehouse "${warehouse.name}" and all associated stock.`,
+            targetId: warehouseId,
+            targetModel: "Warehouse"
+        });
 
         return NextResponse.json({ message: "Warehouse and its stock deleted successfully" }, { status: 200 });
     } catch (e) {

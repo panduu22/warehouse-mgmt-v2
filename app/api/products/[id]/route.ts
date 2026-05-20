@@ -16,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const user = session.user as any;
 
         const { id } = await params;
-        const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice } = await req.json();
+        const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice, bottlesPerPack } = await req.json();
 
         await dbConnect();
 
@@ -36,6 +36,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (salePrice !== undefined) {
             updateData.salePrice = salePrice;
             updateData.price = salePrice; // Todays price is updated when we change sales price
+        }
+        if (bottlesPerPack !== undefined) {
+            updateData.bottlesPerPack = bottlesPerPack;
         }
 
         const product = await Product.findByIdAndUpdate(

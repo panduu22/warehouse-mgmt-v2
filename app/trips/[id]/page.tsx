@@ -361,7 +361,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     freeItems: (s.freeItems || [])
                         .filter(f => f.productId && (parseInt(f.packs || "0", 10) > 0 || parseInt(f.bottles || "0", 10) > 0))
                         .map(f => {
-                            let fbpp = 24; // Default to 24 only if all other lookups fail
+                            let fbpp = parsePack(undefined, undefined); // Default to baseline from util if all other lookups fail
                             const fp = allProducts.find(p => p._id === f.productId);
                             if (fp) {
                                 fbpp = fp.bottlesPerPack;
@@ -369,8 +369,6 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 const prodInTrip = trip.loadedItems.find((i: any) => i.productId._id === f.productId);
                                 if (prodInTrip) {
                                     fbpp = prodInTrip.productId.bottlesPerPack;
-                                } else {
-                                    fbpp = parsePack(undefined, undefined); // baseline from util
                                 }
                             }
                             const p = parseInt(f.packs || "0", 10);

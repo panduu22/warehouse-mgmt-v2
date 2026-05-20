@@ -33,7 +33,7 @@ export function TopNavbar() {
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-8">
             <div className="md:hidden flex items-center gap-2 font-bold text-lg mr-auto">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-                    <SheetTrigger 
+                    <SheetTrigger
                         render={
                             <button className="p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                 <Menu className="w-6 h-6" />
@@ -41,10 +41,10 @@ export function TopNavbar() {
                         }
                     />
                     <SheetContent side="left" className="p-0 w-[280px]">
-                         {/* Visually hidden title for accessibility */}
+                        {/* Visually hidden title for accessibility */}
                         <div className="sr-only"><SheetTitle>Menu</SheetTitle></div>
                         <div className="flex" onClick={() => setMobileOpen(false)}>
-                            <Sidebar isCollapsed={false} setIsCollapsed={() => {}} />
+                            <Sidebar isCollapsed={false} setIsCollapsed={() => { }} />
                         </div>
                     </SheetContent>
                 </Sheet>
@@ -65,7 +65,7 @@ export function TopNavbar() {
                 >
                     {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
-                
+
                 <div className="hidden md:block">
                     <WarehouseSwitcher />
                 </div>

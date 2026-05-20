@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import DeleteProductButton from "./DeleteProductButton";
 import { QuantityEditor } from "./QuantityEditor";
 import { PriceEditor } from "./PriceEditor";
+import { BottlesPerPackEditor } from "./BottlesPerPackEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
@@ -94,6 +95,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="font-bold">Product Name</TableHead>
+                                <TableHead className="font-bold">Bottles/Pack</TableHead>
                                 <TableHead className="font-bold">Invoice Cost</TableHead>
                                 <TableHead className="text-right font-bold hidden md:table-cell">Invoice Amount</TableHead>
                                 <TableHead className="font-bold">MRP (Base)</TableHead>
@@ -107,7 +109,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         <TableBody>
                             {products.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
                                         No products found in {warehouseName}.
                                     </TableCell>
                                 </TableRow>
@@ -126,6 +128,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                     return (
                                         <TableRow key={product._id} className="hover:bg-muted/50 transition-colors group">
                                             <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                                            <TableCell className="w-24">
+                                                <BottlesPerPackEditor productId={product._id} initialBpp={product.bottlesPerPack} />
+                                            </TableCell>
                                             <TableCell className="text-muted-foreground font-medium w-32">
                                                 <PriceEditor productId={product._id} initialPrice={product.invoiceCost || 0} field="invoiceCost" />
                                             </TableCell>
@@ -165,7 +170,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         {products.length > 0 && (
                             <TableFooter className="bg-muted border-t-2 border-border font-extrabold text-foreground hidden md:table-footer-group">
                                 <TableRow>
-                                    <TableCell colSpan={2} className="text-right">Net Totals:</TableCell>
+                                    <TableCell colSpan={3} className="text-right">Net Totals:</TableCell>
                                     <TableCell className="text-right text-muted-foreground">
                                         {formatCurrency(
                                             products.reduce((sum: number, p: any) => sum + ((p.quantity / p.bottlesPerPack) * (p.invoiceCost || 0)), 0)

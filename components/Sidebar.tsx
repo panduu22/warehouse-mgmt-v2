@@ -85,7 +85,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
                 {userRole === "ADMIN" && (
                     <div className="mt-8 pt-4 border-t border-border/50 space-y-1 relative">
                         {!isCollapsed && <p className="px-3 text-[10px] font-bold uppercase text-muted-foreground/70 tracking-widest mb-2 whitespace-nowrap">Administration</p>}
-                        
+
                         <Link
                             href="/admin/requests"
                             title={isCollapsed ? "Access Requests" : undefined}
@@ -103,7 +103,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
                             <ShieldAlert className={clsx("w-5 h-5 shrink-0", pathname.startsWith("/admin/requests") ? "text-primary" : "text-muted-foreground")} />
                             {!isCollapsed && <span className="relative z-10 whitespace-nowrap">Access Requests</span>}
                         </Link>
-                        
+
                         <Link
                             href="/admin/activity"
                             title={isCollapsed ? "Activity History" : undefined}

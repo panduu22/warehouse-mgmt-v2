@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import { Loader2, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { formatPacksAndBottles } from "@/lib/stock-utils";
+import { formatPacksAndBottles, parsePack } from "@/lib/stock-utils";
 import dbConnect from "@/lib/mongodb";
 // Note: Client Component cannot import dbConnect directly if we were calling it? 
 // No, I'm fetching data.
@@ -161,7 +161,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                             <td className="px-4 py-6 font-black text-black text-lg">{item.productId?.name || "Product"}</td>
                                             <td className="px-4 py-6 text-right font-black text-black text-lg">{sold}</td>
                                             <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{price.toLocaleString('en-IN')}</td>
-                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{((sold / (item.productId?.bottlesPerPack || 24)) * price).toLocaleString('en-IN')}</td>
+                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{((sold / (item.productId?.bottlesPerPack || parsePack(item.productId?.pack, item.productId?.name))) * price).toLocaleString('en-IN')}</td>
                                         </tr>
                                     );
                                 })

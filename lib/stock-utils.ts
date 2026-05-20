@@ -8,48 +8,85 @@
  * Uses the list provided by the user for precise mapping.
  */
 export function parsePack(packStr: string | number | undefined, productName?: string): number {
-    const p = String(packStr || "").toLowerCase();
-    const n = String(productName || "").toLowerCase();
+    const p = String(packStr || "").toLowerCase().replace(/\s+/g, " ");
+    const n = String(productName || "").toLowerCase().replace(/\s+/g, " ");
     const combined = `${n} ${p}`;
 
-    // Specific product overrides
-    if (combined.includes("maaza") && combined.includes("250 ml")) return 30;
-    if (combined.includes("mm pulpy orange") && combined.includes("250 ml")) return 30;
-    if (combined.includes("mm pulpy orange") && combined.includes("1 ltr")) return 12;
+    const rxMatches = (regex: RegExp) => regex.test(combined);
 
-    // Standard mappings
-    if (combined.includes("150 ml tetra")) return 40;
-    if (combined.includes("200 ml rgb")) return 24;
-    if (combined.includes("250 ml pet")) return 28;
-    if (combined.includes("300 ml rgb")) return 24;
-    if (combined.includes("330 ml can")) return 24;
-    if (combined.includes("300 ml can")) return 24;
-    if (combined.includes("350 ml can")) return 24;
-    if (combined.includes("400 ml")) return 24;
-    if (combined.includes("500 ml")) return 24;
-    if (combined.includes("600 ml pet")) return 24;
-    if (combined.includes("740 ml")) return 24;
-    if (combined.includes("750 ml")) return 24;
-    if (combined.includes("850 ml")) return 15;
-    if (combined.includes("1 ltr pet")) return 15;
-    if (combined.includes("1 ltr water")) return 15;
-    if (combined.includes("1.2 ltr")) return 12;
-    if (combined.includes("1.25 ltr")) return 12;
-    if (combined.includes("1.5 ltr pet")) return 12;
-    if (combined.includes("1.75 ltr")) return 12;
-    if (combined.includes("2 ltr")) return 9;
-    if (combined.includes("2.25 ltr pet")) return 9;
+    // 150 ml Tetra
+    if (rxMatches(/\b150\s*(ml)?\b/i) && rxMatches(/\btetra\b/i)) {
+        return 40;
+    }
 
-    // Fallback checks for volume partials if not caught above
-    if (combined.includes("2.25")) return 9;
-    if (combined.includes("1.5")) return 12;
-    if (combined.includes("1.25")) return 12;
-    if (combined.includes("600")) return 24;
-    if (combined.includes("250")) return 28;
-    if (combined.includes(" tetra")) return 40;
+    // 250 ml PET (and generic 250 ml fallback)
+    if (rxMatches(/\b250\s*(ml)?\b/i)) {
+        if (rxMatches(/\b(maaza|mazza|pulpy|orange)\b/i)) return 30;
+        return 28;
+    }
 
-    // Fallback: try to extract the first number if possible
-    const match = p.match(/^\d+/);
+    // 850 ml
+    if (rxMatches(/\b850\s*(ml)?\b/i)) {
+        return 15;
+    }
+
+    // 2.25 Ltr
+    if (rxMatches(/\b2\.25\s*(ltr|l)?\b/i)) {
+        return 9;
+    }
+
+    // 2 ltr (avoid 2.25)
+    if (rxMatches(/(?:\s|^)2(\.0)?\s*(ltr|l|liter)?\b/i) && !rxMatches(/\b2\.25\b/)) {
+        return 9;
+    }
+
+    // 1.75 ltr
+    if (rxMatches(/\b1\.75\s*(ltr|l)?\b/i)) {
+        return 12;
+    }
+
+    // 1.5 ltr
+    if (rxMatches(/\b1\.5\s*(ltr|l)?\b/i)) {
+        return 12;
+    }
+
+    // 1.25 ltr
+    if (rxMatches(/\b1\.25\s*(ltr|l)?\b/i)) {
+        return 12;
+    }
+
+    // 1.2 ltr (avoid 1.25)
+    if (rxMatches(/\b1\.2\s*(ltr|l)?\b/i) && !rxMatches(/\b1\.25\b/)) {
+        return 12;
+    }
+
+    // 1 ltr / 1 ltr PET (avoid 1.2, 1.25, 1.5, 1.75)
+    if (rxMatches(/(?:\s|^)1(\.0)?\s*(ltr|l|liter)?\b/i) && !rxMatches(/\b1\.(2|5|7)\b/)) {
+        if (rxMatches(/\b(pulpy|orange)\b/i)) return 12;
+        return 15;
+    }
+
+    // Standard 24 BPP mappings (200ml RGB, 300ml RGB, 300ml CAN, 330ml CAN, 300ml, 350ml CAN, 400ml csd, 500ml, 600ml PET, 740ml, 750ml)
+    if (
+        rxMatches(/\b200\s*(ml)?\b/i) ||
+        rxMatches(/\b300\s*(ml)?\b/i) ||
+        rxMatches(/\b330\s*(ml)?\b/i) ||
+        rxMatches(/\b350\s*(ml)?\b/i) ||
+        rxMatches(/\b400\s*(ml)?\b/i) ||
+        rxMatches(/\b500\s*(ml)?\b/i) ||
+        rxMatches(/\b600\s*(ml)?\b/i) ||
+        rxMatches(/\b740\s*(ml)?\b/i) ||
+        rxMatches(/\b750\s*(ml)?\b/i)
+    ) {
+        return 24;
+    }
+
+    // Fallbacks
+    if (rxMatches(/\btetra\b/i)) return 40;
+    if (rxMatches(/\b(maaza|mazza)\b/i) && rxMatches(/\b250\b/)) return 30;
+
+    // Fallback: try to extract a prefix number if pack is a pure number like "24"
+    const match = p.match(/^\d+$/);
     if (match) return parseInt(match[0], 10);
 
     return 24; // Default baseline

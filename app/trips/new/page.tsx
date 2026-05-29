@@ -180,6 +180,8 @@ export default function NewTripPage() {
 
     const activeVehicle = vehicles.find((v: any) => v._id === selectedVehicle) as any;
 
+    const selectedVehicleObj = vehicles.find(v => v.id === selectedVehicle);
+
     return (
         <div className="max-w-6xl mx-auto pb-12">
             {/* Header */}

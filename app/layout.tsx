@@ -26,6 +26,7 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased`}
       >
         <Providers>
+          <KeyboardNavigator />
           {children}
           <Toaster position="top-right" richColors />
         </Providers>

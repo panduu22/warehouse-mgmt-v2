@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, Menu, X, Download } from "lucide-react";
 import { signOut } from "next-auth/react";
 import clsx from "clsx";
 import { WarehouseSwitcher } from "./WarehouseSwitcher";

@@ -7,7 +7,6 @@ import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
 import mongoose from "mongoose";
 import * as XLSX from "xlsx";
-import { parsePack } from "@/lib/stock-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +22,7 @@ export async function POST(req: Request) {
     try {
         await dbConnect();
 
-        // Resolve warehouse context
+        // Resolve active warehouse context
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
 
@@ -43,100 +42,167 @@ export async function POST(req: Request) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
 
-        // Convert sheet to row objects. Header row expected:
-        // Name | SKU | Flavour | Pack | Quantity | Invoice Cost | MRP | Sale Price | Today's Price
+        // Convert sheet to row objects
         const rows: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
         if (rows.length === 0) {
             return NextResponse.json({ error: "Excel file is empty or has no data rows." }, { status: 400 });
         }
 
+        // Fetch all warehouses for cross-warehouse sync
+        const allWarehouses = await Warehouse.find({});
+        const allWarehouseIds = allWarehouses.map((w) => w._id.toString());
+
         let created = 0;
         let updated = 0;
         const errors: string[] = [];
 
-        for (const row of rows) {
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
             try {
-                // Flexible column name mapping (case-insensitive)
+                // Flexible case-insensitive column finder
                 const get = (keys: string[]) => {
                     for (const key of keys) {
-                        const found = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+                        const found = Object.keys(row).find(
+                            (k) => k.trim().toLowerCase() === key.toLowerCase()
+                        );
                         if (found !== undefined && row[found] !== "") return row[found];
                     }
                     return undefined;
                 };
 
-                const name = String(get(["name", "product name", "product", "description"]) || "").trim();
-                if (!name) { errors.push(`Row skipped: missing product name`); continue; }
+                // === FIELD MAPPING (Excel → DB) ===
+                // Product Name = Pack + Flavour
+                const pack = String(get(["pack", "package", "size", "volume"]) || "").trim();
+                const flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
 
-                let flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
-                let pack = String(get(["pack", "package", "packaging", "size", "volume", "vol", "unit"]) || "").trim();
-
-                // FALLBACK: Parse flavour and pack from Name if missing
-                if (!flavour || !pack) {
-                    const parts = name.split(" ");
-                    if (!flavour && parts.length > 0) {
-                        // If it's Thums Up, handle as two words
-                        if (parts[0].toLowerCase() === "thums" && parts[1]?.toLowerCase() === "up") {
-                            flavour = "Thums Up";
-                        } else {
-                            flavour = parts[0];
-                        }
-                    }
-                    if (!pack && flavour) {
-                        const remaining = name.slice(name.indexOf(flavour) + flavour.length).trim();
-                        if (remaining) pack = remaining;
-                    }
-                }
-
-                const rawQuantity = get(["quantity", "qty", "stock", "balance", "opening stock"]);
-                let quantity = 0;
-                const bpp = parsePack(pack, name);
-
-                if (typeof rawQuantity === "number") {
-                    if (!Number.isInteger(rawQuantity)) {
-                        // Legacy P.B format detected (e.g. 2.9)
-                        const packs = Math.floor(rawQuantity);
-                        const bottles = Math.round((rawQuantity % 1) * 10);
-                        quantity = (packs * bpp) + bottles;
-                    } else {
-                        quantity = rawQuantity;
-                    }
-                } else if (typeof rawQuantity === "string" && rawQuantity.includes(".")) {
-                    const [pStr, bStr] = rawQuantity.split(".");
-                    quantity = (parseInt(pStr || "0", 10) * bpp) + parseInt(bStr || "0", 10);
+                let name = "";
+                if (pack && flavour) {
+                    name = `${pack} - ${flavour}`;
+                } else if (pack) {
+                    name = pack;
+                } else if (flavour) {
+                    name = flavour;
                 } else {
-                    quantity = Number(rawQuantity || 0);
+                    // Fallback: try a generic name column
+                    name = String(get(["name", "product name", "product", "description"]) || "").trim();
                 }
 
-                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice", "cost", "purchase price"]) || 0);
+                if (!name) {
+                    errors.push(`Row ${rowIndex + 2}: skipped — missing Pack and Flavour`);
+                    continue;
+                }
+
+                // Bottles/Pack = Bottles per Pack
+                const bottlesPerPack = Number(
+                    get(["bottles per pack", "bottles/pack", "bpp", "bottles_per_pack", "bottle per pack"]) || 24
+                );
+
+                // Invoice Cost
+                const invoiceCost = Number(get(["invoice cost", "invoicecost", "invoice"]) || 0);
+
+                // MRP (Base)
                 const mrp = Number(get(["mrp", "mrp (base)", "base mrp", "label price"]) || 0);
-                const salePrice = Number(get(["sale price", "saleprice", "selling price", "retail price", "rate"]) || 0);
-                const price = Number(get(["today's price", "todays price", "price", "today price", "current price"]) || salePrice);
 
-                let sku = String(get(["sku", "sku code", "code", "barcode"]) || "").trim();
-                if (!sku) {
-                    // Auto-generate SKU based on the potentially parsed flavour/pack
-                    const base = name.substring(0, 3).toUpperCase();
-                    const flav = flavour.substring(0, 3).toUpperCase();
-                    const pck = pack.substring(0, 3).toUpperCase();
-                    const rand = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-                    sku = `${base}-${flav}-${pck}-${rand}`.replace(/-+/g, "-");
-                }
-                
-                // Upsert by SKU + warehouseId
-                const existing = await Product.findOne({ sku, warehouseId });
-                if (existing) {
-                    await Product.updateOne({ _id: existing._id }, {
-                        name, quantity, invoiceCost, mrp, salePrice, price, flavour, pack, bottlesPerPack: bpp
-                    });
+                // Sale Price
+                const salePrice = Number(
+                    get(["sale price", "saleprice", "selling price", "retail price"]) || 0
+                );
+
+                // Quantity = Total PC (in bottles)
+                const rawQty = get(["total pc", "totalpc", "total_pc", "quantity", "qty", "stock", "balance"]);
+                const quantity = Number(rawQty || 0);
+
+                // displayOrder = Excel row index (0-based)
+                const displayOrder = rowIndex;
+
+                // Generate a stable, deterministic SKU from name (no random suffix for cross-warehouse consistency)
+                const skuBase = name
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, "-")
+                    .replace(/-+/g, "-")
+                    .slice(0, 30);
+
+                // === ACTIVE WAREHOUSE: upsert with actual quantity ===
+                const existingInActive = await Product.findOne({ name, warehouseId });
+                if (existingInActive) {
+                    await Product.updateOne(
+                        { _id: existingInActive._id },
+                        {
+                            $set: {
+                                quantity,
+                                invoiceCost,
+                                mrp,
+                                salePrice,
+                                price: salePrice,
+                                bottlesPerPack,
+                                displayOrder,
+                                pack,
+                                flavour,
+                                sku: skuBase + "-" + warehouseId.slice(-4),
+                            },
+                        }
+                    );
                     updated++;
                 } else {
-                    await Product.create({ name, sku, quantity, invoiceCost, mrp, salePrice, price, flavour, pack, warehouseId, bottlesPerPack: bpp });
+                    await Product.create({
+                        name,
+                        sku: skuBase + "-" + warehouseId.slice(-4),
+                        quantity,
+                        price: salePrice,
+                        invoiceCost,
+                        mrp,
+                        salePrice,
+                        bottlesPerPack,
+                        displayOrder,
+                        pack,
+                        flavour,
+                        warehouseId,
+                    });
                     created++;
                 }
+
+                // === ALL OTHER WAREHOUSES: sync pricing/order, keep existing quantity (set 0 if new) ===
+                const otherWarehouseIds = allWarehouseIds.filter((id) => id !== warehouseId);
+                for (const otherId of otherWarehouseIds) {
+                    const existingInOther = await Product.findOne({ name, warehouseId: otherId });
+                    if (existingInOther) {
+                        // Update pricing and order but leave quantity untouched
+                        await Product.updateOne(
+                            { _id: existingInOther._id },
+                            {
+                                $set: {
+                                    invoiceCost,
+                                    mrp,
+                                    salePrice,
+                                    price: salePrice,
+                                    bottlesPerPack,
+                                    displayOrder,
+                                    pack,
+                                    flavour,
+                                },
+                            }
+                        );
+                    } else {
+                        // New product for this warehouse — quantity starts at 0
+                        await Product.create({
+                            name,
+                            sku: skuBase + "-" + otherId.slice(-4),
+                            quantity: 0,
+                            price: salePrice,
+                            invoiceCost,
+                            mrp,
+                            salePrice,
+                            bottlesPerPack,
+                            displayOrder,
+                            pack,
+                            flavour,
+                            warehouseId: otherId,
+                        });
+                    }
+                }
             } catch (rowErr: any) {
-                errors.push(`Row error: ${rowErr.message}`);
+                errors.push(`Row ${rowIndex + 2} error: ${rowErr.message}`);
             }
         }
 

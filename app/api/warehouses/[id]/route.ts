@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import dbConnect from "@/lib/mongodb";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ObjectId } from "mongodb";
@@ -16,7 +16,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const { id } = await params;
 
     try {
-        const db = await getDb();
+        const conn = await dbConnect();
+        const db = conn.connection.db;
+        if (!db) throw new Error("DB not initialized");
         const warehouseId = new ObjectId(id);
 
         // Delete warehouse

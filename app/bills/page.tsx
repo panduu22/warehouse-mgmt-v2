@@ -138,7 +138,7 @@ export default function BillsPage() {
 
                 <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                        <table className="w-full text-left text-sm min-w-[800px]">
                             <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
                                 <tr>
                                     <th className="px-6 py-4 font-bold uppercase text-[10px] tracking-widest">Invoice Date</th>

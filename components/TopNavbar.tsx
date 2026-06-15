@@ -43,8 +43,32 @@ export function TopNavbar() {
                     <SheetContent side="left" className="p-0 w-[280px]">
                         {/* Visually hidden title for accessibility */}
                         <div className="sr-only"><SheetTitle>Menu</SheetTitle></div>
-                        <div className="flex" onClick={() => setMobileOpen(false)}>
-                            <Sidebar isCollapsed={false} setIsCollapsed={() => { }} />
+                        <div className="flex flex-col h-full overflow-y-auto pb-safe">
+                            <div className="p-4 border-b border-border flex items-center gap-2 font-bold text-lg">
+                                <div className="p-1.5 bg-ruby-600 rounded-lg text-white">
+                                    <Package className="w-5 h-5" />
+                                </div>
+                                RK Agencies
+                            </div>
+                            
+                            <div className="flex-1" onClick={() => setMobileOpen(false)}>
+                                <Sidebar isCollapsed={false} setIsCollapsed={() => { }} isMobile={true} />
+                            </div>
+
+                            <div className="p-4 border-t border-border mt-auto">
+                                <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Warehouse</label>
+                                <WarehouseSwitcher />
+                            </div>
+
+                            <div className="p-3 border-t border-border flex flex-col gap-2">
+                                <button
+                                    onClick={() => signOut({ callbackUrl: "/" })}
+                                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group w-full"
+                                >
+                                    <LogOut className="w-5 h-5 shrink-0 group-hover:text-destructive transition-colors" />
+                                    <span>Sign Out</span>
+                                </button>
+                            </div>
                         </div>
                     </SheetContent>
                 </Sheet>

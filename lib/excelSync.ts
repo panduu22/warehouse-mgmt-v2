@@ -1,11 +1,13 @@
-import { getDb } from "./db";
+import dbConnect from "./mongodb";
 import * as XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
 
 export async function triggerExcelSync() {
     try {
-        const db = await getDb();
+        const conn = await dbConnect();
+        const db = conn.connection.db;
+        if (!db) throw new Error("DB not initialized");
 
         // 1. Fetch Warehouses and map for quick lookup
         const warehouses = await db.collection("Warehouse").find().toArray();

@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "sonner";
+import { KeyboardNavigator } from "@/components/KeyboardNavigator";
 
 export default function RootLayout({
   children,

@@ -60,15 +60,16 @@ export async function POST(req: Request) {
             createdBy: session.user.id
         });
 
-        // Get all products from the main warehouse to clone
+        // Clone all products from the main warehouse into the new warehouse
         const mainWarehouse = await Warehouse.findOne({ isMain: true });
         if (mainWarehouse && mainWarehouse._id.toString() !== warehouse._id.toString()) {
-            const mainProducts = await Product.find({ warehouseId: mainWarehouse._id });
+            const mainProducts = await Product.find({ warehouseId: mainWarehouse._id }).sort({ displayOrder: 1 });
             if (mainProducts.length > 0) {
+                const newWarehouseIdSuffix = warehouse._id.toString().slice(-4);
                 const newStock = mainProducts.map(p => ({
                     name: p.name,
-                    sku: p.sku.replace(/-\d{4}$/, `-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`), // Generate a unique suffix for the SKU
-                    quantity: 0,
+                    sku: p.sku.replace(/-[^-]{4}$/, `-${newWarehouseIdSuffix}`),
+                    quantity: 0,          // Always start at 0 for a new warehouse
                     price: p.price,
                     location: p.location || "",
                     pack: p.pack,
@@ -76,6 +77,8 @@ export async function POST(req: Request) {
                     mrp: p.mrp,
                     salePrice: p.salePrice,
                     invoiceCost: p.invoiceCost,
+                    bottlesPerPack: p.bottlesPerPack,
+                    displayOrder: p.displayOrder,   // Preserve Excel row order
                     warehouseId: warehouse._id
                 }));
                 await Product.insertMany(newStock);

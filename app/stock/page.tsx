@@ -13,7 +13,7 @@ import { BottlesPerPackEditor } from "./BottlesPerPackEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
-import { parsePack, sortProductsByCustomOrder } from "@/lib/stock-utils";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -35,7 +35,7 @@ async function getProducts() {
     const warehouse = warehouseId ? await Warehouse.findById(warehouseId) : null;
     const filter = warehouseId ? { warehouseId } : {};
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    const products = await Product.find(filter).sort({ displayOrder: 1, createdAt: 1 });
     return {
         products: JSON.parse(JSON.stringify(products)),
         warehouseName: warehouse?.name || "Unit"
@@ -49,14 +49,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
     const isAdmin = (session?.user as any)?.role === "ADMIN";
 
     // Filtering
-    const filteredProducts = query ? allProducts.filter((p: any) => 
+    const products = query ? allProducts.filter((p: any) =>
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.flavour?.toLowerCase().includes(query.toLowerCase()) ||
         p.pack?.toLowerCase().includes(query.toLowerCase()) ||
         p.sku?.toLowerCase().includes(query.toLowerCase())
     ) : allProducts;
-
-    const products = sortProductsByCustomOrder(filteredProducts);
+    // Products arrive already sorted by displayOrder from the DB (Excel row order)
 
     const formatCurrency = (amount?: number) => {
         if (amount === undefined || amount === null) return "₹0";
@@ -91,7 +90,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
             <Card className="border shadow-sm overflow-hidden bg-card text-card-foreground">
                 <CardContent className="p-0">
-                    <Table>
+                    <Table className="min-w-[1000px]">
                         <TableHeader className="bg-muted/50">
                             <TableRow>
                                 <TableHead className="font-bold">Product Name</TableHead>
@@ -116,8 +115,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                             ) : (
                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                 products.map((product: any) => {
-                                    const currentPrice = product.price || product.salePrice || 0;
-                                    const profit = currentPrice - (product.invoiceCost || 0);
+                                    const profit = (product.salePrice || 0) - (product.invoiceCost || 0);
                                     
                                     // Amount calculations
                                     const bottlesPerPack = product.bottlesPerPack;

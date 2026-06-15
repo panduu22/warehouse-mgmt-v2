@@ -89,7 +89,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full mb-12">
+                    <table className="w-full mb-12 min-w-[800px]">
                         <thead>
                             <tr className="border-b-4 border-black text-[10px] uppercase font-black text-black tracking-widest bg-gray-50/50">
                                 <th className="px-3 py-4 text-left">Description</th>

@@ -109,7 +109,7 @@ export default function StockExcelImport() {
 
             {/* Column guide hint */}
             <p className="text-xs text-gray-400 leading-relaxed">
-                Excel columns: <span className="font-medium text-gray-500">Name, SKU, Flavour, Pack, Quantity, Invoice Cost, MRP, Sale Price, Today&apos;s Price</span>
+                Excel columns: <span className="font-medium text-gray-500">Pack, Flavour, Bottles per Pack, Invoice Cost, MRP, Sale Price, Total PC</span>
             </p>
         </div>
     );

@@ -509,7 +509,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     <div className="space-y-2">
                                                         {(productSchemes[item.productId._id] || []).map((slab, idx) => (
                                                             <React.Fragment key={`${item.productId._id}-scheme-${idx}`}>
-                                                                <div className="flex items-center gap-3">
+                                                                <div className="flex flex-wrap items-center gap-3">
                                                                     <div className="flex items-center gap-1">
                                                                         <input
                                                                             type="number"
@@ -562,7 +562,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                         </button>
                                                                     </div>
                                                                     {slab.freeItems && slab.freeItems.map((free, fIdx) => (
-                                                                        <div key={`free-${idx}-${fIdx}`} className="flex items-center gap-2">
+                                                                        <div key={`free-${idx}-${fIdx}`} className="flex flex-wrap items-center gap-2">
                                                                             <select
                                                                                 value={free.productId}
                                                                                 onChange={(e) => updateFreeItem(item.productId._id, idx, fIdx, 'productId', e.target.value)}

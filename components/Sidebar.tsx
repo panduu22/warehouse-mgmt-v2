@@ -17,38 +17,44 @@ export const navItems = [
     { name: "Billing", href: "/bills", icon: Receipt },
 ];
 
-export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean; setIsCollapsed: (val: boolean) => void }) {
+export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed: boolean; setIsCollapsed: (val: boolean) => void; isMobile?: boolean }) {
     const pathname = usePathname();
     const { data: session } = useSession();
     const userRole = (session?.user as any)?.role;
 
     return (
-        <aside className={clsx("hidden md:flex bg-card border-r border-border h-screen flex-col fixed left-0 top-0 z-40 transition-all duration-300", isCollapsed ? "w-20" : "w-64")}>
-            <div className="p-4 border-b border-border/50 h-16 flex items-center justify-between">
-                {!isCollapsed && (
-                    <Link href="/" className="flex items-center gap-3 group overflow-hidden">
-                        <div className="p-1.5 bg-ruby-600 rounded-lg text-white group-hover:bg-ruby-700 transition-colors shadow-sm shrink-0">
+        <aside className={clsx(
+            "bg-card flex-col transition-all duration-300",
+            isMobile ? "flex w-full" : "hidden md:flex border-r border-border h-screen fixed left-0 top-0 z-40",
+            !isMobile && (isCollapsed ? "w-20" : "w-64")
+        )}>
+            {!isMobile && (
+                <div className="p-4 border-b border-border/50 h-16 flex items-center justify-between">
+                    {!isCollapsed && (
+                        <Link href="/" className="flex items-center gap-3 group overflow-hidden">
+                            <div className="p-1.5 bg-ruby-600 rounded-lg text-white group-hover:bg-ruby-700 transition-colors shadow-sm shrink-0">
+                                <Package className="w-5 h-5" />
+                            </div>
+                            <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap">
+                                RK Agencies
+                            </h1>
+                        </Link>
+                    )}
+                    {isCollapsed && (
+                        <div className="mx-auto p-1.5 bg-ruby-600 rounded-lg text-white shadow-sm shrink-0">
                             <Package className="w-5 h-5" />
                         </div>
-                        <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap">
-                            RK Agencies
-                        </h1>
-                    </Link>
-                )}
-                {isCollapsed && (
-                    <div className="mx-auto p-1.5 bg-ruby-600 rounded-lg text-white shadow-sm shrink-0">
-                        <Package className="w-5 h-5" />
-                    </div>
-                )}
-                <button
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className={clsx("p-1.5 rounded-full hover:bg-muted text-muted-foreground absolute -right-3 top-4 border bg-background shadow-sm")}
-                >
-                    {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-                </button>
-            </div>
+                    )}
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className={clsx("p-1.5 rounded-full hover:bg-muted text-muted-foreground absolute -right-3 top-4 border bg-background shadow-sm")}
+                    >
+                        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                    </button>
+                </div>
+            )}
 
-            <nav className="flex-1 p-3 space-y-1 overflow-y-auto mt-2 custom-scrollbar">
+            <nav className={clsx("p-3 space-y-1 mt-2", !isMobile ? "flex-1 overflow-y-auto custom-scrollbar" : "")}>
                 <div className="space-y-1 relative">
                     {navItems.map((item) => {
                         const isActive = item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(item.href + "/");
@@ -125,19 +131,21 @@ export function Sidebar({ isCollapsed, setIsCollapsed }: { isCollapsed: boolean;
                 )}
             </nav>
 
-            <div className="p-3 border-t border-border/50 flex flex-col gap-2">
-                <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
-                    title={isCollapsed ? "Sign Out" : undefined}
-                    className={clsx(
-                        "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group",
-                        isCollapsed ? "justify-center px-0" : "px-3"
-                    )}
-                >
-                    <LogOut className="w-5 h-5 shrink-0 group-hover:text-destructive transition-colors text-muted-foreground" />
-                    {!isCollapsed && <span className="whitespace-nowrap">Sign Out</span>}
-                </button>
-            </div>
+            {!isMobile && (
+                <div className="p-3 border-t border-border/50 flex flex-col gap-2">
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/" })}
+                        title={isCollapsed ? "Sign Out" : undefined}
+                        className={clsx(
+                            "flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors group",
+                            isCollapsed ? "justify-center px-0" : "px-3"
+                        )}
+                    >
+                        <LogOut className="w-5 h-5 shrink-0 group-hover:text-destructive transition-colors text-muted-foreground" />
+                        {!isCollapsed && <span className="whitespace-nowrap">Sign Out</span>}
+                    </button>
+                </div>
+            )}
         </aside>
     );
 }

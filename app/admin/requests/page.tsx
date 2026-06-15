@@ -369,7 +369,7 @@ export default function AdminRequestsPage() {
         </h2>
         <div className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="w-full text-left min-w-[600px]">
               <thead className="bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest border-b border-border">
                 <tr>
                   <th className="p-4">Staff Member</th>

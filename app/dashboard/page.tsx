@@ -128,13 +128,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
     const data = await getData(dateFilter);
     const user = session.user as any;
-    const hasAccess = await checkWarehouseAccess(user.id, user.role, warehouseId);
-    if (!hasAccess) {
-        redirect("/select-org");
-    }
-
-    const dateFilter = resolvedParams?.date || undefined;
-    const data = await getData(warehouseId, dateFilter);
 
     return (
         <DashboardClient data={data} user={user} />

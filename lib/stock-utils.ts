@@ -145,7 +145,9 @@ export function formatPacksAndBottles(totalBottles: number, bpp: number, short =
 }
 
 /**
- * Custom sort order for products as requested by the user.
+ * @deprecated Sorting is now handled at the database level via the `displayOrder` field,
+ * which is populated from the Excel row index during import. This array is kept for
+ * reference only and is no longer used in the main rendering path.
  */
 export const PRODUCT_SORT_ORDER = [
     "150 ml Tetra - Maaza",
@@ -239,7 +241,9 @@ export const PRODUCT_SORT_ORDER = [
 ];
 
 /**
- * Sorts products strictly based on the custom order defined in PRODUCT_SORT_ORDER.
+ * @deprecated Sorting is now DB-driven via `displayOrder` (set from Excel row index on import).
+ * This function is no longer called in the main stock rendering path.
+ * Products are fetched with `.sort({ displayOrder: 1 })` from MongoDB directly.
  */
 export function sortProductsByCustomOrder(products: any[]) {
     return [...products].sort((a, b) => {

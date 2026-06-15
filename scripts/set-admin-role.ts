@@ -11,8 +11,10 @@ const email = adminEmails[0]; // update first listed admin
 
 (async () => {
   try {
-    const { getDb } = await import("../lib/db");
-    const db = await getDb();
+    const { default: dbConnect } = await import("../lib/mongodb");
+    const conn = await dbConnect();
+    const db = conn.connection.db;
+    if (!db) throw new Error("DB error");
     const result = await db.collection("User").updateOne({ email }, { $set: { role: "ADMIN" } });
     console.log(`User role update: matched ${result.matchedCount}, modified ${result.modifiedCount}`);
   } catch (err) {

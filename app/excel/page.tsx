@@ -1,7 +1,5 @@
 import * as XLSX from "xlsx";
-import * as fs from "fs";
-import * as path from "path";
-import { triggerExcelSync } from "@/lib/excelSync";
+import { generateExcelWorkbook } from "@/lib/excelSync";
 
 // Force dynamic rendering on each request
 export const dynamic = "force-dynamic";
@@ -13,10 +11,7 @@ interface RowData {
 export default async function ExcelPage() {
   let rows: RowData[] = [];
   try {
-    await triggerExcelSync();
-    const filePath = path.join(process.cwd(), "public", "warehouse_data.xlsx");
-    const fileBuffer = fs.readFileSync(filePath);
-    const workbook = XLSX.read(fileBuffer, { type: "buffer" });
+    const workbook = await generateExcelWorkbook();
     const sheetName = workbook.SheetNames.find((n) => /Products \& Stock/i.test(n)) || workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     rows = XLSX.utils.sheet_to_json(worksheet);

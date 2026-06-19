@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
 
-export async function triggerExcelSync() {
+export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
     try {
         const conn = await dbConnect();
         const db = conn.connection.db;
@@ -140,17 +140,26 @@ export async function triggerExcelSync() {
             XLSX.utils.book_append_sheet(wb, ws, sheet.name);
         }
 
-        // Ensure public directory exists
-        const publicDir = path.join(process.cwd(), "public");
-        if (!fs.existsSync(publicDir)) {
-            fs.mkdirSync(publicDir, { recursive: true });
+        return wb;
+    } catch (error) {
+        console.error("Error in generateExcelWorkbook:", error);
+        throw error;
+    }
+}
+
+export async function triggerExcelSync() {
+    try {
+        const isDev = process.env.NODE_ENV === "development";
+        if (isDev) {
+            const wb = await generateExcelWorkbook();
+            const publicDir = path.join(process.cwd(), "public");
+            if (!fs.existsSync(publicDir)) {
+                fs.mkdirSync(publicDir, { recursive: true });
+            }
+            const publicFilePath = path.join(publicDir, "warehouse_data.xlsx");
+            XLSX.writeFile(wb, publicFilePath);
+            console.log("Excel sync succeeded (dev write to disk) at:", new Date().toLocaleString("en-IN"));
         }
-
-        // Save workbook to public directory
-        const publicFilePath = path.join(publicDir, "warehouse_data.xlsx");
-        XLSX.writeFile(wb, publicFilePath);
-
-        console.log("Excel sync succeeded at:", new Date().toLocaleString("en-IN"));
     } catch (error) {
         console.error("Error in triggerExcelSync:", error);
     }

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { triggerExcelSync } from "@/lib/excelSync";
+import { generateExcelWorkbook } from "@/lib/excelSync";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import * as fs from "fs";
-import * as path from "path";
+import * as XLSX from "xlsx";
 
 export async function GET() {
     const session = await getServerSession(authOptions);
@@ -12,16 +11,11 @@ export async function GET() {
     }
 
     try {
-        // Trigger a fresh sync right before download to ensure absolute latest data
-        await triggerExcelSync();
-
-        const filePath = path.join(process.cwd(), "data/warehouse_data.xlsx");
+        // Generate workbook in memory
+        const wb = await generateExcelWorkbook();
         
-        if (!fs.existsSync(filePath)) {
-            return NextResponse.json({ error: "Excel report not found" }, { status: 404 });
-        }
-
-        const fileBuffer = fs.readFileSync(filePath);
+        // Write to buffer
+        const fileBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
         return new Response(fileBuffer, {
             headers: {

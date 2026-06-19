@@ -9,13 +9,16 @@ export default withAuth(
         callbacks: {
             authorized: ({ token, req }) => {
                 // Allow access to public pages without token
-                if (req.nextUrl.pathname === "/" || req.nextUrl.pathname.startsWith("/api/auth")) {
+                if (req.nextUrl.pathname === "/" || req.nextUrl.pathname === "/login" || req.nextUrl.pathname.startsWith("/api/auth")) {
                     return true;
                 }
                 // Require token for everything else
                 return !!token;
             },
         },
+        pages: {
+            signIn: '/login',
+        }
     }
 );
 

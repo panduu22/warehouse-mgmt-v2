@@ -70,7 +70,7 @@ export default async function Home() {
       </main>
 
       <footer className="absolute bottom-8 flex gap-6 flex-wrap items-center justify-center text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-black opacity-50">
-        &copy; 2026 Pandu Solutions • Global Warehouse Network
+        &copy; 2026 A D I T H Y A T E C H • Global Warehouse Network
       </footer>
     </div>
   );

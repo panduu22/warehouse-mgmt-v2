@@ -65,10 +65,9 @@ export async function POST(req: Request) {
         if (mainWarehouse && mainWarehouse._id.toString() !== warehouse._id.toString()) {
             const mainProducts = await Product.find({ warehouseId: mainWarehouse._id }).sort({ displayOrder: 1 });
             if (mainProducts.length > 0) {
-                const newWarehouseIdSuffix = warehouse._id.toString().slice(-4);
                 const newStock = mainProducts.map(p => ({
                     name: p.name,
-                    sku: p.sku.replace(/-[^-]{4}$/, `-${newWarehouseIdSuffix}`),
+                    sku: p.sku,
                     quantity: 0,          // Always start at 0 for a new warehouse
                     price: p.price,
                     location: p.location || "",

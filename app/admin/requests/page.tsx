@@ -333,8 +333,8 @@ export default function AdminRequestsPage() {
                 <div className="space-y-2">
                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider font-sans">Assigned Warehouses</p>
                     <div className="grid grid-cols-1 gap-1">
-                        {(user.assignedWarehouses || []).map((aw: any) => (
-                            <div key={aw.warehouseId?._id} className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-lg group">
+                        {(user.assignedWarehouses || []).map((aw: any, idx: number) => (
+                            <div key={aw.warehouseId?._id || aw.warehouseId || idx} className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-lg group">
                                 <div className="flex items-center gap-3">
                                     <Warehouse className="w-3.5 h-3.5 text-muted-foreground" />
                                     <div>

@@ -14,6 +14,8 @@ import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
 
+import DeleteAllStockButton from "./DeleteAllStockButton";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -77,6 +79,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     {isAdmin && <StockExcelImport />}
+                    {isAdmin && <DeleteAllStockButton />}
                     <Link href="/stock/add" className={cn(buttonVariants({ variant: "default" }), "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 gap-2")}>
                         <Plus className="w-5 h-5" />
                         Add Stock

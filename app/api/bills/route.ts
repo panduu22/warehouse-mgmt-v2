@@ -55,7 +55,10 @@ export async function POST(req: Request) {
         let totalAmount = 0;
 
         for (const item of trip.loadedItems) {
-            const bpp = (item.productId as any).bottlesPerPack;
+            // Handle cases where the product might have been deleted from the database
+            if (!item.productId) continue;
+
+            const bpp = (item.productId as any).bottlesPerPack || 1;
             const totalSoldBottles = item.qtyLoaded - (item.qtyReturned || 0);
 
             if (totalSoldBottles > 0) {

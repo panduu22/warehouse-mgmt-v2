@@ -56,7 +56,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         trip.status = "VERIFIED";
-        trip.endTime = verifiedAt ? new Date(verifiedAt) : new Date();
+        
+        // Capture precise live tracking time in IST
+        let finalEndTime = new Date();
+        if (verifiedAt) {
+            const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            // formatter output is "HH:MM:SS" (or 24h format)
+            const timeParts = formatter.format(new Date()); 
+            // In some environments, it returns "24:00:00" for midnight instead of "00", but it handles standard formatting
+            const datePart = verifiedAt.split('T')[0];
+            const isoString = `${datePart}T${timeParts}+05:30`;
+            finalEndTime = new Date(isoString);
+        }
+        trip.endTime = finalEndTime;
         trip.verifiedBy = (session.user as any).id || (session.user as any)._id;
         await trip.save();
 

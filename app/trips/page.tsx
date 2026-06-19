@@ -8,6 +8,7 @@ import clsx from "clsx";
 export default function TripsPage() {
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
     useEffect(() => {
         fetch("/api/trips")
@@ -27,12 +28,20 @@ export default function TripsPage() {
                         <MapPin className="w-4 h-4" /> Manage loaded vehicles and verify returns
                     </p>
                 </div>
-                <Link
-                    href="/trips/new"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all hover:scale-105 active:scale-95"
-                >
-                    New Trip
-                </Link>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setSortOrder(sortOrder === "desc" ? "asc" : "desc")}
+                        className="bg-card hover:bg-muted text-foreground border border-border px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all flex items-center gap-2"
+                    >
+                        Sort: {sortOrder === "desc" ? "Newest First" : "Oldest First"}
+                    </button>
+                    <Link
+                        href="/trips/new"
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all hover:scale-105 active:scale-95"
+                    >
+                        New Trip
+                    </Link>
+                </div>
             </div>
 
             {loading ? (
@@ -44,7 +53,11 @@ export default function TripsPage() {
             ) : (
                 <div className="space-y-4">
                     {// eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        trips.map((trip: any) => (
+                        [...trips].sort((a: any, b: any) => {
+                            const dateA = new Date(a.createdAt).getTime();
+                            const dateB = new Date(b.createdAt).getTime();
+                            return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+                        }).map((trip: any) => (
                             <Link
                                 href={`/trips/${trip._id}`}
                                 key={trip._id}
@@ -66,8 +79,8 @@ export default function TripsPage() {
                                             <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1 font-medium">
                                                 <span>
                                                     {trip.status === "VERIFIED" && trip.endTime
-                                                        ? `Verified: ${new Date(trip.endTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`
-                                                        : `Started: ${new Date(trip.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`
+                                                        ? `Verified: ${new Date(trip.endTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' })}`
+                                                        : `Started: ${new Date(trip.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' })}`
                                                     }
                                                 </span>
                                                 <span className="w-1 h-1 bg-border rounded-full hidden sm:block"></span>

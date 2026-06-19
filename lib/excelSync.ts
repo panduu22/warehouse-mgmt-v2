@@ -140,21 +140,13 @@ export async function triggerExcelSync() {
             XLSX.utils.book_append_sheet(wb, ws, sheet.name);
         }
 
-        // Ensure directories exist
-        const dir = path.join(process.cwd(), "data");
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
+        // Ensure public directory exists
         const publicDir = path.join(process.cwd(), "public");
         if (!fs.existsSync(publicDir)) {
             fs.mkdirSync(publicDir, { recursive: true });
         }
 
-        // Save workbook to data and public directories
-        const filePath = path.join(dir, "warehouse_data.xlsx");
-        XLSX.writeFile(wb, filePath);
-
+        // Save workbook to public directory
         const publicFilePath = path.join(publicDir, "warehouse_data.xlsx");
         XLSX.writeFile(wb, publicFilePath);
 

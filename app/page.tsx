@@ -7,7 +7,12 @@ import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (err) {
+    console.error("Session decryption failed:", err);
+  }
 
   // If user is logged in, check if they have access
   if (session?.user) {

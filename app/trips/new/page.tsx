@@ -265,26 +265,64 @@ export default function NewTripPage() {
                                     {selectedPack === group.pack && (
                                         <div className="mt-2 ml-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                             <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
-                                                Step 2 — Select Flavour
+                                                Step 2 — Select Flavour & Quantity
                                             </label>
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                                 {group.flavours.map(flav => (
-                                                    <button
-                                                        key={flav}
-                                                        onClick={() => {
-                                                            setSelectedFlavour(flav);
-                                                            setAddPacks("1");
-                                                            setAddBottles("0");
-                                                        }}
-                                                        className={clsx(
-                                                            "p-3 rounded-lg border text-sm font-medium transition-all text-center",
-                                                            selectedFlavour === flav
-                                                                ? "border-teal-500 bg-teal-50 text-teal-900 ring-1 ring-teal-500"
-                                                                : "border-gray-200 bg-white text-gray-600 hover:border-teal-300 hover:bg-teal-50/40"
+                                                    <div key={flav} className={clsx("rounded-xl border transition-all overflow-hidden flex flex-col",
+                                                        selectedFlavour === flav
+                                                            ? "border-teal-500 bg-teal-50/50 ring-1 ring-teal-500"
+                                                            : "border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/20"
+                                                    )}>
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedFlavour(prev => prev === flav ? "" : flav);
+                                                                setAddPacks("1");
+                                                                setAddBottles("0");
+                                                            }}
+                                                            className={clsx(
+                                                                "p-3 w-full text-sm font-bold text-left flex justify-between items-center",
+                                                                selectedFlavour === flav ? "text-teal-900 bg-teal-100/50" : "text-gray-700"
+                                                            )}
+                                                        >
+                                                            {flav}
+                                                        </button>
+
+                                                        {selectedFlavour === flav && targetProduct && (
+                                                            <div className="p-3 bg-white border-t border-teal-100 flex flex-col gap-3 animate-in slide-in-from-top-1">
+                                                                <div className="text-xs text-gray-500">
+                                                                    Available: <span className="font-bold text-gray-900">{formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</span>
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <div className="flex-1">
+                                                                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Packs</label>
+                                                                        <input
+                                                                            type="number" min="0"
+                                                                            value={addPacks}
+                                                                            onChange={e => setAddPacks(e.target.value)}
+                                                                            className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Bottles</label>
+                                                                        <input
+                                                                            type="number" min="0"
+                                                                            value={addBottles}
+                                                                            onChange={e => setAddBottles(e.target.value)}
+                                                                            className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    onClick={addToManifest}
+                                                                    disabled={(parseInt(addPacks || "0") * targetProduct.bottlesPerPack + parseInt(addBottles || "0")) <= 0}
+                                                                    className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md font-bold text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-50 shadow-sm"
+                                                                >
+                                                                    <Plus className="w-4 h-4" /> Add
+                                                                </button>
+                                                            </div>
                                                         )}
-                                                    >
-                                                        {flav}
-                                                    </button>
+                                                    </div>
                                                 ))}
                                             </div>
                                         </div>
@@ -292,49 +330,6 @@ export default function NewTripPage() {
                                 </div>
                             ))}
                         </div>
-
-                        {/* Step 3: Quantity + Add */}
-                        {targetProduct && (
-                            <div className="mt-6 bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in slide-in-from-top-2 flex flex-col sm:flex-row items-center gap-6">
-                                <div className="flex-1 text-center sm:text-left">
-                                    <div className="text-xs text-gray-500 font-bold uppercase">Selected</div>
-                                    <div className="font-bold text-gray-900 text-lg">{targetProduct.name}</div>
-                                    <div className="text-sm text-gray-500">
-                                        Available: {formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex gap-2">
-                                        <div className="w-20">
-                                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Packs</label>
-                                            <input
-                                                type="number" min="0"
-                                                value={addPacks}
-                                                onChange={e => setAddPacks(e.target.value)}
-                                                className="w-full px-3 py-2 text-center font-bold text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-ruby-500 outline-none text-gray-900"
-                                            />
-                                        </div>
-                                        <div className="w-20">
-                                            <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Bottles</label>
-                                            <input
-                                                type="number" min="0"
-                                                value={addBottles}
-                                                onChange={e => setAddBottles(e.target.value)}
-                                                className="w-full px-3 py-2 text-center font-bold text-lg rounded-lg border border-gray-300 focus:ring-2 focus:ring-ruby-500 outline-none text-gray-900"
-                                            />
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={addToManifest}
-                                        disabled={(parseInt(addPacks || "0") * targetProduct.bottlesPerPack + parseInt(addBottles || "0")) <= 0}
-                                        className="bg-ruby-700 hover:bg-ruby-800 text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm h-[46px] mt-5"
-                                    >
-                                        <Plus className="w-5 h-5" />
-                                        Add
-                                    </button>
-                                </div>
-                            </div>
-                        )}
 
                         {!targetProduct && selectedPack && selectedFlavour && (
                             <div className="mt-4 text-amber-600 text-sm p-4 bg-amber-50 rounded-lg border border-amber-100">

@@ -135,36 +135,9 @@ export function DashboardClient({ data, user }: { data: any, user: any }) {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6"
+                    className="xl:col-span-3"
                 >
-                    {/* Inject Recharts Component */}
-                    <div className="md:col-span-2">
-                        <DashboardStockChart />
-                    </div>
-
-                    <Card className="border-border shadow-sm h-full md:col-span-1">
-                        <CardHeader className="flex flex-row justify-between items-center pb-2">
-                            <CardTitle className="text-xl font-bold">
-                                Quick Shortcuts
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <Link href="/trips/new" className="bg-muted/50 p-4 rounded-xl shadow-sm border border-border/50 text-center hover:shadow-md hover:bg-muted transition-all hover:-translate-y-1 group">
-                                    <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-primary transition-colors group-hover:bg-primary/20">
-                                        <Truck className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-sm font-bold text-foreground">New Trip</span>
-                                </Link>
-                                <Link href="/bills" className="bg-muted/50 p-4 rounded-xl shadow-sm border border-border/50 text-center hover:shadow-md hover:bg-muted transition-all hover:-translate-y-1 group">
-                                    <div className="bg-amber-500/10 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-500 transition-colors group-hover:bg-amber-500/20">
-                                        <Receipt className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-sm font-bold text-foreground">Invoices</span>
-                                </Link>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <DashboardStockChart />
                 </motion.div>
 
                 {/* Recent Activity Feed */}
@@ -224,9 +197,9 @@ export function DashboardClient({ data, user }: { data: any, user: any }) {
                                                 })}>
                                                     {trip.status === "LOADED" ? "In Transit" : trip.status}
                                                 </span>
-                                                <p className="text-xs text-muted-foreground/70 mt-2 flex items-center sm:justify-end gap-1 font-medium">
+                                                <p suppressHydrationWarning className="text-xs text-muted-foreground/70 mt-2 flex items-center sm:justify-end gap-1 font-medium">
                                                     <Clock className="w-3 h-3" />
-                                                    {new Date(trip.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(trip.updatedAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         </motion.div>

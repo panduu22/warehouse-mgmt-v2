@@ -48,10 +48,10 @@ export function TopNavbar() {
                             <div className="p-4 border-b border-border flex items-center gap-3 font-bold text-lg">
                                 <div className="w-8 h-8 rounded-full border border-border overflow-hidden relative shrink-0">
                                     <Image 
-                                        src="/adithyatech-logo.png" 
-                                        alt="AdithyaTech Logo" 
+                                        src="/adithyatech-emblem.png" 
+                                        alt="AdithyaTech Emblem" 
                                         fill
-                                        className="object-cover object-[24.5%_center] scale-[2.2]"
+                                        className="object-contain"
                                         priority
                                     />
                                 </div>
@@ -82,10 +82,10 @@ export function TopNavbar() {
                 <div className="flex items-center gap-2 ml-2">
                     <div className="w-7 h-7 rounded-full border border-border overflow-hidden relative shrink-0">
                         <Image 
-                            src="/adithyatech-logo.png" 
-                            alt="AdithyaTech Logo" 
+                            src="/adithyatech-emblem.png" 
+                            alt="AdithyaTech Emblem" 
                             fill
-                            className="object-cover object-[24.5%_center] scale-[2.2]"
+                            className="object-contain"
                             priority
                         />
                     </div>

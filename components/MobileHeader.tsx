@@ -27,15 +27,19 @@ export function MobileHeader() {
         <div className="md:hidden">
             {/* Top Bar */}
             <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-b border-border h-16 flex items-center justify-between px-4 z-40 shadow-sm">
-                <Link href="/" className="flex items-center gap-2 group">
-                    <Image 
-                        src="/adithyatech-logo.png" 
-                        alt="AdithyaTech Logo" 
-                        width={120} 
-                        height={32} 
-                        className="object-contain h-8 w-auto rounded-lg"
-                        priority
-                    />
+                <Link href="/" className="flex items-center gap-3 group">
+                    <div className="w-8 h-8 rounded-full border border-border overflow-hidden relative shrink-0">
+                        <Image 
+                            src="/adithyatech-logo.png" 
+                            alt="AdithyaTech Logo" 
+                            fill
+                            className="object-cover object-[24.5%_center] scale-[2.2]"
+                            priority
+                        />
+                    </div>
+                    <span className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                        AdithyaTech
+                    </span>
                 </Link>
                 <button
                     onClick={() => setIsOpen(true)}

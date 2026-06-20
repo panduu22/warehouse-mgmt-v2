@@ -45,15 +45,17 @@ export function TopNavbar() {
                         {/* Visually hidden title for accessibility */}
                         <div className="sr-only"><SheetTitle>Menu</SheetTitle></div>
                         <div className="flex flex-col h-full overflow-y-auto pb-safe">
-                            <div className="p-4 border-b border-border flex items-center gap-2 font-bold text-lg">
-                                <Image 
-                                    src="/adithyatech-logo.png" 
-                                    alt="AdithyaTech Logo" 
-                                    width={120} 
-                                    height={32} 
-                                    className="object-contain h-8 w-auto rounded-lg"
-                                    priority
-                                />
+                            <div className="p-4 border-b border-border flex items-center gap-3 font-bold text-lg">
+                                <div className="w-8 h-8 rounded-full border border-border overflow-hidden relative shrink-0">
+                                    <Image 
+                                        src="/adithyatech-logo.png" 
+                                        alt="AdithyaTech Logo" 
+                                        fill
+                                        className="object-cover object-[24.5%_center] scale-[2.2]"
+                                        priority
+                                    />
+                                </div>
+                                AdithyaTech
                             </div>
                             
                             <div className="flex-1" onClick={() => setMobileOpen(false)}>
@@ -77,14 +79,18 @@ export function TopNavbar() {
                         </div>
                     </SheetContent>
                 </Sheet>
-                <Image 
-                    src="/adithyatech-logo.png" 
-                    alt="AdithyaTech Logo" 
-                    width={100} 
-                    height={28} 
-                    className="object-contain h-7 w-auto rounded-lg ml-2"
-                    priority
-                />
+                <div className="flex items-center gap-2 ml-2">
+                    <div className="w-7 h-7 rounded-full border border-border overflow-hidden relative shrink-0">
+                        <Image 
+                            src="/adithyatech-logo.png" 
+                            alt="AdithyaTech Logo" 
+                            fill
+                            className="object-cover object-[24.5%_center] scale-[2.2]"
+                            priority
+                        />
+                    </div>
+                    <span className="font-bold text-base">AdithyaTech</span>
+                </div>
             </div>
 
             <div className="hidden md:flex flex-1 items-center gap-4">

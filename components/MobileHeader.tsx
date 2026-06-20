@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, Menu, X, Download } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -27,12 +28,14 @@ export function MobileHeader() {
             {/* Top Bar */}
             <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-b border-border h-16 flex items-center justify-between px-4 z-40 shadow-sm">
                 <Link href="/" className="flex items-center gap-2 group">
-                    <div className="p-1.5 bg-ruby-600 rounded-lg text-white group-hover:bg-ruby-700 transition-colors shadow-sm">
-                        <Package className="w-5 h-5" />
-                    </div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-ruby-700 to-ruby-900 bg-clip-text text-transparent">
-                        RK Agencies
-                    </span>
+                    <Image 
+                        src="/adithyatech-logo.jpg" 
+                        alt="AdithyaTech Logo" 
+                        width={120} 
+                        height={32} 
+                        className="object-contain h-8 w-auto rounded-lg"
+                        priority
+                    />
                 </Link>
                 <button
                     onClick={() => setIsOpen(true)}

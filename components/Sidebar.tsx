@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, ShieldAlert, History as HistoryIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
@@ -31,19 +32,28 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed
             {!isMobile && (
                 <div className="p-4 border-b border-border/50 h-16 flex items-center justify-between">
                     {!isCollapsed && (
-                        <Link href="/" className="flex items-center gap-3 group overflow-hidden">
-                            <div className="p-1.5 bg-ruby-600 rounded-lg text-white group-hover:bg-ruby-700 transition-colors shadow-sm shrink-0">
-                                <Package className="w-5 h-5" />
-                            </div>
-                            <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap">
-                                RK Agencies
-                            </h1>
+                        <Link href="/" className="flex items-center gap-2 group overflow-hidden">
+                            <Image 
+                                src="/adithyatech-logo.jpg" 
+                                alt="AdithyaTech Logo" 
+                                width={160} 
+                                height={40} 
+                                className="object-contain h-10 w-auto rounded-lg"
+                                priority
+                            />
                         </Link>
                     )}
                     {isCollapsed && (
-                        <div className="mx-auto p-1.5 bg-ruby-600 rounded-lg text-white shadow-sm shrink-0">
-                            <Package className="w-5 h-5" />
-                        </div>
+                        <Link href="/" className="mx-auto flex items-center justify-center shrink-0">
+                            <Image 
+                                src="/adithyatech-logo.jpg" 
+                                alt="AdithyaTech Logo" 
+                                width={32} 
+                                height={32} 
+                                className="object-cover w-8 h-8 rounded-full border border-border"
+                                priority
+                            />
+                        </Link>
                     )}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}

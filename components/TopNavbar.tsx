@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, Search, Bell, Sun, Moon, LogOut, Package } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
@@ -26,7 +27,7 @@ export function TopNavbar() {
         if (pathname.startsWith("/trips")) return "Trips & Verification";
         if (pathname.startsWith("/bills")) return "Billing";
         if (pathname.startsWith("/admin")) return "Administration";
-        return "RK Agencies";
+        return "AdithyaTech";
     };
 
     return (
@@ -45,10 +46,14 @@ export function TopNavbar() {
                         <div className="sr-only"><SheetTitle>Menu</SheetTitle></div>
                         <div className="flex flex-col h-full overflow-y-auto pb-safe">
                             <div className="p-4 border-b border-border flex items-center gap-2 font-bold text-lg">
-                                <div className="p-1.5 bg-ruby-600 rounded-lg text-white">
-                                    <Package className="w-5 h-5" />
-                                </div>
-                                RK Agencies
+                                <Image 
+                                    src="/adithyatech-logo.jpg" 
+                                    alt="AdithyaTech Logo" 
+                                    width={120} 
+                                    height={32} 
+                                    className="object-contain h-8 w-auto rounded-lg"
+                                    priority
+                                />
                             </div>
                             
                             <div className="flex-1" onClick={() => setMobileOpen(false)}>
@@ -72,10 +77,14 @@ export function TopNavbar() {
                         </div>
                     </SheetContent>
                 </Sheet>
-                <div className="p-1.5 bg-ruby-600 rounded-lg text-white ml-2">
-                    <Package className="w-5 h-5" />
-                </div>
-                RK Agencies
+                <Image 
+                    src="/adithyatech-logo.jpg" 
+                    alt="AdithyaTech Logo" 
+                    width={100} 
+                    height={28} 
+                    className="object-contain h-7 w-auto rounded-lg ml-2"
+                    priority
+                />
             </div>
 
             <div className="hidden md:flex flex-1 items-center gap-4">

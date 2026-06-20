@@ -34,7 +34,7 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed
                     {!isCollapsed && (
                         <Link href="/" className="flex items-center gap-2 group overflow-hidden">
                             <Image 
-                                src="/adithyatech-logo.jpg" 
+                                src="/adithyatech-logo.png" 
                                 alt="AdithyaTech Logo" 
                                 width={160} 
                                 height={40} 
@@ -45,14 +45,15 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed
                     )}
                     {isCollapsed && (
                         <Link href="/" className="mx-auto flex items-center justify-center shrink-0">
-                            <Image 
-                                src="/adithyatech-logo.jpg" 
-                                alt="AdithyaTech Logo" 
-                                width={32} 
-                                height={32} 
-                                className="object-cover w-8 h-8 rounded-full border border-border"
-                                priority
-                            />
+                            <div className="w-8 h-8 rounded-full border border-border overflow-hidden relative">
+                                <Image 
+                                    src="/adithyatech-logo.png" 
+                                    alt="AdithyaTech Logo" 
+                                    fill
+                                    className="object-cover object-[24.5%_center] scale-[2.2]"
+                                    priority
+                                />
+                            </div>
                         </Link>
                     )}
                     <button

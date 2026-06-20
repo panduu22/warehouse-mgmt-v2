@@ -29,7 +29,7 @@ export function MobileHeader() {
             <div className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-b border-border h-16 flex items-center justify-between px-4 z-40 shadow-sm">
                 <Link href="/" className="flex items-center gap-2 group">
                     <Image 
-                        src="/adithyatech-logo.jpg" 
+                        src="/adithyatech-logo.png" 
                         alt="AdithyaTech Logo" 
                         width={120} 
                         height={32} 

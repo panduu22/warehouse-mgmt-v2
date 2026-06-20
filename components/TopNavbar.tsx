@@ -47,7 +47,7 @@ export function TopNavbar() {
                         <div className="flex flex-col h-full overflow-y-auto pb-safe">
                             <div className="p-4 border-b border-border flex items-center gap-2 font-bold text-lg">
                                 <Image 
-                                    src="/adithyatech-logo.jpg" 
+                                    src="/adithyatech-logo.png" 
                                     alt="AdithyaTech Logo" 
                                     width={120} 
                                     height={32} 
@@ -78,7 +78,7 @@ export function TopNavbar() {
                     </SheetContent>
                 </Sheet>
                 <Image 
-                    src="/adithyatech-logo.jpg" 
+                    src="/adithyatech-logo.png" 
                     alt="AdithyaTech Logo" 
                     width={100} 
                     height={28} 

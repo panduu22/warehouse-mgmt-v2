@@ -54,7 +54,7 @@ export default function LoginPage() {
       </div>
       
       <div className="absolute bottom-6 text-center text-white/30 text-xs font-medium uppercase tracking-[0.2em]">
-        &copy; 2026 AdithyaTech
+        &copy; 2026 ADITHYA TECH
       </div>
     </div>
   );

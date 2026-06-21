@@ -42,8 +42,21 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed
                                     priority
                                 />
                             </div>
-                            <h1 className="text-xl font-bold tracking-tight text-foreground whitespace-nowrap">
-                                AdithyaTech
+                            <h1 className="text-xl font-black tracking-tight whitespace-nowrap">
+                                <span style={{
+                                    background: 'linear-gradient(135deg, #F4B41A 0%, #C97A00 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent'
+                                }}>
+                                    ADITHYA
+                                </span>
+                                <span className="ml-1.5" style={{
+                                    background: 'linear-gradient(135deg, #00C8FF 0%, #007BFF 100%)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent'
+                                }}>
+                                    TECH
+                                </span>
                             </h1>
                         </Link>
                     )}

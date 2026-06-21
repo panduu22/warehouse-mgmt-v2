@@ -75,7 +75,7 @@ export function CreateWarehouseDialog({
             <DialogTrigger
                 render={
                     children || (
-                        <Button variant="outline" size="sm" className="gap-2">
+                        <Button suppressHydrationWarning variant="outline" size="sm" className="gap-2">
                             <Plus className="w-4 h-4" />
                             New Warehouse
                         </Button>

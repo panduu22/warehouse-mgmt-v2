@@ -62,17 +62,17 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-3 right-3"
-                size="icon-sm"
-              />
-            }
+            suppressHydrationWarning
           >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
+            <Button
+              suppressHydrationWarning
+              variant="ghost"
+              className="absolute top-3 right-3"
+              size="icon-sm"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </Button>
           </SheetPrimitive.Close>
         )}
       </SheetPrimitive.Popup>

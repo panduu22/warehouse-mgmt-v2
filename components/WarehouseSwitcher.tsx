@@ -97,7 +97,8 @@ export function WarehouseSwitcher() {
             <DropdownMenu open={open} onOpenChange={setOpen}>
                 <DropdownMenuTrigger
                     render={
-                        <button 
+                        <button
+                            suppressHydrationWarning
                             className="w-[240px] h-12 flex items-center gap-3 px-4 rounded-xl border border-border bg-card/50 backdrop-blur-sm hover:bg-muted/50 transition-all shrink-0 text-left outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                             {ctxLoading ? (

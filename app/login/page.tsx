@@ -1,38 +1,27 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import Image from "next/image";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const [loadingDev, setLoadingDev] = useState(false);
-  const [email, setEmail] = useState("");
 
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     await signIn("google", { callbackUrl: "/" });
   };
 
-  const handleDevLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    
-    setLoadingDev(true);
-    await signIn("credentials", { email, callbackUrl: "/" });
-  };
-
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-black">
-      {/* Background Image */}
-      <Image 
-        src="/adithyatech-bg.png" 
-        alt="AdithyaTech Background" 
-        fill
-        priority
-        className="object-cover opacity-80"
-      />
+    <div
+      className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden bg-black"
+      style={{
+        backgroundImage: "url('/adithyatech-bg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
 
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md p-8 rounded-3xl backdrop-blur-xl bg-black/40 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
@@ -45,8 +34,8 @@ export default function LoginPage() {
         <div className="space-y-6">
             <button
                 onClick={handleGoogleLogin}
-                disabled={loadingGoogle || loadingDev}
-                className="w-full relative flex items-center justify-center gap-3 bg-white text-black py-3.5 px-4 rounded-xl font-semibold transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 shadow-lg"
+                disabled={loadingGoogle}
+                className="w-full relative flex items-center justify-center gap-3 bg-white text-black py-3.5 px-4 rounded-xl font-semibold transition-all hover:bg-white/90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100 shadow-lg cursor-pointer"
             >
                 {loadingGoogle ? (
                     <Loader2 className="w-5 h-5 animate-spin text-black" />
@@ -60,38 +49,6 @@ export default function LoginPage() {
                 )}
                 <span>Sign in with Google</span>
             </button>
-
-            <div className="relative flex items-center justify-center py-2">
-                <div className="absolute border-t border-white/10 w-full"></div>
-                <div className="relative bg-transparent px-4 text-xs text-white/40 font-medium tracking-widest uppercase backdrop-blur-sm bg-black/40 rounded-full py-1">
-                    or
-                </div>
-            </div>
-
-            <form onSubmit={handleDevLogin} className="space-y-4">
-                <div className="space-y-2">
-                    <label htmlFor="email" className="text-xs font-medium text-white/70 pl-1">
-                        Developer Email
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        placeholder="admin@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-white/30 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-white/20 transition-all font-medium"
-                        required
-                    />
-                </div>
-                <button
-                    type="submit"
-                    disabled={loadingDev || loadingGoogle || !email}
-                    className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white py-3.5 px-4 rounded-xl font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 border border-white/5"
-                >
-                    {loadingDev ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                    <span>Sign in with Developer Login</span>
-                </button>
-            </form>
         </div>
 
       </div>

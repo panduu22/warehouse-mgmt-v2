@@ -36,6 +36,9 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,  // Fail fast if Atlas unreachable (was 30s default)
+      connectTimeoutMS: 10000,         // Max time to establish connection
+      socketTimeoutMS: 30000,          // Max time to wait for a response
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {

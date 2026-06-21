@@ -30,13 +30,26 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
+.env*.local
 
 # vercel
 .vercel
 
-# typescript
+# typescript build artifacts
 *.tsbuildinfo
 next-env.d.ts
-.env*.local
+
+# one-time migration / debug scripts (should not be in repo)
+/scripts/
+/data/
+fix_*.ts
+fix_*.js
+migrate*.ts
+migrate*.js
+inspect*.js
+patch_*.ts
+
+# macOS system files
+**/.DS_Store

@@ -27,7 +27,7 @@ export function TopNavbar() {
         if (pathname.startsWith("/trips")) return "Trips & Verification";
         if (pathname.startsWith("/bills")) return "Billing";
         if (pathname.startsWith("/admin")) return "Administration";
-        return "AdithyaTech";
+        return "ADITHYA TECH";
     };
 
     return (
@@ -36,7 +36,10 @@ export function TopNavbar() {
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                     <SheetTrigger
                         render={
-                            <button className="p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                            <button
+                                suppressHydrationWarning
+                                className="p-2 -ml-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            >
                                 <Menu className="w-6 h-6" />
                             </button>
                         }
@@ -45,7 +48,7 @@ export function TopNavbar() {
                         {/* Visually hidden title for accessibility */}
                         <div className="sr-only"><SheetTitle>Menu</SheetTitle></div>
                         <div className="flex flex-col h-full overflow-y-auto pb-safe">
-                            <div className="p-4 border-b border-border flex items-center gap-3 font-bold text-lg">
+                            <div className="p-4 border-b border-border flex items-center gap-3 font-black text-lg">
                                 <div className="w-8 h-8 rounded-full border border-border overflow-hidden relative shrink-0">
                                     <Image 
                                         src="/adithyatech-emblem.png" 
@@ -55,7 +58,22 @@ export function TopNavbar() {
                                         priority
                                     />
                                 </div>
-                                AdithyaTech
+                                <span>
+                                    <span style={{
+                                        background: 'linear-gradient(135deg, #F4B41A 0%, #C97A00 100%)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent'
+                                    }}>
+                                        ADITHYA
+                                    </span>
+                                    <span className="ml-1.5" style={{
+                                        background: 'linear-gradient(135deg, #00C8FF 0%, #007BFF 100%)',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent'
+                                    }}>
+                                        TECH
+                                    </span>
+                                </span>
                             </div>
                             
                             <div className="flex-1" onClick={() => setMobileOpen(false)}>
@@ -89,7 +107,22 @@ export function TopNavbar() {
                             priority
                         />
                     </div>
-                    <span className="font-bold text-base">AdithyaTech</span>
+                    <span className="font-black text-base flex items-center">
+                        <span style={{
+                            background: 'linear-gradient(135deg, #F4B41A 0%, #C97A00 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            ADITHYA
+                        </span>
+                        <span className="ml-1" style={{
+                            background: 'linear-gradient(135deg, #00C8FF 0%, #007BFF 100%)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent'
+                        }}>
+                            TECH
+                        </span>
+                    </span>
                 </div>
             </div>
 

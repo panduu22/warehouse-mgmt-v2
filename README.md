@@ -1,5 +1,35 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Setup
+
+The application requires several environment variables for database connections, NextAuth authentication, and timezone handling. 
+
+1. Copy `.env.local.example` to `.env.local`:
+   ```bash
+   cp .env.local.example .env.local
+   ```
+2. Open `.env.local` and configure the following variables:
+   - **`MONGODB_URI`**: Your MongoDB connection string.
+   - **`NEXTAUTH_URL`**: 
+     - Local: `http://localhost:3000`
+     - Production: The canonical URL of your deployed application (e.g. `https://your-app.vercel.app`).
+   - **`NEXTAUTH_SECRET`**: A random string used to hash tokens. You can generate one using:
+     ```bash
+     openssl rand -base64 32
+     ```
+   - **`GOOGLE_CLIENT_ID`** & **`GOOGLE_CLIENT_SECRET`**:
+     1. Go to the [Google Cloud Console](https://console.cloud.google.com).
+     2. Create a project (or select an existing one) and navigate to the **APIs & Services > Credentials** screen.
+     3. Click **Create Credentials** and choose **OAuth client ID**. Select **Web application** as application type.
+     4. Set **Authorized JavaScript origins**:
+        - Local: `http://localhost:3000`
+        - Production: `https://your-app.vercel.app` (add your production domains)
+     5. Set **Authorized redirect URIs**:
+        - Local: `http://localhost:3000/api/auth/callback/google`
+        - Production: `https://your-app.vercel.app/api/auth/callback/google`
+     6. Save and copy the generated Client ID and Client Secret into your `.env.local`.
+   - **`TZ`**: Set to `Asia/Kolkata` to enforce Indian Standard Time across all database queries and formatting.
+
 ## Getting Started
 
 First, run the development server:

@@ -15,6 +15,7 @@ import {
   Users
 } from "lucide-react";
 import clsx from "clsx";
+import { formatIST } from "@/lib/dateUtils";
 
 export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -339,7 +340,7 @@ export default function AdminRequestsPage() {
                                     <Warehouse className="w-3.5 h-3.5 text-muted-foreground" />
                                     <div>
                                         <p className="text-[12px] font-bold text-foreground">{aw.warehouseId?.name || "Deleted"}</p>
-                                        <p className="text-[10px] text-muted-foreground">Expires: {new Date(aw.expiresAt).toLocaleDateString()}</p>
+                                        <p className="text-[10px] text-muted-foreground">Expires: {formatIST(aw.expiresAt, { dateStyle: 'short' })}</p>
                                     </div>
                                 </div>
                                 <button
@@ -399,7 +400,7 @@ export default function AdminRequestsPage() {
                       </span>
                     </td>
                     <td className="p-4 text-[11px] text-muted-foreground font-medium">
-                      {new Date(req.updatedAt).toLocaleDateString()}
+                      {formatIST(req.updatedAt, { dateStyle: 'short' })}
                     </td>
                   </tr>
                 ))}

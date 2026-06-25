@@ -12,6 +12,12 @@ function toLocalDateKey(date: Date): string {
     return `${y}-${m}-${d}`;
 }
 
+/** Parse a YYYY-MM-DD string as a LOCAL (IST) date — not UTC. */
+function parseLocalDate(dateStr: string): Date {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+}
+
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -21,7 +27,9 @@ export async function GET(
         const { id } = await params;
 
         const url = new URL(req.url);
-        const timeframe = url.searchParams.get("timeframe") || "all"; // "weekly" | "monthly" | "all"
+        // Date range params: YYYY-MM-DD strings (IST calendar)
+        const fromDate = url.searchParams.get("fromDate");
+        const toDate = url.searchParams.get("toDate");
 
         const vehicle = await Vehicle.findById(id);
         if (!vehicle) {
@@ -29,28 +37,31 @@ export async function GET(
         }
 
         // Build date filter using LOCAL (IST) calendar
-        const now = new Date();
         const tripFilter: any = { vehicleId: id, status: "VERIFIED" };
 
-        if (timeframe === "weekly") {
-            // Monday of the current week (local time)
-            const day = now.getDay();
-            const weekStart = new Date(now);
-            weekStart.setDate(now.getDate() - day + (day === 0 ? -6 : 1));
-            weekStart.setHours(0, 0, 0, 0);
+        if (fromDate || toDate) {
+            const dateCondition: any = {};
+
+            if (fromDate) {
+                // Start of fromDate day in LOCAL time (inclusive)
+                const from = parseLocalDate(fromDate);
+                from.setHours(0, 0, 0, 0);
+                dateCondition.$gte = from;
+            }
+
+            if (toDate) {
+                // End of toDate day in LOCAL time (inclusive)
+                const to = parseLocalDate(toDate);
+                to.setHours(23, 59, 59, 999);
+                dateCondition.$lte = to;
+            }
+
             tripFilter.$or = [
-                { startTime: { $gte: weekStart } },
-                { createdAt: { $gte: weekStart } },
-            ];
-        } else if (timeframe === "monthly") {
-            // 1st of the current month (local time)
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-            tripFilter.$or = [
-                { startTime: { $gte: monthStart } },
-                { createdAt: { $gte: monthStart } },
+                { startTime: dateCondition },
+                { createdAt: dateCondition },
             ];
         }
-        // "all" → no extra filter
+        // No date params → no extra filter (show all records)
 
         // Fetch trips
         const trips = await Trip.find(tripFilter)
@@ -113,7 +124,7 @@ export async function GET(
             .map((date) => ({ date, items: salesByDate[date] }))
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        return NextResponse.json({ vehicle, sales: result, timeframe });
+        return NextResponse.json({ vehicle, sales: result, fromDate, toDate });
     } catch (error) {
         console.error("Vehicle Sales API Error:", error);
         return NextResponse.json({ error: "Failed to fetch vehicle sales" }, { status: 500 });

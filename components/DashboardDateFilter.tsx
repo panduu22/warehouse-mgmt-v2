@@ -3,13 +3,23 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
+import { isoDateIST } from "@/lib/dateUtils";
 
 export default function DashboardDateFilter() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    // Default to today if no param, or use param
-    const initialDate = searchParams.get("date") || new Date().toISOString().split('T')[0];
-    const [date, setDate] = useState(initialDate);
+
+    // Initialize with empty string to avoid SSR/hydration mismatch.
+    // The real IST date is computed on the client inside useEffect so it
+    // always reflects the user's current IST date — never a stale server value.
+    const [date, setDate] = useState<string>("");
+
+    useEffect(() => {
+        // On the client, compute the correct IST date.
+        // If the URL already has a ?date= param, respect it; otherwise default to today IST.
+        const paramDate = searchParams.get("date");
+        setDate(paramDate || isoDateIST());
+    }, [searchParams]);
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newDate = e.target.value;

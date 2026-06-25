@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
-import { Loader2, X, TrendingUp, ShoppingCart, Package } from "lucide-react";
+import { Loader2, X, TrendingUp, ShoppingCart, Package, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import clsx from "clsx";
+import { isoDateIST } from '@/lib/dateUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -261,20 +262,31 @@ function SalesDetailModal({
 // ─── Main Chart Component ─────────────────────────────────────────────────────
 
 export function DashboardStockChart() {
-    const [timeframe, setTimeframe] = useState<"daily" | "weekly" | "monthly">("daily");
     const [weekOffset, setWeekOffset] = useState<number>(0);
+    const [selectedDate, setSelectedDate] = useState<string>(isoDateIST());
     const [data, setData] = useState<ChartDataPoint[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPeriod, setSelectedPeriod] = useState<SelectedPeriod | null>(null);
     const [activeBarIndex, setActiveBarIndex] = useState<number | null>(null);
+    const dateInputRef = useRef<HTMLInputElement>(null);
+
+    // Compute the visible week label for the current weekOffset relative to selectedDate
+    const getWeekLabel = () => {
+        if (weekOffset === 0) return "This Week";
+        if (weekOffset === 1) return "Last Week";
+        return `${weekOffset} Weeks Ago`;
+    };
 
     useEffect(() => {
         async function fetchSales() {
             setLoading(true);
             try {
-                const res = await fetch(
-                    `/api/analytics/sales?timeframe=${timeframe}&weekOffset=${weekOffset}`
-                );
+                const params = new URLSearchParams({
+                    timeframe: "daily",
+                    weekOffset: weekOffset.toString(),
+                    date: selectedDate,
+                });
+                const res = await fetch(`/api/analytics/sales?${params}`);
                 if (res.ok) {
                     const json = await res.json();
                     setData(json.data || []);
@@ -286,13 +298,13 @@ export function DashboardStockChart() {
             }
         }
         fetchSales();
-    }, [timeframe, weekOffset]);
+    }, [selectedDate, weekOffset]);
 
-    // When the timeframe changes, close any open modal
+    // Close modal when navigation changes
     useEffect(() => {
         setSelectedPeriod(null);
         setActiveBarIndex(null);
-    }, [timeframe, weekOffset]);
+    }, [selectedDate, weekOffset]);
 
     const handleBarClick = useCallback(
         (barData: ChartDataPoint, index: number) => {
@@ -302,22 +314,11 @@ export function DashboardStockChart() {
             let startDate: string;
             let endDate: string;
 
-            if (timeframe === "daily" && barData.fullDate) {
+            if (barData.fullDate) {
                 startDate = barData.fullDate;
                 endDate = barData.fullDate;
-            } else if (timeframe === "weekly" && barData.weekStart && barData.weekEnd) {
-                startDate = barData.weekStart;
-                endDate = barData.weekEnd;
-            } else if (timeframe === "monthly" && barData.monthKey) {
-                // monthKey is "YYYY-MM" — compute first and last day
-                const [year, month] = barData.monthKey.split("-").map(Number);
-                const firstDay = new Date(year, month - 1, 1);
-                const lastDay = new Date(year, month, 0);
-                startDate = firstDay.toISOString().split("T")[0];
-                endDate = lastDay.toISOString().split("T")[0];
             } else {
-                // Fallback: use period label as-is — best effort
-                const today = new Date().toISOString().split("T")[0];
+                const today = isoDateIST();
                 startDate = today;
                 endDate = today;
             }
@@ -328,7 +329,7 @@ export function DashboardStockChart() {
                 endDate,
             });
         },
-        [timeframe]
+        []
     );
 
     const handleCloseModal = useCallback(() => {
@@ -336,57 +337,60 @@ export function DashboardStockChart() {
         setActiveBarIndex(null);
     }, []);
 
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSelectedDate(e.target.value);
+        setWeekOffset(0); // Reset to current week of the selected date
+    };
+
     return (
         <>
             <Card className="border-border/50 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
                 <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 gap-4">
                     <div>
                         <CardTitle>Sales Overview</CardTitle>
-                        <CardDescription>Invoiced sales volume over time · Click a bar for details</CardDescription>
+                        <CardDescription>Invoiced sales volume · Click a bar for details</CardDescription>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4">
-                        {timeframe === "daily" && (
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setWeekOffset((prev) => Math.min(prev + 1, 3))}
-                                    disabled={weekOffset >= 3}
-                                    className="px-2 py-1 text-xs font-bold rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    ← Prev Week
-                                </button>
-                                <span className="text-xs font-bold text-foreground min-w-[70px] text-center">
-                                    {weekOffset === 0
-                                        ? "This Week"
-                                        : weekOffset === 1
-                                        ? "Last Week"
-                                        : `${weekOffset} Weeks Ago`}
-                                </span>
-                                <button
-                                    onClick={() => setWeekOffset((prev) => Math.max(prev - 1, 0))}
-                                    disabled={weekOffset <= 0}
-                                    className="px-2 py-1 text-xs font-bold rounded-md bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Next Week →
-                                </button>
-                            </div>
-                        )}
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                        {/* Prev / Next Week Navigation */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setWeekOffset((prev) => Math.min(prev + 1, 12))}
+                                disabled={weekOffset >= 12}
+                                title="Previous week"
+                                className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <span className="text-xs font-bold text-foreground min-w-[80px] text-center">
+                                {getWeekLabel()}
+                            </span>
+                            <button
+                                onClick={() => setWeekOffset((prev) => Math.max(prev - 1, 0))}
+                                disabled={weekOffset <= 0}
+                                title="Next week"
+                                className="p-1.5 rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
 
-                        <div className="flex bg-muted/50 p-1 rounded-lg border border-border/50">
-                            {(["daily", "weekly", "monthly"] as const).map((tf) => (
-                                <button
-                                    key={tf}
-                                    onClick={() => setTimeframe(tf)}
-                                    className={clsx(
-                                        "px-3 py-1.5 text-xs font-bold rounded-md transition-all capitalize",
-                                        timeframe === tf
-                                            ? "bg-background text-foreground shadow-sm"
-                                            : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                >
-                                    {tf.charAt(0).toUpperCase() + tf.slice(1)}
-                                </button>
-                            ))}
+                        {/* Date Picker — same design as DashboardDateFilter */}
+                        <div
+                            className="flex items-center gap-2 bg-white dark:bg-muted px-4 py-2 rounded-xl border border-gray-200 dark:border-border shadow-sm hover:border-primary/40 transition-colors cursor-pointer"
+                            onClick={() => dateInputRef.current?.showPicker?.()}
+                        >
+                            <Calendar className="w-4 h-4 text-gray-400 dark:text-muted-foreground flex-shrink-0" />
+                            <span className="text-sm font-medium text-gray-500 dark:text-muted-foreground hidden sm:inline">
+                                Week of:
+                            </span>
+                            <input
+                                ref={dateInputRef}
+                                type="date"
+                                value={selectedDate}
+                                onChange={handleDateChange}
+                                className="text-sm font-bold text-gray-900 dark:text-foreground bg-transparent border-none focus:ring-0 p-0 cursor-pointer w-[130px]"
+                            />
                         </div>
                     </div>
                 </CardHeader>

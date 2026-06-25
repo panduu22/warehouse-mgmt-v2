@@ -31,6 +31,7 @@ export async function GET(req: Request) {
         const url = new URL(req.url);
         const timeframe = url.searchParams.get("timeframe") || "daily";
         const weekOffset = parseInt(url.searchParams.get("weekOffset") || "0", 10);
+        const selectedDate = url.searchParams.get("date"); // ISO date string YYYY-MM-DD
 
         // Get warehouse filter
         const cookieStore = await cookies();
@@ -58,14 +59,24 @@ export async function GET(req: Request) {
         const TZ = "Asia/Kolkata";
 
         if (timeframe === "daily") {
-            // Find start of current week (Monday) in LOCAL time
-            const currentWeekStart = new Date(now);
+            // Determine anchor date: use selectedDate param if provided, else today
+            let anchorDate: Date;
+            if (selectedDate) {
+                // Parse YYYY-MM-DD as LOCAL date (not UTC)
+                const [y, m, d] = selectedDate.split("-").map(Number);
+                anchorDate = new Date(y, m - 1, d);
+            } else {
+                anchorDate = new Date(now);
+            }
+
+            // Find start of the week (Monday) containing anchorDate in LOCAL time
+            const currentWeekStart = new Date(anchorDate);
             const dayOfWeek = currentWeekStart.getDay(); // 0=Sun … 6=Sat
             const diff = currentWeekStart.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
             currentWeekStart.setDate(diff);
             currentWeekStart.setHours(0, 0, 0, 0); // local midnight
 
-            // Apply weekOffset
+            // Apply weekOffset relative to the anchor week
             startDate = new Date(currentWeekStart);
             startDate.setDate(startDate.getDate() - weekOffset * 7);
 
@@ -133,6 +144,7 @@ export async function GET(req: Request) {
                         weekday: "short",
                         day: "numeric",
                         month: "short",
+                        timeZone: "Asia/Kolkata",
                     }),
                     fullDate: dateKey,
                     sales: found ? found.totalSales : 0,
@@ -162,10 +174,12 @@ export async function GET(req: Request) {
                 const startStr = weekStart.toLocaleDateString("en-IN", {
                     month: "short",
                     day: "numeric",
+                    timeZone: "Asia/Kolkata",
                 });
                 const endStr = weekEnd.toLocaleDateString("en-IN", {
                     month: "short",
                     day: "numeric",
+                    timeZone: "Asia/Kolkata",
                 });
 
                 chartData.push({
@@ -182,7 +196,7 @@ export async function GET(req: Request) {
                 const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
                 const found = results.find((r) => r._id === monthKey);
                 chartData.push({
-                    period: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+                    period: d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "Asia/Kolkata" }),
                     monthKey,
                     sales: found ? found.totalSales : 0,
                 });

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Loader2, Truck, CheckCircle, MapPin, AlertCircle } from "lucide-react";
 import clsx from "clsx";
+import { formatIST } from "@/lib/dateUtils";
 
 export default function TripsPage() {
     const [trips, setTrips] = useState([]);
@@ -79,8 +80,8 @@ export default function TripsPage() {
                                             <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1 font-medium">
                                                 <span>
                                                     {trip.status === "VERIFIED" && trip.endTime
-                                                        ? `Verified: ${new Date(trip.endTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' })}`
-                                                        : `Started: ${new Date(trip.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' })}`
+                                                        ? `Verified: ${formatIST(trip.endTime)}`
+                                                        : `Started: ${formatIST(trip.startTime)}`
                                                     }
                                                 </span>
                                                 <span className="w-1 h-1 bg-border rounded-full hidden sm:block"></span>

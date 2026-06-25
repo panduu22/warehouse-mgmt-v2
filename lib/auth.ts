@@ -3,11 +3,36 @@ import GoogleProvider from "next-auth/providers/google";
 import dbConnect from "./mongodb";
 import User from "@/models/User";
 
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const nextauthSecret = process.env.NEXTAUTH_SECRET;
+const nextauthUrl = process.env.NEXTAUTH_URL;
+
+const missingVars: string[] = [];
+if (!googleClientId) missingVars.push("GOOGLE_CLIENT_ID");
+if (!googleClientSecret) missingVars.push("GOOGLE_CLIENT_SECRET");
+if (!nextauthSecret) missingVars.push("NEXTAUTH_SECRET");
+if (!nextauthUrl) missingVars.push("NEXTAUTH_URL");
+
+if (missingVars.length > 0) {
+    throw new Error(
+        `[NextAuth Configuration Error]: Missing required environment variable(s): ${missingVars.join(", ")}. ` +
+        `Please copy .env.local.example to .env.local and configure these variables.`
+    );
+}
+
+console.log("GOOGLE_CLIENT_ID =", process.env.GOOGLE_CLIENT_ID);
+console.log("GOOGLE_CLIENT_SECRET =", process.env.GOOGLE_CLIENT_SECRET ? "Loaded" : "Missing");
 export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID || "missing_client_id",
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || "missing_client_secret",
+            clientId: googleClientId!,
+            clientSecret: googleClientSecret!,
+            authorization: {
+                params: {
+                    prompt: "select_account"
+                }
+            }
         }),
     ],
     callbacks: {

@@ -12,6 +12,7 @@ import {
   PlusCircle
 } from "lucide-react";
 import clsx from "clsx";
+import { formatIST } from "@/lib/dateUtils";
 
 export default function AdminActivityPage() {
   const [activities, setActivities] = useState<any[]>([]);
@@ -103,7 +104,7 @@ export default function AdminActivityPage() {
                 <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl shadow-sm border border-border bg-card relative transition-all duration-300 hover:shadow-md group-hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                      {new Date(activity.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      {formatIST(activity.createdAt)}
                     </span>
                     <span className={clsx("text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border", getActionBackground(activity.action))}>
                       {activity.targetModel}

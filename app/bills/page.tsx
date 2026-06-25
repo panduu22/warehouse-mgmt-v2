@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Loader2, Receipt, CheckCircle, ArrowRight } from "lucide-react";
+import { formatIST, isoDateIST } from "@/lib/dateUtils";
 
 export default function BillsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,13 +36,10 @@ export default function BillsPage() {
                 (t: any) => t.status === "VERIFIED" && !billTripIds.has(t._id)
             );
             setPendingTrips(pending);
-
-            // Initialize dates
             const initialDates: Record<string, string> = {};
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             pending.forEach((t: any) => {
-                // Default to today
-                initialDates[t._id] = new Date().toISOString().split('T')[0];
+                // Default to today in IST
+                initialDates[t._id] = isoDateIST();
             });
             setDates(initialDates);
 
@@ -102,7 +100,7 @@ export default function BillsPage() {
                             <div key={trip._id} className="bg-card p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
                                 <div className="mb-4">
                                     <h3 className="font-bold text-foreground text-lg">{trip.vehicleId?.number}</h3>
-                                    <p className="text-sm text-muted-foreground">Verified on {new Date(trip.endTime).toLocaleDateString()}</p>
+                                    <p className="text-sm text-muted-foreground">Verified on {formatIST(trip.endTime, { dateStyle: 'medium' })}</p>
                                 </div>
 
                                 <div className="mb-4">
@@ -156,8 +154,8 @@ export default function BillsPage() {
                                 ) : (
                                     bills.map(bill => (
                                         <tr key={bill._id} className="hover:bg-muted/30 transition-colors group">
-                                            <td className="px-6 py-4 font-medium text-foreground">{new Date(bill.generatedAt).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-muted-foreground">{bill.tripId?.endTime ? new Date(bill.tripId.endTime).toLocaleDateString() : '-'}</td>
+                                            <td className="px-6 py-4 font-medium text-foreground">{formatIST(bill.generatedAt, { dateStyle: 'medium' })}</td>
+                                            <td className="px-6 py-4 text-muted-foreground">{bill.tripId?.endTime ? formatIST(bill.tripId.endTime, { dateStyle: 'medium' }) : '-'}</td>
                                             <td className="px-6 py-4 font-bold text-foreground">{bill.tripId?.vehicleId?.number}</td>
                                             <td className="px-6 py-4 text-right font-black text-primary text-base">₹{bill.totalAmount.toLocaleString()}</td>
                                             <td className="px-6 py-4 text-right">

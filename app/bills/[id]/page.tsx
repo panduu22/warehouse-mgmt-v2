@@ -4,7 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import { Loader2, Printer, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { formatPacksAndBottles, parsePack } from "@/lib/stock-utils";
-import dbConnect from "@/lib/mongodb";
+import { formatIST } from "@/lib/dateUtils";
 // Note: Client Component cannot import dbConnect directly if we were calling it? 
 // No, I'm fetching data.
 // But I need an API route for GET specific bill OR I'll reuse GET /api/bills? 
@@ -57,7 +57,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     <div className="flex flex-col gap-1">
                         <div className="bg-ruby-700 text-white px-3 py-1 rounded-md w-fit text-xs font-bold tracking-widest mb-4">OFFICIAL INVOICE</div>
                         <h1 className="text-3xl font-black text-gray-900 leading-tight">INVOICE <span className="text-ruby-700">#{bill._id.slice(-6).toUpperCase()}</span></h1>
-                        <p className="text-gray-500 font-medium">Generated on {new Date(bill.generatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="text-gray-500 font-medium">Generated on {formatIST(bill.generatedAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                     </div>
                     <div className="md:text-right flex flex-col gap-1">
                         <h2 className="font-black text-gray-900 text-2xl uppercase tracking-tighter">{bill.warehouseId?.name || "WMS CORP"}</h2>

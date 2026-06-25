@@ -6,6 +6,7 @@ import { Loader2, Save, Trash2, Plus, PackagePlus, ArrowLeft, Truck, Printer } f
 import Link from "next/link";
 import clsx from "clsx";
 import { formatPacksAndBottles, PRODUCT_SORT_ORDER } from "@/lib/stock-utils";
+import { formatIST } from "@/lib/dateUtils";
 
 // Canonical pack order as requested
 const PACK_ORDER = [
@@ -348,7 +349,7 @@ export default function NewTripPage() {
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h1 className="text-4xl font-black uppercase tracking-tighter text-black">Load Manifest</h1>
-                                    <p className="text-sm font-bold text-gray-600">Generated: {new Date().toLocaleString("en-IN")}</p>
+                                    <p className="text-sm font-bold text-gray-600">Generated: {formatIST(new Date())}</p>
                                 </div>
                                 {activeVehicle && (
                                     <div className="text-right">

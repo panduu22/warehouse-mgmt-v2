@@ -1,70 +1,64 @@
+// middleware.ts
+// NextAuth v4 + Next.js 16 compatible pattern:
+// - withAuth provides req.nextauth.token, which is the verified JWT — no getServerSession needed.
+// - Mongoose/Node.js APIs are NOT available in the Edge Runtime that middleware runs in.
+//   All DB work is delegated to the internal API route /api/auth/check-expiry.
+
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import dbConnect from "@/lib/mongodb";
-import User from "@/models/User";
-import { isoDateIST } from "@/lib/dateUtils";
 
 export default withAuth(
   async function middleware(req) {
-    // Public pages are handled by the authorized callback below
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      // Not authenticated, let withAuth handle redirect
-      return NextResponse.next();
-    }
+    // req.nextauth.token is populated by withAuth from the verified JWT.
+    // It is non-null here because the authorized() callback below already
+    // confirmed the token exists for protected routes.
+    const token = req.nextauth.token;
+
+    // No token means the authorized() callback already handles the redirect.
+    if (!token?.email) return NextResponse.next();
 
     try {
-      await dbConnect();
-      const user = await User.findById((session.user as any).id);
-      if (!user) return NextResponse.next();
+      // Delegate the DB expiry check to a Node.js API route.
+      // We use an absolute URL built from the incoming request's origin so this
+      // works identically in local dev and on Vercel (no hardcoded hostname needed).
+      const checkUrl = new URL("/api/auth/check-expiry", req.url);
 
-      const now = new Date(); // current time (UTC) – we will use IST for logs only
-      console.log("[Middleware] IST now:", isoDateIST(now));
-      console.log("[Middleware] User assignedWarehouses before check:", user.assignedWarehouses);
+      const resp = await fetch(checkUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // A shared secret prevents external callers from abusing this endpoint.
+          "x-internal-secret": process.env.NEXTAUTH_SECRET ?? "",
+        },
+        body: JSON.stringify({ email: token.email }),
+      });
 
-      const validWarehouses = (user.assignedWarehouses || []).filter(
-        (w) => !w.expiresAt || w.expiresAt > now
-      );
-      const hadExpired = (user.assignedWarehouses?.length || 0) !== validWarehouses.length;
-
-      console.log("[Middleware] Valid warehouses after filter:", validWarehouses);
-      console.log("[Middleware] Had expired?:", hadExpired);
-
-      if (hadExpired) {
-        user.assignedWarehouses = validWarehouses;
-        // Update activeWarehouseId if it became invalid
-        if (
-          user.activeWarehouseId != null &&
-          !validWarehouses.some(
-            (w) => w.warehouseId.toString() === user.activeWarehouseId?.toString()
-          )
-        ) {
-          user.activeWarehouseId =
-            validWarehouses.length > 0 ? validWarehouses[0].warehouseId : undefined;
+      if (resp.ok) {
+        const data: { expired: boolean } = await resp.json();
+        if (data.expired) {
+          return NextResponse.redirect(new URL("/requests", req.url));
         }
-        await user.save();
-        // Redirect to the access request page so the user can request new access
-        return NextResponse.redirect(new URL("/requests", req.url));
       }
     } catch (e) {
-      console.error("Middleware expiration check error:", e);
+      // Never block the user if the check itself fails; log and continue.
+      console.error("[Middleware] Expiry check failed:", e);
     }
+
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to public pages without token
+        // Public routes — always allow
+        const { pathname } = req.nextUrl;
         if (
-          req.nextUrl.pathname === "/" ||
-          req.nextUrl.pathname === "/login" ||
-          req.nextUrl.pathname.startsWith("/api/auth")
+          pathname === "/" ||
+          pathname === "/login" ||
+          pathname.startsWith("/api/auth")
         ) {
           return true;
         }
-        // Require token for everything else
+        // All other routes require a valid token
         return !!token;
       },
     },
@@ -75,7 +69,7 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
-  ],
+  // Exclude auth callbacks, static assets, images, and the internal expiry
+  // endpoint so the fetch inside this middleware never triggers itself.
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
 };

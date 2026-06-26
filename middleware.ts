@@ -36,9 +36,9 @@ export default withAuth(
         user.assignedWarehouses = validWarehouses;
         // Update activeWarehouseId if it became invalid
         if (
-          user.activeWarehouseId &&
+          user.activeWarehouseId != null &&
           !validWarehouses.some(
-            (w) => w.warehouseId.toString() === user.activeWarehouseId.toString()
+            (w) => w.warehouseId.toString() === user.activeWarehouseId?.toString()
           )
         ) {
           user.activeWarehouseId =

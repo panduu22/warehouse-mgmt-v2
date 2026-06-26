@@ -71,10 +71,11 @@ export async function PATCH(
                     expiresAt,
                 });
             }
-            // Set as active if not already set
-            if (!user.activeWarehouseId) {
-                user.activeWarehouseId = accessRequest.warehouseId;
-            }
+            // Always update activeWarehouseId to the newly approved warehouse.
+            // Previously this only set it when it was null, which meant a user
+            // whose access request was just approved would still land on whatever
+            // old warehouse was stored (e.g. "Main Warehouse" from a prior session).
+            user.activeWarehouseId = accessRequest.warehouseId;
             await user.save();
         }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
+import User from "@/models/User";
 import { logActivity } from "@/lib/activity";
 import Product from "@/models/Product";
 import { getServerSession } from "next-auth";
@@ -15,16 +16,21 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = session.user as any;
+        const sessionUser = session.user as any;
         await dbConnect();
 
         let query = {};
-        if (user.role !== "ADMIN") {
+        if (sessionUser.role !== "ADMIN") {
+            // Read assigned warehouses from DB, not the session object.
+            // The session callback in auth.ts does not populate assignedWarehouses,
+            // so using session.user.assignedWarehouses always returns undefined,
+            // causing the filter to produce an empty list and showing no warehouses.
             const now = new Date();
-            const validWarehouseIds = (user.assignedWarehouses || [])
-                .filter((w: any) => new Date(w.expiresAt) > now)
+            const dbUser = await User.findOne({ email: sessionUser.email }).select("assignedWarehouses").lean() as any;
+            const validWarehouseIds = ((dbUser?.assignedWarehouses ?? []) as any[])
+                .filter((w: any) => !w.expiresAt || new Date(w.expiresAt) > now)
                 .map((w: any) => w.warehouseId);
-            
+
             query = { _id: { $in: validWarehouseIds } };
         }
 

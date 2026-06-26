@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         }
 
         const isAdmin = (session.user as any).email === "rkagencies321@gmail.com";
-        const defaultDuration = isAdmin ? 36500 : 365;
+        const defaultDuration = isAdmin ? 36500 : 1; // 1 day for testing (non-admin) and 36500 days for admin
 
         const request = new AccessRequest({
             userId: (session.user as any).id,

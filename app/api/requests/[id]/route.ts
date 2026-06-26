@@ -4,12 +4,13 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import AccessRequest from "@/models/AccessRequest";
 import User from "@/models/User";
-
+import { isoDateIST } from "@/lib/dateUtils";
 export async function PATCH(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getServerSession(authOptions);
+    // Ensure admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!session || (session.user as any).role !== "ADMIN") {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -24,55 +25,57 @@ export async function PATCH(
         }
 
         await dbConnect();
-
         const accessRequest = await AccessRequest.findById(requestId);
         if (!accessRequest) {
             return NextResponse.json({ error: "Request not found" }, { status: 404 });
         }
 
-        accessRequest.status = status;
+        accessRequest.status = status as any;
         accessRequest.adminNotes = adminNotes;
         await accessRequest.save();
 
         if (status === "APPROVED") {
+            // Compute effective duration (days)
             const targetUser = await User.findById(accessRequest.userId);
             if (!targetUser) {
                 return NextResponse.json({ error: "Target user not found" }, { status: 404 });
             }
 
+            // Inside APPROVED block - compute duration and log
             const isTargetAdmin = targetUser.email === "rkagencies321@gmail.com";
-            const effectiveDuration = durationDays || accessRequest.requestedDuration || (isTargetAdmin ? 36500 : 365);
+            const effectiveDuration = durationDays ?? accessRequest.requestedDuration ?? 1; // default 1 day for testing
 
-            const expiresAt = new Date();
+            const approvedAt = new Date();
+            const expiresAt = new Date(approvedAt);
             expiresAt.setDate(expiresAt.getDate() + effectiveDuration);
 
-            // Access user via variable to avoid re-fetching
+            console.log("[AccessApproval] approvedAt (IST):", isoDateIST(approvedAt));
+            console.log("[AccessApproval] expiresAt (IST):", isoDateIST(expiresAt));
+            console.log("[AccessApproval] effectiveDuration days:", effectiveDuration);
+            // Update the request record
+            accessRequest.approvedAt = approvedAt;
+            accessRequest.expiresAt = expiresAt;
+            await accessRequest.save();
+
+            // Update user permissions
             const user = targetUser;
-            if (user) {
-                // Safely ensure assignedWarehouses is an array
-                user.assignedWarehouses = user.assignedWarehouses || [];
-                
-                // Check if already assigned to this warehouse
-                const existingIndex = user.assignedWarehouses.findIndex(
-                    w => w.warehouseId.toString() === accessRequest.warehouseId.toString()
-                );
-
-                if (existingIndex >= 0) {
-                    user.assignedWarehouses[existingIndex].expiresAt = expiresAt;
-                } else {
-                    user.assignedWarehouses.push({
-                        warehouseId: accessRequest.warehouseId,
-                        expiresAt
-                    });
-                }
-                
-                // Also set as active if no active warehouse yet
-                if (!user.activeWarehouseId) {
-                    user.activeWarehouseId = accessRequest.warehouseId;
-                }
-
-                await user.save();
+            user.assignedWarehouses = user.assignedWarehouses || [];
+            const existingIndex = user.assignedWarehouses.findIndex(
+                (w: any) => w.warehouseId.toString() === accessRequest.warehouseId.toString()
+            );
+            if (existingIndex >= 0) {
+                user.assignedWarehouses[existingIndex].expiresAt = expiresAt;
+            } else {
+                user.assignedWarehouses.push({
+                    warehouseId: accessRequest.warehouseId,
+                    expiresAt,
+                });
             }
+            // Set as active if not already set
+            if (!user.activeWarehouseId) {
+                user.activeWarehouseId = accessRequest.warehouseId;
+            }
+            await user.save();
         }
 
         return NextResponse.json(accessRequest);

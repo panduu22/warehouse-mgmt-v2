@@ -21,14 +21,15 @@ export async function POST(req: Request) {
         const body = await req.json();
         const salePrice = Number(body.salePrice) || 0;
         const price = Number(body.price) || salePrice; // Default Today's Price to Sale Price
-        
+
         const data = {
             ...body,
+            name: `${body.pack || ""} ${body.flavour || ""}`.trim(),
             price,
             salePrice,
             // warehouseId: Handled below
         };
-        
+
         // Get active warehouse context
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
@@ -74,19 +75,19 @@ export async function POST(req: Request) {
 export async function GET() {
     try {
         await dbConnect();
-        
+
         // Get active warehouse context
         const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-        
+
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
             const main = await Warehouse.findOne({ isMain: true });
             if (main) warehouseId = main._id.toString();
         }
-        
+
         const filter = warehouseId ? { warehouseId } : {};
         const products = await Product.find(filter).sort({ createdAt: -1 });
-        
+
         return NextResponse.json(products);
     } catch (error) {
         return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });

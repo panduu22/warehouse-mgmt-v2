@@ -417,8 +417,7 @@ export default function NewTripPage() {
                                     {manifest.map((item, idx) => (
                                         <div key={idx} className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm print:shadow-none print:border-b print:border-gray-200 print:rounded-none print:p-4">
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-gray-900 truncate print:text-xl print:font-black">{item.name}</div>
-                                                <div className="text-xs text-gray-500 print:font-bold">{item.pack} • {item.flavour}</div>
+                                                <div className="font-medium text-gray-900 truncate print:text-xl print:font-black">{item.pack} - {item.flavour}</div>
                                                 <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">
                                                     ₹{(item.price * (item.qtyLoaded / item.bottlesPerPack)).toLocaleString()} (₹{item.price}/pack)
                                                 </div>

@@ -110,12 +110,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                         <React.Fragment key={`group-${idx}`}>
                                             <tr key={`bill-item-${idx}-normal`} className="group hover:bg-gray-50/50">
                                                 <td className="px-3 py-4 border-b border-gray-100" rowSpan={1 + totalSchemeRows}>
-                                                    <div className="font-black text-black text-base leading-tight">{item.name}</div>
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <span className="text-ruby-700 font-bold text-[10px] uppercase">{item.flavour}</span>
-                                                        <span className="text-gray-300 text-[10px]">•</span>
-                                                        <span className="text-gray-500 font-bold text-[10px] uppercase">{item.pack}</span>
-                                                    </div>
+                                                    <div className="font-black text-black text-base leading-tight">{item.pack} - {item.flavour}</div>
                                                 </td>
                                                 <td className="px-3 py-4 text-center border-b border-gray-50">
                                                     <span className="text-[10px] font-black uppercase text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">Normal</span>
@@ -158,10 +153,12 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                     const price = item.productId?.price || item.productId?.salePrice || 0;
                                     return (
                                         <tr key={`fallback-${idx}`} className="hover:bg-gray-50/30">
-                                            <td className="px-4 py-6 font-black text-black text-lg">{item.productId?.name || "Product"}</td>
+                                            <td className="px-4 py-6 font-black text-black text-lg">
+                                                {item.productId ? `${item.productId.pack} - ${item.productId.flavour}` : "Product"}
+                                            </td>
                                             <td className="px-4 py-6 text-right font-black text-black text-lg">{sold}</td>
                                             <td className="px-4 py-6 text-right font-black text-gray-700 text-lg">₹{price.toLocaleString('en-IN')}</td>
-                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{((sold / (item.productId?.bottlesPerPack || parsePack(item.productId?.pack, item.productId?.name))) * price).toLocaleString('en-IN')}</td>
+                                            <td className="px-4 py-6 text-right font-black text-black text-lg">₹{((sold / (item.productId?.bottlesPerPack || parsePack(item.productId?.pack, item.productId?.name || ""))) * price).toLocaleString('en-IN')}</td>
                                         </tr>
                                     );
                                 })

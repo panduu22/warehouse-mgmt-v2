@@ -71,27 +71,49 @@ export async function POST(req: Request) {
                     return undefined;
                 };
 
-                // === FIELD MAPPING (Excel → DB) ===
-                // Product Name = Pack + Flavour
-                const pack = String(get(["pack", "package", "size", "volume"]) || "").trim();
-                const flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
+                let pack = String(get(["pack", "package", "size", "volume"]) || "").trim();
+                let flavour = String(get(["flavour", "flavor", "variant", "type"]) || "").trim();
+                const productName = String(get(["product", "product name", "name", "description"]) || "").trim();
 
-                let name = "";
-                if (pack && flavour) {
-                    name = `${pack} - ${flavour}`;
-                } else if (pack) {
-                    name = pack;
-                } else if (flavour) {
-                    name = flavour;
-                } else {
-                    // Fallback: try a generic name column
-                    name = String(get(["name", "product name", "product", "description"]) || "").trim();
+                // Fallback to parsing from productName if columns are missing
+                if ((!pack || !flavour) && productName) {
+                    const PACK_PREFIXES = [
+                        "150 ml Tetra",
+                        "200 ml RGB",
+                        "250 ml PET",
+                        "300 ml RGB",
+                        "330 ml CAN",
+                        "350 ml CAN",
+                        "400 ml PET",
+                        "500 ml PET",
+                        "600 ml PET",
+                        "750 ml RGB",
+                        "1 Ltr PET",
+                        "1.25 Ltr PET",
+                        "2 Ltr PET"
+                    ];
+
+                    for (const prefix of PACK_PREFIXES) {
+                        if (productName.startsWith(prefix)) {
+                            pack = prefix;
+                            flavour = productName.substring(prefix.length).trim();
+                            break;
+                        }
+                    }
+
+                    // Ultimate fallback
+                    if (!pack) {
+                        pack = "Other";
+                        flavour = productName;
+                    }
                 }
 
-                if (!name) {
+                if (!pack || !flavour) {
                     errors.push(`Row ${rowIndex + 2}: skipped — missing Pack and Flavour`);
                     continue;
                 }
+
+                const name = `${pack} ${flavour}`;
 
                 // Bottles/Pack = Bottles per Pack
                 const bottlesPerPack = Number(

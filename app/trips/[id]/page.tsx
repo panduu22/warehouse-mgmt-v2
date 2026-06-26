@@ -384,7 +384,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
             });
 
             if (retBottles + totalSchBottles > item.qtyLoaded) {
-                alert(`Error for ${item.productId.name}: Returned + Scheme (${formatPacksAndBottles(retBottles + totalSchBottles, bpp)}) exceeds Loaded (${formatPacksAndBottles(item.qtyLoaded, bpp)})`);
+                alert(`Error for ${item.productId.pack} - ${item.productId.flavour}: Returned + Scheme (${formatPacksAndBottles(retBottles + totalSchBottles, bpp)}) exceeds Loaded (${formatPacksAndBottles(item.qtyLoaded, bpp)})`);
                 return;
             }
 
@@ -462,7 +462,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                             <Package className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="font-black text-foreground text-lg leading-tight">{item.productId.name}</p>
+                                            <p className="font-black text-foreground text-lg leading-tight">{item.productId.pack} - {item.productId.flavour}</p>
                                             <p className="text-xs font-bold text-muted-foreground mt-1 uppercase tracking-tight">
                                                 LOADED: <span className="text-foreground">{formatPacksAndBottles(item.qtyLoaded, bpp)}</span>
                                             </p>
@@ -570,7 +570,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                             >
                                                                                 <option value="">Select Product...</option>
                                                                                 {allProducts.map(p => (
-                                                                                    <option key={p._id} value={p._id}>{p.name} ({p.pack})</option>
+                                                                                    <option key={p._id} value={p._id}>{p.pack} - {p.flavour}</option>
                                                                                 ))}
                                                                             </select>
                                                                             <div className="flex items-center gap-1 w-28">

@@ -16,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const user = session.user as any;
 
         const { id } = await params;
-        const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice, bottlesPerPack } = await req.json();
+        const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice, bottlesPerPack, pack, flavour } = await req.json();
 
         await dbConnect();
 
@@ -39,6 +39,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
         if (bottlesPerPack !== undefined) {
             updateData.bottlesPerPack = bottlesPerPack;
+        }
+        if (pack !== undefined || flavour !== undefined) {
+            const existingProduct = await Product.findById(id);
+            if (!existingProduct) {
+                return NextResponse.json({ error: "Product not found" }, { status: 404 });
+            }
+            const finalPack = pack !== undefined ? pack : existingProduct.pack;
+            const finalFlavour = flavour !== undefined ? flavour : existingProduct.flavour;
+            updateData.pack = finalPack;
+            updateData.flavour = finalFlavour;
+            updateData.name = `${finalPack || ""} ${finalFlavour || ""}`.trim();
         }
 
         const product = await Product.findByIdAndUpdate(

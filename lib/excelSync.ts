@@ -23,10 +23,9 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         const productMap = new Map(products.map(p => [p._id.toString(), p]));
         const productRows = products.map(p => ({
             "Product ID": p._id.toString(),
-            "Name": p.name || "",
             "SKU": p.sku || "",
-            "Flavour": p.flavour || "",
             "Pack": p.pack || "",
+            "Flavour": p.flavour || "",
             "Quantity": p.quantity ?? 0,
             "MRP (Base Price)": p.price ?? 0,
             "Invoice Cost": p.invoiceCost ?? 0,
@@ -58,7 +57,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
             // Format items loaded
             const itemsStr = (t.loadedItems || []).map((item: any) => {
                 const prod = productMap.get(item.productId?.toString());
-                const name = prod ? prod.name : "Unknown Product";
+                const name = prod ? `${prod.pack} ${prod.flavour}` : "Unknown Product";
                 return `${name} (Loaded: ${item.qtyLoaded || 0}, Returned: ${item.qtyReturned || 0})`;
             }).join("; ");
 
@@ -100,7 +99,8 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         const dailyPricingRows = dailyPricing.map(dp => {
             const prod = productMap.get(dp.productId?.toString());
             return {
-                "Product Name": prod ? prod.name : "Unknown",
+                "Pack": prod ? prod.pack : "Unknown",
+                "Flavour": prod ? prod.flavour : "Unknown",
                 "SKU": prod ? prod.sku : "Unknown",
                 "Date": dp.date || "",
                 "Daily Price (INR)": dp.price ?? 0,

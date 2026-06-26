@@ -17,12 +17,12 @@ export default function AddStockPage() {
     const [products, setProducts] = useState<any[]>([]);
 
     // Selection State
-    const [selectedFlavour, setSelectedFlavour] = useState("");
     const [selectedPack, setSelectedPack] = useState("");
+    const [selectedFlavour, setSelectedFlavour] = useState("");
 
     // Derived/Data State
-    const [availableFlavours, setAvailableFlavours] = useState<string[]>([]);
     const [availablePacks, setAvailablePacks] = useState<string[]>([]);
+    const [availableFlavours, setAvailableFlavours] = useState<string[]>([]);
     const [targetProduct, setTargetProduct] = useState<any>(null);
 
     const [addPacks, setAddPacks] = useState("0");
@@ -34,58 +34,60 @@ export default function AddStockPage() {
                 .then(res => res.json())
                 .then(data => {
                     setProducts(data);
-                    // Extract unique flavours in the custom order
-                    const flavoursInOrder: string[] = [];
-                    PRODUCT_SORT_ORDER.forEach(item => {
-                        const flav = item.split(" - ")[1];
-                        if (flav && !flavoursInOrder.includes(flav)) {
-                            const hasProduct = data.some((p: any) => p.flavour === flav);
-                            if (hasProduct) flavoursInOrder.push(flav);
-                        }
+                    
+                    // Extract unique packs
+                    const packs = data.map((p: any) => p.pack).filter(Boolean);
+                    const uniquePacks = Array.from(new Set(packs)) as string[];
+                    
+                    // Sort packs logic: ml first, then Ltr
+                    uniquePacks.sort((a, b) => {
+                        const getPackIndex = (p: string) => {
+                            const idx = PRODUCT_SORT_ORDER.findIndex(s => s.toLowerCase().startsWith(p.toLowerCase()));
+                            return idx === -1 ? 999 : idx;
+                        };
+                        return getPackIndex(a) - getPackIndex(b);
                     });
-                    // Add any leftovers
-                    const others = Array.from(new Set(data.map((p: any) => p.flavour).filter((f: any) => f && !flavoursInOrder.includes(f)))) as string[];
-                    setAvailableFlavours([...flavoursInOrder, ...others.sort()]);
+                    
+                    setAvailablePacks(uniquePacks);
                 })
                 .catch(console.error);
         }
     }, [mode]);
 
     useEffect(() => {
-        if (selectedFlavour) {
-            // Filter packs for this flavour
-            const packs = products
-                .filter(p => p.flavour === selectedFlavour)
-                .map(p => p.pack)
+        if (selectedPack) {
+            // Filter flavours for this pack
+            const flavours = products
+                .filter(p => p.pack === selectedPack)
+                .map(p => p.flavour)
                 .filter(Boolean);
-
-            // Unique packs
-            const uniquePacks = Array.from(new Set(packs)) as string[];
-
-            // Sort logic: ml first, then Ltr
-            // Custom sort for packs based on the sequence
-            uniquePacks.sort((a, b) => {
-                const getPackIndex = (p: string) => {
-                    const idx = PRODUCT_SORT_ORDER.findIndex(s => s.toLowerCase().startsWith(p.toLowerCase()));
-                    return idx === -1 ? 999 : idx;
-                };
-                return getPackIndex(a) - getPackIndex(b);
+            
+            // Unique flavours in order
+            const uniqueFlavours: string[] = [];
+            PRODUCT_SORT_ORDER.forEach(item => {
+                const flav = item.split(" - ")[1];
+                if (flav && !uniqueFlavours.includes(flav) && flavours.includes(flav)) {
+                    uniqueFlavours.push(flav);
+                }
             });
-
-            setAvailablePacks(uniquePacks);
+            // Add any leftovers
+            const others = flavours.filter(f => !uniqueFlavours.includes(f));
+            const sortedFlavours = Array.from(new Set([...uniqueFlavours, ...others.sort()])) as string[];
+            
+            setAvailableFlavours(sortedFlavours);
         } else {
-            setAvailablePacks([]);
+            setAvailableFlavours([]);
         }
-    }, [selectedFlavour, products]);
+    }, [selectedPack, products]);
 
     useEffect(() => {
-        if (selectedFlavour && selectedPack) {
-            const prod = products.find(p => p.flavour === selectedFlavour && p.pack === selectedPack);
+        if (selectedPack && selectedFlavour) {
+            const prod = products.find(p => p.pack === selectedPack && p.flavour === selectedFlavour);
             setTargetProduct(prod || null);
         } else {
             setTargetProduct(null);
         }
-    }, [selectedFlavour, selectedPack, products]);
+    }, [selectedPack, selectedFlavour, products]);
 
     const handleAddBottleChange = (val: string, bpp: number) => {
         const b = parseInt(val, 10);
@@ -138,8 +140,9 @@ export default function AddStockPage() {
         setError("");
 
         const formData = new FormData(e.currentTarget);
-        const name = formData.get("name") as string;
         const pack = formData.get("pack") as string;
+        const flavour = formData.get("flavour") as string;
+        const name = `${pack} ${flavour}`.trim();
         const bpp = Number(formData.get("bottlesPerPack") || parsePack(pack, name));
 
         const initialPacks = parseInt(formData.get("initialPacks") as string || "0", 10);
@@ -154,7 +157,7 @@ export default function AddStockPage() {
             mrp: Number(formData.get("mrp")),
             salePrice: Number(formData.get("salePrice")),
             pack: pack,
-            flavour: formData.get("flavour"),
+            flavour: flavour,
             bottlesPerPack: bpp
         };
 
@@ -225,52 +228,52 @@ export default function AddStockPage() {
                 {mode === "existing" ? (
                     <form onSubmit={handleRestock} className="space-y-8">
 
-                        {/* 1. Flavour Selection */}
+                        {/* 1. Pack Selection */}
                         <div>
                             <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                 <span className="bg-ruby-100 text-ruby-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                                Select Flavour
+                                Select Pack
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                {availableFlavours.map(flav => (
+                                {availablePacks.map(pack => (
                                     <button
-                                        key={flav}
+                                        key={pack}
                                         type="button"
                                         onClick={() => {
-                                            setSelectedFlavour(flav);
-                                            setSelectedPack(""); // Reset pack when flavour changes
+                                            setSelectedPack(pack);
+                                            setSelectedFlavour(""); // Reset flavour when pack changes
                                         }}
                                         className={clsx("p-4 rounded-xl border text-sm font-medium transition-all text-center hover:shadow-md", {
-                                            "border-ruby-500 bg-ruby-50 text-ruby-900 ring-2 ring-ruby-100": selectedFlavour === flav,
-                                            "border-gray-200 bg-white text-gray-600 hover:border-ruby-200": selectedFlavour !== flav
+                                            "border-ruby-500 bg-ruby-50 text-ruby-900 ring-2 ring-ruby-100": selectedPack === pack,
+                                            "border-gray-200 bg-white text-gray-600 hover:border-ruby-200": selectedPack !== pack
                                         })}
                                     >
-                                        {flav}
+                                        {pack}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* 2. Pack Selection */}
-                        {selectedFlavour && (
+                        {/* 2. Flavour Selection */}
+                        {selectedPack && (
                             <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                                     <span className="bg-ruby-100 text-ruby-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                                    Select Pack
+                                    Select Flavour
                                 </h3>
                                 <div className="flex flex-wrap gap-3">
-                                    {availablePacks.map(pack => (
+                                    {availableFlavours.map(flav => (
                                         <button
-                                            key={pack}
+                                            key={flav}
                                             type="button"
-                                            onClick={() => setSelectedPack(pack)}
+                                            onClick={() => setSelectedFlavour(flav)}
                                             className={clsx("px-6 py-3 rounded-full border text-sm font-bold transition-all hover:shadow-md flex items-center gap-2", {
-                                                "border-teal-500 bg-teal-50 text-teal-800 ring-2 ring-teal-100": selectedPack === pack,
-                                                "border-gray-200 bg-white text-gray-600 hover:border-teal-200": selectedPack !== pack
+                                                "border-teal-500 bg-teal-50 text-teal-800 ring-2 ring-teal-100": selectedFlavour === flav,
+                                                "border-gray-200 bg-white text-gray-600 hover:border-teal-200": selectedFlavour !== flav
                                             })}
                                         >
-                                            {pack}
-                                            {selectedPack === pack && <Check className="w-4 h-4" />}
+                                            {flav}
+                                            {selectedFlavour === flav && <Check className="w-4 h-4" />}
                                         </button>
                                     ))}
                                 </div>
@@ -284,7 +287,7 @@ export default function AddStockPage() {
                                     <div className="flex-1">
                                         <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Selected Product</p>
                                         <div className="flex flex-col gap-1 mb-2">
-                                            <p className="text-xl font-bold text-gray-900">{targetProduct.name}</p>
+                                            <p className="text-xl font-bold text-gray-900">{targetProduct.pack} - {targetProduct.flavour}</p>
                                             <div className="flex gap-4 text-sm text-gray-500">
                                                 <span>Cost: ₹{targetProduct.invoiceCost || "-"}</span>
                                                 <span>Price: ₹{targetProduct.price}</span>
@@ -348,7 +351,7 @@ export default function AddStockPage() {
                             </div>
                         )}
 
-                        {!targetProduct && selectedFlavour && selectedPack && (
+                        {!targetProduct && selectedPack && selectedFlavour && (
                             <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
                                 Product not found for this specific combination.
@@ -358,14 +361,25 @@ export default function AddStockPage() {
                     </form>
                 ) : (
                     <form onSubmit={handleCreate} className="space-y-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Product Name</label>
-                            <input
-                                name="name"
-                                required
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                placeholder="e.g. Sprite 1.5 Ltr PET"
-                            />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Pack Description</label>
+                                <input
+                                    name="pack"
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="e.g. 12x1.5L, 250 ml PET"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Flavour</label>
+                                <input
+                                    name="flavour"
+                                    required
+                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    placeholder="e.g. Regular, Orange"
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -393,23 +407,7 @@ export default function AddStockPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-xl">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Flavour</label>
-                                <input
-                                    name="flavour"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="e.g. Regular"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Pack Description</label>
-                                <input
-                                    name="pack"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
-                                    placeholder="e.g. 12x1.5L"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-gray-700">MRP (Base) (₹)</label>
                                 <input

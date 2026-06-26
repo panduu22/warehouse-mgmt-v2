@@ -335,7 +335,8 @@ export default function VehicleDetailsPage() {
                                         <Table className="min-w-[800px]">
                                             <TableHeader className="bg-muted/10">
                                                 <TableRow>
-                                                    <TableHead className="font-bold">Product Name</TableHead>
+                                                    <TableHead className="font-bold">Pack</TableHead>
+                                                    <TableHead className="font-bold">Flavour</TableHead>
                                                     <TableHead className="font-bold text-right">Sale Price</TableHead>
                                                     <TableHead className="font-bold text-right">Sold Qty (Packs)</TableHead>
                                                     <TableHead className="font-bold text-right">Sold Qty (Bottles)</TableHead>
@@ -349,7 +350,10 @@ export default function VehicleDetailsPage() {
                                                         className="hover:bg-muted/50 transition-colors"
                                                     >
                                                         <TableCell className="font-medium text-foreground">
-                                                            {item.name}
+                                                            {item.pack}
+                                                        </TableCell>
+                                                        <TableCell className="font-medium text-foreground">
+                                                            {item.flavour}
                                                         </TableCell>
                                                         <TableCell className="text-right text-muted-foreground font-medium">
                                                             {formatCurrency(item.salePrice)}
@@ -370,7 +374,7 @@ export default function VehicleDetailsPage() {
                                             </TableBody>
                                             <TableFooter className="bg-muted border-t-2 border-border font-bold text-foreground">
                                                 <TableRow>
-                                                    <TableCell colSpan={2} className="text-right">
+                                                    <TableCell colSpan={3} className="text-right">
                                                         Daily Total:
                                                     </TableCell>
                                                     <TableCell className="text-right">

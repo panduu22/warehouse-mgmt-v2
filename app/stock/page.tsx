@@ -14,6 +14,8 @@ import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
 
+import { StringEditor } from "./StringEditor";
+
 import DeleteAllStockButton from "./DeleteAllStockButton";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
@@ -52,12 +54,30 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
     // Filtering
     const products = query ? allProducts.filter((p: any) =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.name?.toLowerCase().includes(query.toLowerCase()) ||
         p.flavour?.toLowerCase().includes(query.toLowerCase()) ||
         p.pack?.toLowerCase().includes(query.toLowerCase()) ||
         p.sku?.toLowerCase().includes(query.toLowerCase())
     ) : allProducts;
     // Products arrive already sorted by displayOrder from the DB (Excel row order)
+
+    // Calculations for the footer
+    const totalPacks = products.reduce((sum: number, p: any) => {
+        const bpp = p.bottlesPerPack || 1;
+        return sum + Math.floor(p.quantity / bpp);
+    }, 0);
+    const totalBottles = products.reduce((sum: number, p: any) => {
+        const bpp = p.bottlesPerPack || 1;
+        return sum + (p.quantity % bpp);
+    }, 0);
+    const inventoryValue = products.reduce((sum: number, p: any) => {
+        const bpp = p.bottlesPerPack || 1;
+        return sum + ((p.quantity / bpp) * (p.invoiceCost || 0));
+    }, 0);
+    const salesValue = products.reduce((sum: number, p: any) => {
+        const bpp = p.bottlesPerPack || 1;
+        return sum + ((p.quantity / bpp) * (p.salePrice || 0));
+    }, 0);
 
     const formatCurrency = (amount?: number) => {
         if (amount === undefined || amount === null) return "₹0";
@@ -96,7 +116,8 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                     <Table className="min-w-[1000px]">
                         <TableHeader className="bg-muted/50">
                             <TableRow>
-                                <TableHead className="font-bold">Product Name</TableHead>
+                                <TableHead className="font-bold">Pack</TableHead>
+                                <TableHead className="font-bold">Flavour</TableHead>
                                 <TableHead className="font-bold">Bottles/Pack</TableHead>
                                 <TableHead className="font-bold">Invoice Cost</TableHead>
                                 <TableHead className="text-right font-bold hidden md:table-cell">Invoice Amount</TableHead>
@@ -111,7 +132,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                         <TableBody>
                             {products.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={10} className="h-32 text-center text-muted-foreground">
+                                    <TableCell colSpan={11} className="h-32 text-center text-muted-foreground">
                                         No products found in {warehouseName}.
                                     </TableCell>
                                 </TableRow>
@@ -128,7 +149,12 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
 
                                     return (
                                         <TableRow key={product._id} className="hover:bg-muted/50 transition-colors group">
-                                            <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                                            <TableCell className="font-medium text-foreground w-44">
+                                                <StringEditor productId={product._id} initialValue={product.pack || ""} field="pack" />
+                                            </TableCell>
+                                            <TableCell className="font-medium text-foreground w-44">
+                                                <StringEditor productId={product._id} initialValue={product.flavour || ""} field="flavour" />
+                                            </TableCell>
                                             <TableCell className="w-24">
                                                 <BottlesPerPackEditor productId={product._id} initialBpp={product.bottlesPerPack} />
                                             </TableCell>
@@ -169,22 +195,32 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                             )}
                         </TableBody>
                         {products.length > 0 && (
-                            <TableFooter className="bg-muted border-t-2 border-border font-extrabold text-foreground hidden md:table-footer-group">
-                                <TableRow>
-                                    <TableCell colSpan={3} className="text-right">Net Totals:</TableCell>
-                                    <TableCell className="text-right text-muted-foreground">
-                                        {formatCurrency(
-                                            products.reduce((sum: number, p: any) => sum + ((p.quantity / p.bottlesPerPack) * (p.invoiceCost || 0)), 0)
-                                        )}
+                            <TableFooter className="bg-muted/95 border-t-2 border-border font-extrabold text-foreground sticky bottom-0 backdrop-blur-sm z-10 shadow-lg">
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={11} className="p-4 sm:p-6">
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                            {/* Card 1: Total Products */}
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Products</span>
+                                                <span className="text-base sm:text-lg font-black text-foreground mt-1">{products.length}</span>
+                                            </div>
+                                            {/* Card 2: Total Quantity */}
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Quantity</span>
+                                                <span className="text-base sm:text-lg font-black text-teal-600 mt-1">{totalPacks}P + {totalBottles}B</span>
+                                            </div>
+                                            {/* Card 3: Inventory Value */}
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Inventory Value</span>
+                                                <span className="text-base sm:text-lg font-black text-foreground mt-1">{formatCurrency(inventoryValue)}</span>
+                                            </div>
+                                            {/* Card 4: Sales Value */}
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Sales Value</span>
+                                                <span className="text-base sm:text-lg font-black text-primary mt-1">{formatCurrency(salesValue)}</span>
+                                            </div>
+                                        </div>
                                     </TableCell>
-                                    <TableCell colSpan={3} className="hidden lg:table-cell"></TableCell>
-                                    <TableCell colSpan={2} className="lg:hidden"></TableCell>
-                                    <TableCell className="text-right text-primary text-lg">
-                                        {formatCurrency(
-                                            products.reduce((sum: number, p: any) => sum + ((p.quantity / p.bottlesPerPack) * (p.salePrice || 0)), 0)
-                                        )}
-                                    </TableCell>
-                                    <TableCell colSpan={2}></TableCell>
                                 </TableRow>
                             </TableFooter>
                         )}

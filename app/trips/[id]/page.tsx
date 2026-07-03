@@ -660,7 +660,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
 
-                    <div className="relative grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="relative grid grid-cols-2 md:grid-cols-6 gap-4">
                         <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
                             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Normal Sales</p>
                             <p className="text-xl font-black text-foreground">₹{totalNormalSales.toLocaleString()}</p>
@@ -672,6 +672,25 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                         <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
                             <p className="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-1">Total Discount</p>
                             <p className="text-xl font-black text-amber-500">₹{totalDiscount.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
+                            <p className="text-[10px] text-rose-500 font-black uppercase tracking-widest mb-1">Total Return Qty</p>
+                            <p className="text-xl font-black text-rose-500">
+                                {(() => {
+                                    let totalRetP = 0;
+                                    let totalRetB = 0;
+                                    trip.loadedItems.forEach((item: any) => {
+                                        const bpp = item.productId.bottlesPerPack;
+                                        const r = inputs[item.productId._id] || { packs: "0", bottles: "0" };
+                                        const retBottles = isVerified
+                                            ? (item.qtyReturned || 0)
+                                            : (parseInt(r.packs || "0") * bpp + parseInt(r.bottles || "0"));
+                                        totalRetP += Math.floor(retBottles / bpp);
+                                        totalRetB += retBottles % bpp;
+                                    });
+                                    return `${totalRetP} P + ${totalRetB} B`;
+                                })()}
+                            </p>
                         </div>
                         <div className="bg-card/50 backdrop-blur-md p-4 rounded-2xl border border-border">
                             <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Total Loaded</p>

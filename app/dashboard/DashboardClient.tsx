@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { 
     Package, Truck, Receipt, ArrowRight, TrendingUp, TrendingDown, 
@@ -71,13 +71,13 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
         try {
             const params = new URLSearchParams();
             params.append("warehouseId", warehouseId);
-            params.append("startDate", dateRange.start.toISOString());
-            params.append("endDate", dateRange.end.toISOString());
+            params.append("startDate", format(dateRange.start, "yyyy-MM-dd"));
+            params.append("endDate", format(dateRange.end, "yyyy-MM-dd"));
 
             if (compareEnabled) {
                 const comp = getCompareRange(dateRange.start, dateRange.end, dateRange.label);
-                params.append("compareStartDate", comp.start.toISOString());
-                params.append("compareEndDate", comp.end.toISOString());
+                params.append("compareStartDate", format(comp.start, "yyyy-MM-dd"));
+                params.append("compareEndDate", format(comp.end, "yyyy-MM-dd"));
             }
 
             const res = await fetch(`/api/dashboard/stats?${params.toString()}`);
@@ -93,10 +93,10 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
         }
     }, [warehouseId, dateRange, compareEnabled]);
 
+    const isFirstRender = useRef(true);
     useEffect(() => {
-        // Skip first trigger on initial load if params match defaults
-        if (warehouseId === "ALL" && dateRange.label === "Today" && compareEnabled) {
-            // Already loaded from SSR
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
             return;
         }
         fetchStats();

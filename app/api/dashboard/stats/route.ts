@@ -34,15 +34,29 @@ export async function GET(req: NextRequest) {
             }
         }
 
+        // Helper: parse a YYYY-MM-DD or ISO string into UTC day start/end
+        // Bills store generatedAt as new Date("YYYY-MM-DD") = UTC midnight
+        // so we must also use UTC midnight boundaries here
+        const parseDateUTCStart = (dateStr: string): Date => {
+            // Extract just the date portion (YYYY-MM-DD) and build UTC midnight
+            const datePart = dateStr.split("T")[0];
+            return new Date(`${datePart}T00:00:00.000Z`);
+        };
+        const parseDateUTCEnd = (dateStr: string): Date => {
+            const datePart = dateStr.split("T")[0];
+            return new Date(`${datePart}T23:59:59.999Z`);
+        };
+
         const now = new Date();
-        const startDate = startDateStr ? new Date(startDateStr) : new Date(now.setHours(0,0,0,0));
-        const endDate = endDateStr ? new Date(endDateStr) : new Date(now.setHours(23,59,59,999));
+        const todayUTC = now.toISOString().split("T")[0];
+        const startDate = startDateStr ? parseDateUTCStart(startDateStr) : parseDateUTCStart(todayUTC);
+        const endDate = endDateStr ? parseDateUTCEnd(endDateStr) : parseDateUTCEnd(todayUTC);
 
         const primaryDateFilter = { $gte: startDate, $lte: endDate };
         
         const compareEnabled = !!(compareStartDateStr && compareEndDateStr);
-        const compareStartDate = compareEnabled ? new Date(compareStartDateStr!) : undefined;
-        const compareEndDate = compareEnabled ? new Date(compareEndDateStr!) : undefined;
+        const compareStartDate = compareEnabled ? parseDateUTCStart(compareStartDateStr!) : undefined;
+        const compareEndDate = compareEnabled ? parseDateUTCEnd(compareEndDateStr!) : undefined;
         
         const compareDateFilter = compareEnabled ? { $gte: compareStartDate, $lte: compareEndDate } : null;
 

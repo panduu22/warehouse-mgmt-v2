@@ -62,17 +62,16 @@ async function getData(warehouseIdStr?: string) {
     lowStockItems.sort((a, b) => a.quantity - b.quantity);
 
     // 2. Date ranges for comparisons (Today / Yesterday)
+    // Bills store generatedAt as new Date("YYYY-MM-DD") = UTC midnight (00:00:00Z).
+    // Use UTC day boundaries so queries match stored data regardless of server TZ.
     const now = new Date();
-    
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now);
-    todayEnd.setHours(23, 59, 59, 999);
-    
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-    const yesterdayEnd = new Date(todayEnd);
-    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+    const todayUTC = now.toISOString().split("T")[0]; // "YYYY-MM-DD" in UTC
+    const yesterdayUTC = new Date(now.getTime() - 86400000).toISOString().split("T")[0];
+
+    const todayStart = new Date(`${todayUTC}T00:00:00.000Z`);
+    const todayEnd = new Date(`${todayUTC}T23:59:59.999Z`);
+    const yesterdayStart = new Date(`${yesterdayUTC}T00:00:00.000Z`);
+    const yesterdayEnd = new Date(`${yesterdayUTC}T23:59:59.999Z`);
 
     // 3. Parallel fetching
     const [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, startOfDay, endOfDay } from "date-fns";
 import { Calendar as CalendarIcon, ChevronDown, Check, RefreshCw, X } from "lucide-react";
 import clsx from "clsx";
 
@@ -37,10 +37,10 @@ export function DashboardDateFilterAdvanced({
     const [customEnd, setCustomEnd] = useState<string>(format(dateRange.end, "yyyy-MM-dd"));
 
     const presets: DateRange[] = [
-        { label: "Today", start: new Date(), end: new Date() },
-        { label: "Yesterday", start: subDays(new Date(), 1), end: subDays(new Date(), 1) },
-        { label: "Last 7 Days", start: subDays(new Date(), 6), end: new Date() },
-        { label: "Last 30 Days", start: subDays(new Date(), 29), end: new Date() },
+        { label: "Today", start: startOfDay(new Date()), end: endOfDay(new Date()) },
+        { label: "Yesterday", start: startOfDay(subDays(new Date(), 1)), end: endOfDay(subDays(new Date(), 1)) },
+        { label: "Last 7 Days", start: startOfDay(subDays(new Date(), 6)), end: endOfDay(new Date()) },
+        { label: "Last 30 Days", start: startOfDay(subDays(new Date(), 29)), end: endOfDay(new Date()) },
         { label: "This Month", start: startOfMonth(new Date()), end: endOfMonth(new Date()) },
         { label: "Last Month", start: startOfMonth(subMonths(new Date(), 1)), end: endOfMonth(subMonths(new Date(), 1)) },
         { label: "This Year", start: startOfYear(new Date()), end: endOfYear(new Date()) },
@@ -194,7 +194,7 @@ export function DashboardDateFilterAdvanced({
                     >
                         <RefreshCw className={clsx("h-3.5 w-3.5", isRefreshing && "animate-spin text-primary")} />
                     </button>
-                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hidden sm:inline">
+                    <span suppressHydrationWarning className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hidden sm:inline">
                         {isRefreshing ? "Updating..." : `Updated ${format(lastUpdated, "HH:mm:ss")}`}
                     </span>
                 </div>

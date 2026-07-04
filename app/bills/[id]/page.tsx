@@ -167,19 +167,55 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     </table>
                 </div>
 
-                <div className="flex justify-end border-t-4 border-black pt-10 mt-12">
-                    <div className="w-full md:w-80 space-y-6">
-                        <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            <span>Gross Value (Excl. Disc)</span>
-                            <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t-4 border-black pt-10 mt-12">
+                    {/* Left Column: Payment Details Block */}
+                    <div className="space-y-4 bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50 print:bg-transparent print:border-none print:p-0">
+                        <h4 className="text-xs font-black text-black uppercase tracking-widest border-b border-gray-200 pb-3 flex items-center gap-2 print:border-black">
+                            <span>💰</span> Payment Details
+                        </h4>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>UPI Amount</span>
+                                <span className="text-gray-900">
+                                    {bill.tripId?.status === "VERIFIED" 
+                                        ? `₹${(bill.tripId.upiAmount || 0).toLocaleString('en-IN')}` 
+                                        : "₹0 (Not Verified)"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>Cash Amount</span>
+                                <span className="text-gray-900">
+                                    {bill.tripId?.status === "VERIFIED" 
+                                        ? `₹${(bill.tripId.cashAmount || 0).toLocaleString('en-IN')}` 
+                                        : "₹0 (Not Verified)"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center pt-4 border-t border-gray-200/60 text-xs font-black text-emerald-700 uppercase tracking-widest print:border-black">
+                                <span>Total Received</span>
+                                <span>
+                                    {bill.tripId?.status === "VERIFIED" 
+                                        ? `₹${(bill.tripId.receivedTotal || 0).toLocaleString('en-IN')}` 
+                                        : "₹0 (Not Verified)"}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
-                            <span>Total Scheme Discount</span>
-                            <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {/* Right Column: Invoice Summary (Net Total) */}
+                    <div className="space-y-6 md:pl-8 flex flex-col justify-between">
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>Gross Value (Excl. Disc)</span>
+                                <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
+                                <span>Total Scheme Discount</span>
+                                <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center pt-8 border-t border-gray-100">
-                            <span className="text-xl font-black text-black uppercase tracking-tighter">Net Total Amount</span>
-                            <span className="text-4xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-auto print:border-black">
+                            <span className="text-lg font-black text-black uppercase tracking-tighter">Net Total Amount</span>
+                            <span className="text-3xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>

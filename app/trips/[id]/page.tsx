@@ -27,6 +27,24 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
     const [productSchemes, setProductSchemes] = useState<Record<string, SchemeSlabInput[]>>({});
     const [allProducts, setAllProducts] = useState<any[]>([]); // For free item selection
     const [verifyDate, setVerifyDate] = useState(new Date().toISOString().split('T')[0]);
+    // Per-product return validation messages (productId -> error string | null)
+    const [returnErrors, setReturnErrors] = useState<Record<string, string | null>>({});
+
+    // ── Payment collection state ─────────────────────────────────────────────
+    // To add more payment methods (Card, Bank Transfer, etc.), append entries
+    // to PAYMENT_METHODS and add a matching state key below.
+    const PAYMENT_METHODS = [
+        { key: "upi",  label: "UPI Amount",  icon: "📱", color: "violet" },
+        { key: "cash", label: "Cash Amount", icon: "💵", color: "emerald" },
+        // { key: "card",  label: "Card Amount",  icon: "💳", color: "blue" },
+    ] as const;
+
+    type PaymentKey = typeof PAYMENT_METHODS[number]["key"];
+    const [paymentAmounts, setPaymentAmounts] = useState<Record<PaymentKey, string>>({ upi: "", cash: "" });
+
+    const getAmount = (key: PaymentKey) => Math.max(0, parseFloat(paymentAmounts[key]) || 0);
+    const receivedTotal = PAYMENT_METHODS.reduce((sum, m) => sum + getAmount(m.key), 0);
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         fetch("/api/trips")
@@ -89,14 +107,30 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
 
     const isVerified = trip?.status === "VERIFIED";
 
+    // ── Shared input guards ──────────────────────────────────────────────────
+    // Blocks '-' key and common keyboard shortcuts that produce negative values.
+    const blockNegativeKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === '-' || e.key === 'Subtract') e.preventDefault();
+    };
+    // Prevents mouse-wheel from decrementing below 0.
+    const blockWheelNeg = (e: React.WheelEvent<HTMLInputElement>) => {
+        (e.target as HTMLInputElement).blur(); // remove focus so wheel doesn't change value
+    };
+    // ──────────────────────────────────────────────────────────────────────
+
     const updateInput = (
         productId: string,
         field: 'packs' | 'bottles',
         value: string,
         type: 'returns' | 'scheme',
         bpp: number,
-        schemeIndex?: number
+        schemeIndex?: number,
+        maxBottles?: number   // loaded qty ceiling for returns
     ) => {
+        // Clamp: empty string is fine (treated as 0); reject genuinely negative numbers
+        const numVal = value === '' ? 0 : parseInt(value, 10);
+        if (!isNaN(numVal) && numVal < 0) return;
+
         if (type === 'returns') {
             const current = inputs[productId];
             const next = { ...current, [field]: value };
@@ -111,6 +145,17 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     next.bottles = String(remBottles);
                 }
             }
+
+            // Validate: returned + scheme must not exceed loaded
+            if (maxBottles !== undefined) {
+                const retTotal = toBottlesRaw(next.packs, next.bottles, bpp);
+                if (retTotal > maxBottles) {
+                    setReturnErrors(prev => ({ ...prev, [productId]: `Returns (${formatPacksAndBottles(retTotal, bpp, true)}) exceed loaded qty (${formatPacksAndBottles(maxBottles, bpp, true)})` }));
+                } else {
+                    setReturnErrors(prev => ({ ...prev, [productId]: null }));
+                }
+            }
+
             setInputs({ ...inputs, [productId]: next });
         } else if (type === 'scheme' && schemeIndex !== undefined) {
             const currentSlabs = [...(productSchemes[productId] || [])];
@@ -383,6 +428,11 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 };
             });
 
+            // Guard: negative quantities are never valid
+            if (retBottles < 0) {
+                alert(`Error for ${item.productId.pack} - ${item.productId.flavour}: Returned quantity cannot be negative.`);
+                return;
+            }
             if (retBottles + totalSchBottles > item.qtyLoaded) {
                 alert(`Error for ${item.productId.pack} - ${item.productId.flavour}: Returned + Scheme (${formatPacksAndBottles(retBottles + totalSchBottles, bpp)}) exceeds Loaded (${formatPacksAndBottles(item.qtyLoaded, bpp)})`);
                 return;
@@ -407,7 +457,9 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 body: JSON.stringify({
                     status: "VERIFIED",
                     returnedItems,
-                    verifiedAt: verifyDate
+                    verifiedAt: verifyDate,
+                    upiAmount:  getAmount("upi"),
+                    cashAmount: getAmount("cash"),
                 })
             });
 
@@ -478,20 +530,36 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     <div className="flex items-center gap-1">
                                                         <input
                                                             type="number"
+                                                            min="0"
                                                             placeholder="P"
                                                             value={inputs[item.productId._id]?.packs || "0"}
-                                                            onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'returns', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background"
+                                                            onKeyDown={blockNegativeKey}
+                                                            onWheel={blockWheelNeg}
+                                                            onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'returns', bpp, undefined, item.qtyLoaded)}
+                                                            className={`w-14 px-2 py-2 rounded-xl border-2 focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background ${
+                                                                returnErrors[item.productId._id] ? 'border-rose-500 focus:border-rose-600' : 'border-border focus:border-primary'
+                                                            }`}
                                                         />
                                                         <span className="text-muted-foreground/50 font-bold">+</span>
                                                         <input
                                                             type="number"
+                                                            min="0"
                                                             placeholder="B"
                                                             value={inputs[item.productId._id]?.bottles || "0"}
-                                                            onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'returns', bpp)}
-                                                            className="w-14 px-2 py-2 rounded-xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background"
+                                                            onKeyDown={blockNegativeKey}
+                                                            onWheel={blockWheelNeg}
+                                                            onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'returns', bpp, undefined, item.qtyLoaded)}
+                                                            className={`w-14 px-2 py-2 rounded-xl border-2 focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-background ${
+                                                                returnErrors[item.productId._id] ? 'border-rose-500 focus:border-rose-600' : 'border-border focus:border-primary'
+                                                            }`}
                                                         />
                                                     </div>
+                                                    {returnErrors[item.productId._id] && (
+                                                        <p className="text-[10px] text-rose-500 font-bold flex items-center gap-1 mt-0.5">
+                                                            <svg className="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                                                            {returnErrors[item.productId._id]}
+                                                        </p>
+                                                    )}
                                                 </div>
 
                                                 {/* Scheme Inputs (Multi-Row) */}
@@ -513,16 +581,22 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                     <div className="flex items-center gap-1">
                                                                         <input
                                                                             type="number"
+                                                                            min="0"
                                                                             placeholder="P"
                                                                             value={slab.packs}
+                                                                            onKeyDown={blockNegativeKey}
+                                                                            onWheel={blockWheelNeg}
                                                                             onChange={(e) => updateInput(item.productId._id, 'packs', e.target.value, 'scheme', bpp, idx)}
                                                                             className="w-14 px-2 py-2 rounded-xl border-2 border-primary/20 focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-card"
                                                                         />
                                                                         <span className="text-primary/50 font-bold">+</span>
                                                                         <input
                                                                             type="number"
+                                                                            min="0"
                                                                             placeholder="B"
                                                                             value={slab.bottles}
+                                                                            onKeyDown={blockNegativeKey}
+                                                                            onWheel={blockWheelNeg}
                                                                             onChange={(e) => updateInput(item.productId._id, 'bottles', e.target.value, 'scheme', bpp, idx)}
                                                                             className="w-14 px-2 py-2 rounded-xl border-2 border-primary/20 focus:border-primary focus:ring-0 text-foreground font-black text-center text-sm transition-all shadow-sm bg-card"
                                                                         />
@@ -576,16 +650,22 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                                             <div className="flex items-center gap-1 w-28">
                                                                                 <input
                                                                                     type="number"
+                                                                                    min="0"
                                                                                     placeholder="P"
                                                                                     value={free.packs}
+                                                                                    onKeyDown={blockNegativeKey}
+                                                                                    onWheel={blockWheelNeg}
                                                                                     onChange={(e) => updateFreeItem(item.productId._id, idx, fIdx, 'packs', e.target.value)}
                                                                                     className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-[11px] font-black text-center focus:ring-0 focus:border-teal-500 bg-white text-gray-900"
                                                                                 />
                                                                                 <span className="text-gray-300 font-bold text-[10px]">+</span>
                                                                                 <input
                                                                                     type="number"
+                                                                                    min="0"
                                                                                     placeholder="B"
                                                                                     value={free.bottles}
+                                                                                    onKeyDown={blockNegativeKey}
+                                                                                    onWheel={blockWheelNeg}
                                                                                     onChange={(e) => updateFreeItem(item.productId._id, idx, fIdx, 'bottles', e.target.value)}
                                                                                     className="w-full px-2 py-1.5 rounded-lg border border-gray-200 text-[11px] font-black text-center focus:ring-0 focus:border-teal-500 bg-white text-gray-900"
                                                                                 />
@@ -714,6 +794,131 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     </div>
                 </div>
 
+                {/* ── Payment Collection Section ─────────────────────────────── */}
+                {!isVerified && (
+                    <div className="mx-6 mb-6 rounded-3xl border border-border bg-card/60 backdrop-blur-sm overflow-hidden shadow-sm">
+                        <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">💰</span>
+                                <h3 className="font-black text-foreground text-sm uppercase tracking-widest">Payment Collection</h3>
+                            </div>
+                            {/* Real-time payment status chip */}
+                            {(() => {
+                                const diff = receivedTotal - totalSales;
+                                const matched = Math.abs(diff) < 0.01;
+                                const extra   = diff > 0.01;
+                                if (matched) return (
+                                    <span className="flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1.5 rounded-full border border-emerald-500/30 animate-pulse">
+                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                        Payment Matched
+                                    </span>
+                                );
+                                if (extra) return (
+                                    <span className="flex items-center gap-1.5 bg-rose-500/15 text-rose-600 text-xs font-black px-3 py-1.5 rounded-full border border-rose-500/30">
+                                        ⚠ Extra Received ₹{Math.abs(diff).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                );
+                                return (
+                                    <span className="flex items-center gap-1.5 bg-rose-500/15 text-rose-600 text-xs font-black px-3 py-1.5 rounded-full border border-rose-500/30">
+                                        ⏳ Pending ₹{Math.abs(diff).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                );
+                            })()}
+                        </div>
+
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+                                {PAYMENT_METHODS.map((method) => (
+                                    <div key={method.key} className="flex flex-col gap-2">
+                                        <label
+                                            htmlFor={`payment-${method.key}`}
+                                            className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5"
+                                        >
+                                            <span>{method.icon}</span>
+                                            {method.label}
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-black text-sm">₹</span>
+                                            <input
+                                                id={`payment-${method.key}`}
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={paymentAmounts[method.key]}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    // Prevent negative values
+                                                    if (val !== "" && Number(val) < 0) return;
+                                                    setPaymentAmounts(prev => ({ ...prev, [method.key]: val }));
+                                                }}
+                                                className="w-full pl-8 pr-4 py-3 rounded-2xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-bold bg-background transition-all shadow-sm text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Received Total — read-only computed card */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                                        <span>🧾</span>
+                                        Received Total
+                                    </label>
+                                    <div className="w-full px-4 py-3 rounded-2xl border-2 border-dashed border-border bg-muted/40 text-foreground font-black text-sm flex items-center justify-between">
+                                        <span className="text-muted-foreground">₹</span>
+                                        <span>{receivedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Comparison bar */}
+                            <div className="flex items-center gap-3 bg-muted/50 rounded-2xl px-5 py-3">
+                                <div className="flex-1">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Grand Total</p>
+                                    <p className="font-black text-foreground text-base">₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                                <div className="text-muted-foreground/40 font-black text-lg">vs</div>
+                                <div className="flex-1 text-right">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Received Total</p>
+                                    <p className={`font-black text-base ${Math.abs(receivedTotal - totalSales) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                        ₹{receivedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Verified Payment Summary (read-only) ───────────────────── */}
+                {isVerified && (trip.upiAmount || trip.cashAmount) && (
+                    <div className="mx-6 mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-emerald-500/20 flex items-center gap-2">
+                            <span className="text-lg">💰</span>
+                            <h3 className="font-black text-emerald-700 text-sm uppercase tracking-widest">Payment Summary</h3>
+                            <span className="ml-auto bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30">✓ Collected</span>
+                        </div>
+                        <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {trip.upiAmount > 0 && (
+                                <div className="bg-card/60 p-4 rounded-2xl border border-border">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">📱 UPI</p>
+                                    <p className="font-black text-foreground text-lg">₹{(trip.upiAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                            )}
+                            {trip.cashAmount > 0 && (
+                                <div className="bg-card/60 p-4 rounded-2xl border border-border">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">💵 Cash</p>
+                                    <p className="font-black text-foreground text-lg">₹{(trip.cashAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                            )}
+                            <div className="bg-emerald-500 p-4 rounded-2xl shadow-md shadow-emerald-500/20">
+                                <p className="text-[10px] text-emerald-900 font-black uppercase tracking-widest mb-1">🧾 Total Received</p>
+                                <p className="font-black text-white text-lg">₹{(trip.receivedTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Footer: Verification Date + gated Complete Verification button ───── */}
                 {!isVerified && (
                     <div className="p-8 bg-card border-t border-border flex flex-col md:flex-row items-end md:items-center justify-between gap-6">
                         <div className="flex flex-col gap-2 w-full md:w-auto">
@@ -725,18 +930,30 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 className="px-5 py-3 rounded-2xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-bold bg-background transition-all shadow-sm"
                             />
                         </div>
-                        <button
-                            onClick={handleVerify}
-                            disabled={verifying}
-                            className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-50 active:scale-95 text-sm uppercase tracking-widest"
-                        >
-                            {verifying ? "Processing..." : (
-                                <>
-                                    <CheckCircle className="w-5 h-5" />
-                                    Complete Verification
-                                </>
-                            )}
-                        </button>
+                        {(() => {
+                            const paymentMatched = Math.abs(receivedTotal - totalSales) < 0.01;
+                            return (
+                                <div className="flex flex-col items-end gap-1 w-full md:w-auto">
+                                    {!paymentMatched && (
+                                        <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
+                                            Match payment to enable
+                                        </p>
+                                    )}
+                                    <button
+                                        onClick={handleVerify}
+                                        disabled={verifying || !paymentMatched}
+                                        className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none active:scale-95 text-sm uppercase tracking-widest"
+                                    >
+                                        {verifying ? "Processing..." : (
+                                            <>
+                                                <CheckCircle className="w-5 h-5" />
+                                                Complete Verification
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
             </div>

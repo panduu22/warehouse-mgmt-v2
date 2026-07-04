@@ -25,6 +25,10 @@ export interface ITrip extends Document {
     endTime?: Date;
     verifiedBy?: mongoose.Types.ObjectId;
     warehouseId: mongoose.Types.ObjectId;
+    // Payment collection fields — extensible (add cardAmount, bankAmount, etc. here)
+    upiAmount?: number;
+    cashAmount?: number;
+    receivedTotal?: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -61,6 +65,10 @@ const TripSchema: Schema<ITrip> = new Schema(
         endTime: { type: Date },
         verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
         warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
+        // Payment collection — add more payment method amounts here as needed
+        upiAmount:     { type: Number, default: 0 },
+        cashAmount:    { type: Number, default: 0 },
+        receivedTotal: { type: Number, default: 0 },
     },
     { timestamps: true }
 );

@@ -5,6 +5,7 @@ import { Plus, Truck, User, Trash2, Loader2, TrendingUp, Package, BarChart2 } fr
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import clsx from "clsx";
+import { useWarehouse } from "@/components/WarehouseContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ const formatCurrencyFull = (amount: number) =>
 
 export default function VehiclesPage() {
     const { data: session } = useSession();
+    const { activeWarehouse } = useWarehouse();
 
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
@@ -63,11 +65,11 @@ export default function VehiclesPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [activeWarehouse?.id]);
 
     useEffect(() => {
         fetchVehicles(timeframe);
-    }, [timeframe, fetchVehicles]);
+    }, [timeframe, fetchVehicles, activeWarehouse?.id]);
 
     async function handleAdd(e: React.FormEvent) {
         e.preventDefault();

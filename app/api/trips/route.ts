@@ -40,9 +40,9 @@ export async function POST(req: Request) {
         // I'll stick to manual checks/updates for MVP.
 
         for (const item of items) {
-            const product = await Product.findById(item.productId);
+            const product = await Product.findOne({ _id: item.productId, warehouseId });
             if (!product) {
-                return NextResponse.json({ error: `Product not found: ${item.productId}` }, { status: 404 });
+                return NextResponse.json({ error: `Product not found in active warehouse: ${item.productId}` }, { status: 404 });
             }
             if (product.quantity < item.qtyLoaded) {
                 return NextResponse.json({ error: `Insufficient stock for ${product.name}` }, { status: 400 });
@@ -51,9 +51,10 @@ export async function POST(req: Request) {
 
         // Deduct stock
         for (const item of items) {
-            await Product.findByIdAndUpdate(item.productId, {
-                $inc: { quantity: -item.qtyLoaded }
-            });
+            await Product.findOneAndUpdate(
+                { _id: item.productId, warehouseId },
+                { $inc: { quantity: -item.qtyLoaded } }
+            );
         }
 
         // Update Vehicle status

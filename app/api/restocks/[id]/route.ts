@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Restock from "@/models/Restock";
+import { cookies } from "next/headers";
+import Warehouse from "@/models/Warehouse";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +16,18 @@ export async function GET(
     try {
         await dbConnect();
         const { id } = await params;
-        const restock = await Restock.findById(id).populate("items.productId");
+
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+            warehouseId = main._id.toString();
+        }
+
+        const restock = await Restock.findOne({ _id: id, warehouseId }).populate("items.productId");
         if (!restock) {
             return NextResponse.json({ error: "Restock not found" }, { status: 404 });
         }

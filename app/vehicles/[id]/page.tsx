@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams } from "next/navigation";
 import { formatIST, isoDateIST } from "@/lib/dateUtils";
+import { useWarehouse } from "@/components/WarehouseContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ function DatePickerInput({
 export default function VehicleDetailsPage() {
     const params = useParams<{ id: string }>();
     const id = params.id;
+    const { activeWarehouse } = useWarehouse();
 
     const [vehicle, setVehicle] = useState<VehicleData | null>(null);
     const [sales, setSales] = useState<DaySales[]>([]);
@@ -114,6 +116,9 @@ export default function VehicleDetailsPage() {
                     const data = await res.json();
                     setVehicle(data.vehicle);
                     setSales(data.sales || []);
+                } else {
+                    setVehicle(null);
+                    setSales([]);
                 }
             } catch (e) {
                 console.error(e);
@@ -121,12 +126,12 @@ export default function VehicleDetailsPage() {
                 setLoading(false);
             }
         },
-        [id]
+        [id, activeWarehouse?.id]
     );
 
     useEffect(() => {
         fetchSales(fromDate, toDate);
-    }, [fromDate, toDate, fetchSales]);
+    }, [fromDate, toDate, fetchSales, activeWarehouse?.id]);
 
     const handleClear = () => {
         setFromDate("");

@@ -6,6 +6,9 @@ import Vehicle from "@/models/Vehicle";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import { cookies } from "next/headers";
+import Warehouse from "@/models/Warehouse";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +26,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
 
         await dbConnect();
-        const trip = await Trip.findById(id);
+
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+            warehouseId = main._id.toString();
+        }
+
+        const trip = await Trip.findOne({ _id: id, warehouseId });
         if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
         if (trip.status === "VERIFIED") {
@@ -63,9 +77,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         // specific logic for returnedItems: [{ productId, qtyReturned, qtyScheme, discountPerPack }]
         for (const item of returnedItems) {
-            await Product.findByIdAndUpdate(item.productId, {
-                $inc: { quantity: item.qtyReturned }
-            });
+            await Product.findOneAndUpdate(
+                { _id: item.productId, warehouseId },
+                { $inc: { quantity: item.qtyReturned } }
+            );
  
             // Update trip item
             const tripItem = trip.loadedItems.find((i: any) => i.productId.toString() === item.productId);
@@ -78,9 +93,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 // Deduct free items from stock
                 for (const slab of (item.schemes || [])) {
                     for (const free of (slab.freeItems || [])) {
-                        await Product.findByIdAndUpdate(free.productId, {
-                            $inc: { quantity: -free.qty }
-                        });
+                        await Product.findOneAndUpdate(
+                            { _id: free.productId, warehouseId },
+                            { $inc: { quantity: -free.qty } }
+                        );
                     }
                 }
             }
@@ -150,8 +166,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         trip.verifiedBy = (session.user as any).id || (session.user as any)._id;
         await trip.save();
 
-        // Release Vehicle
-        await Vehicle.findByIdAndUpdate(trip.vehicleId, { status: "AVAILABLE" });
+        // Release Vehicle in active warehouse
+        await Vehicle.findOneAndUpdate(
+            { _id: trip.vehicleId, warehouseId },
+            { status: "AVAILABLE" }
+        );
 
         await logActivity({
             userId: (session.user as any).id || (session.user as any)._id,

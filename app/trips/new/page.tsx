@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useWarehouse } from "@/components/WarehouseContext";
 import { Loader2, Save, Trash2, Plus, PackagePlus, ArrowLeft, Truck, Printer } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -39,6 +40,7 @@ const normalizeKey = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
 export default function NewTripPage() {
     const router = useRouter();
+    const { activeWarehouse } = useWarehouse();
     const [saving, setSaving] = useState(false);
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [products, setProducts] = useState<any[]>([]);
@@ -69,6 +71,15 @@ export default function NewTripPage() {
 
     // Initial data fetch
     useEffect(() => {
+        setSelectedVehicle("");
+        setManifest([]);
+        setSelectedPack("");
+        setSelectedFlavour("");
+        setTargetProduct(null);
+        setVehicles([]);
+        setProducts([]);
+        setPackGroups([]);
+
         fetch("/api/vehicles").then(r => r.json()).then(setVehicles).catch(console.error);
 
         fetch("/api/products")
@@ -112,7 +123,7 @@ export default function NewTripPage() {
                 setPackGroups(ordered);
             })
             .catch(console.error);
-    }, []);
+    }, [activeWarehouse?.id]);
 
     // Resolve target product when both pack + flavour are chosen
     useEffect(() => {

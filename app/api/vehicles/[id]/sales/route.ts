@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Trip from "@/models/Trip";
 import Vehicle from "@/models/Vehicle";
+import { cookies } from "next/headers";
+import Warehouse from "@/models/Warehouse";
+import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +34,22 @@ export async function GET(
         const fromDate = url.searchParams.get("fromDate");
         const toDate = url.searchParams.get("toDate");
 
-        const vehicle = await Vehicle.findById(id);
+        // Get active warehouse context
+        const cookieStore = await cookies();
+        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
+            const main = await Warehouse.findOne({ isMain: true });
+            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+            warehouseId = main._id.toString();
+        }
+
+        const vehicle = await Vehicle.findOne({ _id: id, warehouseId });
         if (!vehicle) {
-            return NextResponse.json({ error: "Vehicle not found" }, { status: 404 });
+            return NextResponse.json({ error: "Vehicle not found in active warehouse" }, { status: 404 });
         }
 
         // Build date filter using LOCAL (IST) calendar
-        const tripFilter: any = { vehicleId: id, status: "VERIFIED" };
+        const tripFilter: any = { vehicleId: id, status: "VERIFIED", warehouseId };
 
         if (fromDate || toDate) {
             const dateCondition: any = {};

@@ -38,12 +38,12 @@ export async function POST(req: Request) {
         }
 
         // Check if bill exists
-        const existingBill = await Bill.findOne({ tripId });
+        const existingBill = await Bill.findOne({ tripId, warehouseId });
         if (existingBill) {
             return NextResponse.json({ error: "Bill already exists for this trip" }, { status: 400 });
         }
 
-        const trip = await Trip.findById(tripId).populate("loadedItems.productId");
+        const trip = await Trip.findOne({ _id: tripId, warehouseId }).populate("loadedItems.productId");
         if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
         if (trip.status !== "VERIFIED") {
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
                         const freeItemDetails = [];
                         if (s.freeItems && s.freeItems.length > 0) {
                             for (const free of s.freeItems) {
-                                const freeProd = await Product.findById(free.productId);
+                                const freeProd = await Product.findOne({ _id: free.productId, warehouseId });
                                 if (freeProd) {
                                     freeItemDetails.push({
                                         productId: free.productId.toString(),

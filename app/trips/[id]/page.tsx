@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle, Package, Plus, Trash2 } from "lucide-react";
 import { parsePack, toBottlesRaw, formatPacksAndBottles, toPacksAndBottles } from "@/lib/stock-utils";
+import { useWarehouse } from "@/components/WarehouseContext";
 
 interface PackBottleInput {
     packs: string;
@@ -19,6 +20,7 @@ interface SchemeSlabInput extends PackBottleInput {
 export default function VerifyTripPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
+    const { activeWarehouse } = useWarehouse();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [trip, setTrip] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -47,11 +49,16 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
     // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
+        setLoading(true);
+        setTrip(null);
+        setInputs({});
+        setProductSchemes({});
+
         fetch("/api/trips")
             .then(res => res.json())
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .then((data: any[]) => {
-                const found = data.find(t => t._id === id);
+                const found = (data || []).find(t => t._id === id);
                 if (found) {
                     setTrip(found);
                     const initial: Record<string, PackBottleInput> = {};
@@ -97,13 +104,17 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     setProductSchemes(initialScheme);
                 }
                 setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
             });
 
         // Fetch products for free item selection
         fetch("/api/products")
             .then(res => res.json())
-            .then(data => setAllProducts(data));
-    }, [id]);
+            .then(data => setAllProducts(data || []))
+            .catch(() => {});
+    }, [id, activeWarehouse?.id]);
 
     const isVerified = trip?.status === "VERIFIED";
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Loader2, Receipt, CheckCircle, ArrowRight } from "lucide-react";
 import { formatIST, isoDateIST } from "@/lib/dateUtils";
+import { useWarehouse } from "@/components/WarehouseContext";
 
 export default function BillsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,6 +13,7 @@ export default function BillsPage() {
     const [pendingTrips, setPendingTrips] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState("");
+    const { activeWarehouse } = useWarehouse();
 
     // Manage invoice dates for pending items
     const [dates, setDates] = useState<Record<string, string>>({});
@@ -26,12 +28,12 @@ export default function BillsPage() {
             const billsData = await billsRes.json();
             const tripsData = await tripsRes.json();
 
-            setBills(billsData);
+            setBills(billsData || []);
 
             // Filter verified trips that don't have a bill
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const billTripIds = new Set(billsData.map((b: any) => b.tripId._id));
-            const pending = tripsData.filter(
+            const billTripIds = new Set((billsData || []).map((b: any) => b.tripId?._id).filter(Boolean));
+            const pending = (tripsData || []).filter(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (t: any) => t.status === "VERIFIED" && !billTripIds.has(t._id)
             );
@@ -52,7 +54,7 @@ export default function BillsPage() {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [activeWarehouse?.id]);
 
     const generateBill = async (tripId: string) => {
         setGenerating(tripId);

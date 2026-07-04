@@ -5,20 +5,26 @@ import Link from "next/link";
 import { Loader2, Truck, CheckCircle, MapPin, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 import { formatIST } from "@/lib/dateUtils";
+import { useWarehouse } from "@/components/WarehouseContext";
 
 export default function TripsPage() {
+    const { activeWarehouse } = useWarehouse();
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
     useEffect(() => {
+        setLoading(true);
         fetch("/api/trips")
             .then((res) => res.json())
             .then((data) => {
-                setTrips(data);
+                setTrips(data || []);
+                setLoading(false);
+            })
+            .catch(() => {
                 setLoading(false);
             });
-    }, []);
+    }, [activeWarehouse?.id]);
 
     return (
         <div className="max-w-[1200px] mx-auto animate-in fade-in duration-500 pb-10">

@@ -23,9 +23,9 @@ export interface IRestock extends Document {
 const RestockItemSchema = new Schema<IRestockItem>(
     {
         productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
-        pack: { type: String, required: true },
-        flavour: { type: String, required: true },
-        bottlesPerPack: { type: Number, required: true },
+        pack: { type: String, default: "" },
+        flavour: { type: String, default: "" },
+        bottlesPerPack: { type: Number, default: 1 },
         qtyAdded: { type: Number, required: true },
     },
     { _id: false }
@@ -45,6 +45,6 @@ const RestockSchema: Schema<IRestock> = new Schema(
 );
 
 const Restock: Model<IRestock> =
-    mongoose.models.Restock || mongoose.model<IRestock>("Restock", RestockSchema);
+    (mongoose.models.Restock as Model<IRestock>) || mongoose.model<IRestock>("Restock", RestockSchema);
 
 export default Restock;

@@ -6,34 +6,31 @@ import Link from "next/link";
 import { formatPacksAndBottles, parsePack } from "@/lib/stock-utils";
 import { formatIST } from "@/lib/dateUtils";
 // Note: Client Component cannot import dbConnect directly if we were calling it? 
-// No, I'm fetching data.
-// But I need an API route for GET specific bill OR I'll reuse GET /api/bills? 
-// Reuse is inefficient. I'll add `GET /api/bills/[id]`.
-// Wait, I haven't created `GET /api/bills/[id]`.
-// I can just filter on client side from full list if list is small? MVP?
-// Better to check `GET /api/bills` logic. It returns all.
-// I'll create `app/api/bills/[id]/route.ts` quickly or just use `GET /api/bills` and filter client side for speed now.
-// I'll create the route is cleaner.
+import { useWarehouse } from "@/components/WarehouseContext";
 
 export default function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const { activeWarehouse } = useWarehouse();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [bill, setBill] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Fetching from general list for now to save route creation step, 
-        // assuming list is small for this MVP demo.
-        // Ideally create /api/bills/[id].
+        setLoading(true);
+        setBill(null);
+        
         fetch("/api/bills")
             .then(res => res.json())
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .then((bills: any[]) => {
-                const found = bills.find(b => b._id === id);
+                const found = (bills || []).find(b => b._id === id);
                 if (found) setBill(found);
                 setLoading(false);
+            })
+            .catch(() => {
+                setLoading(false);
             });
-    }, [id]);
+    }, [id, activeWarehouse?.id]);
 
     if (loading) return <div className="p-12 text-center"><Loader2 className="animate-spin inline" /></div>;
     if (!bill) return <div className="p-12 text-center text-red-500">Invoice not found</div>;

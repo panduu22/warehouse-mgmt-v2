@@ -2,6 +2,7 @@
 
 import { useState, useEffect, KeyboardEvent, ClipboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useWarehouse } from "@/components/WarehouseContext";
 import Link from "next/link";
 import {
     ArrowLeft,
@@ -86,6 +87,7 @@ interface ConfirmedRestock {
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function AddStockPage() {
     const router = useRouter();
+    const { activeWarehouse } = useWarehouse();
     const [mode, setMode] = useState<"new" | "existing">("existing");
 
     // ── Existing (Restock) state ───────────────────────────────────────────────
@@ -111,6 +113,16 @@ export default function AddStockPage() {
     // ── Fetch products when on existing tab ───────────────────────────────────
     useEffect(() => {
         if (mode !== "existing") return;
+
+        // Reset inputs, selections, cart, and receipts when active warehouse changes
+        setSelectedPack("");
+        setSelectedFlavour("");
+        setTargetProduct(null);
+        setCart([]);
+        setConfirmedRestock(null);
+        setProducts([]);
+        setPackGroups([]);
+
         fetch("/api/products")
             .then((r) => r.json())
             .then((data: any[]) => {
@@ -154,7 +166,7 @@ export default function AddStockPage() {
                 setPackGroups(ordered);
             })
             .catch(console.error);
-    }, [mode]);
+    }, [mode, activeWarehouse?.id]);
 
     // ── Resolve target product ─────────────────────────────────────────────────
     useEffect(() => {
@@ -346,7 +358,9 @@ export default function AddStockPage() {
                 </Link>
                 <div className="flex-1">
                     <h1 className="text-2xl font-bold text-gray-900">Manage Stock</h1>
-                    <p className="text-sm text-gray-500">Restock existing products or add new ones</p>
+                    <p className="text-sm text-gray-500">
+                        Restock existing products or add new ones for <span className="font-bold text-ruby-600">{activeWarehouse?.name || "Unit"}</span>
+                    </p>
                 </div>
             </div>
 

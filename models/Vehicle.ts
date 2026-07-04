@@ -24,6 +24,7 @@ const VehicleSchema: Schema<IVehicle> = new Schema(
 );
 
 VehicleSchema.index({ number: 1, warehouseId: 1 }, { unique: true });
+VehicleSchema.index({ warehouseId: 1, status: 1 });
 
 const Vehicle: Model<IVehicle> = mongoose.models.Vehicle || mongoose.model<IVehicle>("Vehicle", VehicleSchema);
 

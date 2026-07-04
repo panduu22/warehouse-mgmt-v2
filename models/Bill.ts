@@ -68,6 +68,8 @@ const BillSchema: Schema<IBill> = new Schema(
     { timestamps: true }
 );
 
+BillSchema.index({ warehouseId: 1, generatedAt: -1 });
+
 const Bill: Model<IBill> = mongoose.models.Bill || mongoose.model<IBill>("Bill", BillSchema);
 
 export default Bill;

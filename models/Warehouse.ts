@@ -19,6 +19,8 @@ const WarehouseSchema: Schema<IWarehouse> = new Schema(
     { timestamps: true }
 );
 
+WarehouseSchema.index({ isMain: 1 }, { sparse: true });
+
 const Warehouse: Model<IWarehouse> = mongoose.models.Warehouse || mongoose.model<IWarehouse>("Warehouse", WarehouseSchema);
 
 export default Warehouse;

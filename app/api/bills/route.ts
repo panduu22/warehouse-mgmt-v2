@@ -26,13 +26,13 @@ export async function POST(req: Request) {
     try {
         const { tripId, date } = await req.json();
         
-        // Get active warehouse context
-        const cookieStore = await cookies();
+        // Get active warehouse context and connect to DB in parallel
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-        await dbConnect();
 
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
             warehouseId = main._id.toString();
         }
@@ -48,6 +48,29 @@ export async function POST(req: Request) {
 
         if (trip.status !== "VERIFIED") {
             return NextResponse.json({ error: "Trip must be verified before billing" }, { status: 400 });
+        }
+
+        // --- N+1 Fix: Pre-fetch all free products used in any scheme ---
+        const freeProductIds = new Set<string>();
+        for (const item of trip.loadedItems) {
+            if (item.schemes) {
+                for (const s of item.schemes) {
+                    if (s.freeItems) {
+                        for (const free of s.freeItems) {
+                            freeProductIds.add(free.productId.toString());
+                        }
+                    }
+                }
+            }
+        }
+        
+        let freeProductsMap: Record<string, any> = {};
+        if (freeProductIds.size > 0) {
+            const freeProducts = await Product.find({ _id: { $in: Array.from(freeProductIds) }, warehouseId }).lean();
+            freeProductsMap = freeProducts.reduce((acc, p) => {
+                acc[p._id.toString()] = p;
+                return acc;
+            }, {} as Record<string, any>);
         }
 
         // Calculate Total and Items Snapshot
@@ -87,7 +110,7 @@ export async function POST(req: Request) {
                         const freeItemDetails = [];
                         if (s.freeItems && s.freeItems.length > 0) {
                             for (const free of s.freeItems) {
-                                const freeProd = await Product.findOne({ _id: free.productId, warehouseId });
+                                const freeProd = freeProductsMap[free.productId.toString()];
                                 if (freeProd) {
                                     freeItemDetails.push({
                                         productId: free.productId.toString(),
@@ -181,14 +204,12 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        await dbConnect();
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
         
-        // Get active warehouse context
-        const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (main) warehouseId = main._id.toString();
         }
         
@@ -203,7 +224,9 @@ export async function GET() {
                 ]
             })
             .populate("warehouseId")
-            .sort({ generatedAt: -1 });
+            .sort({ generatedAt: -1 })
+            .lean();
+            
         return NextResponse.json(bills);
     } catch (e) {
         return NextResponse.json({ error: "Failed to fetch bills" }, { status: 500 });

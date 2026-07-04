@@ -39,6 +39,7 @@ async function dbConnect() {
       serverSelectionTimeoutMS: 5000,  // Fail fast if Atlas unreachable (was 30s default)
       connectTimeoutMS: 10000,         // Max time to establish connection
       socketTimeoutMS: 30000,          // Max time to wait for a response
+      maxPoolSize: 10,                 // Optimal for Vercel/serverless
     };
 
     cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {

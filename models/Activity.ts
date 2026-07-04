@@ -23,6 +23,8 @@ const ActivitySchema: Schema<IActivity> = new Schema(
     { timestamps: true }
 );
 
+ActivitySchema.index({ warehouseId: 1, createdAt: -1 });
+
 const Activity: Model<IActivity> = mongoose.models.Activity || mongoose.model<IActivity>("Activity", ActivitySchema);
 
 export default Activity;

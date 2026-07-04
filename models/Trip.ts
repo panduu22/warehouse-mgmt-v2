@@ -73,6 +73,9 @@ const TripSchema: Schema<ITrip> = new Schema(
     { timestamps: true }
 );
 
+TripSchema.index({ warehouseId: 1, createdAt: -1 });
+TripSchema.index({ warehouseId: 1, status: 1 });
+
 const Trip: Model<ITrip> = mongoose.models.Trip || mongoose.model<ITrip>("Trip", TripSchema);
 
 export default Trip;

@@ -515,10 +515,10 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 </div>
 
                 <div className="divide-y divide-gray-100">
-                    {trip.loadedItems.map((item: any) => {
+                    {trip.loadedItems.map((item: any, index: number) => {
                         const bpp = item.productId.bottlesPerPack;
                         return (
-                            <div key={item.productId._id} className="p-6 hover:bg-gray-50/30 transition-colors">
+                            <div key={item._id || `${item.productId._id}-${index}`} className="p-6 hover:bg-gray-50/30 transition-colors">
                                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                                     <div className="flex items-center gap-4 flex-1">
                                         <div className="bg-primary/10 p-4 rounded-2xl text-primary shadow-sm">

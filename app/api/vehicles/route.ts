@@ -42,19 +42,18 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-    await dbConnect();
     try {
-        // Get active warehouse context
-        const cookieStore = await cookies();
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (main) warehouseId = main._id.toString();
         }
         
         const filter = warehouseId ? { warehouseId } : {};
-        const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
+        const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 }).lean();
         return NextResponse.json(vehicles);
     } catch (error) {
         return NextResponse.json({ error: "Failed to fetch vehicles" }, { status: 500 });

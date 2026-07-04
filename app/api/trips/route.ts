@@ -18,13 +18,13 @@ export async function POST(req: Request) {
     try {
         const { vehicleId, items } = await req.json();
 
-        // Get active warehouse context
-        const cookieStore = await cookies();
+        // Get active warehouse context and connect to DB in parallel
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-        await dbConnect();
 
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
             warehouseId = main._id.toString();
         }
@@ -32,8 +32,6 @@ export async function POST(req: Request) {
         if (!vehicleId || !items || items.length === 0) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 });
         }
-
-        await dbConnect();
 
         // Verify loading possibility and deduct stock
         // Using transaction would be better but replica set required. 
@@ -85,23 +83,22 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        await dbConnect();
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
         
-        // Get active warehouse context
-        const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (main) warehouseId = main._id.toString();
         }
         
         const filter = warehouseId ? { warehouseId } : {};
 
         const trips = await Trip.find(filter)
-            .populate("vehicleId")
-            .populate("loadedItems.productId") // Populate product details in items
-            .sort({ createdAt: -1 });
+            .populate("vehicleId", "number driverName status") // Only needed fields
+            .sort({ createdAt: -1 })
+            .lean();
+            
         return NextResponse.json(trips);
     } catch (error) {
         return NextResponse.json({ error: "Failed to fetch trips" }, { status: 500 });

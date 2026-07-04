@@ -74,19 +74,17 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
-        await dbConnect();
-
-        // Get active warehouse context
-        const cookieStore = await cookies();
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
 
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (main) warehouseId = main._id.toString();
         }
 
         const filter = warehouseId ? { warehouseId } : {};
-        const products = await Product.find(filter).sort({ createdAt: -1 });
+        const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
 
         return NextResponse.json(products);
     } catch (error) {

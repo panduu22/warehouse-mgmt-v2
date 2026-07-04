@@ -44,6 +44,8 @@ const RestockSchema: Schema<IRestock> = new Schema(
     { timestamps: true }
 );
 
+RestockSchema.index({ warehouseId: 1, createdAt: -1 });
+
 const Restock: Model<IRestock> =
     (mongoose.models.Restock as Model<IRestock>) || mongoose.model<IRestock>("Restock", RestockSchema);
 

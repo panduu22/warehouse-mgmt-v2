@@ -148,22 +148,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(restock, { status: 201 });
 }
 
-// ── GET /api/restocks ─────────────────────────────────────────────────────────
-// Returns all restocks for the active warehouse, newest first.
 export async function GET() {
     try {
-        await dbConnect();
+        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
 
-        const cookieStore = await cookies();
         let warehouseId = cookieStore.get("activeWarehouseId")?.value;
 
         if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
+            const main = await Warehouse.findOne({ isMain: true }).lean();
             if (main) warehouseId = main._id.toString();
         }
 
         const filter = warehouseId ? { warehouseId } : {};
-        const restocks = await Restock.find(filter).sort({ createdAt: -1 });
+        const restocks = await Restock.find(filter).sort({ createdAt: -1 }).lean();
 
         return NextResponse.json(restocks);
     } catch (error) {

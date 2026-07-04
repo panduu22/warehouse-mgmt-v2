@@ -1,139 +1,273 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent, ClipboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Loader2, Plus, Box, PackagePlus, ArrowRight, Check } from "lucide-react";
+import {
+    ArrowLeft,
+    Save,
+    Loader2,
+    Plus,
+    Box,
+    PackagePlus,
+    Check,
+    Trash2,
+    Printer,
+    RefreshCw,
+} from "lucide-react";
 import clsx from "clsx";
 import { parsePack, formatPacksAndBottles, PRODUCT_SORT_ORDER } from "@/lib/stock-utils";
+import { formatIST } from "@/lib/dateUtils";
 
+// ─── Pack ordering ─────────────────────────────────────────────────────────────
+const PACK_ORDER = [
+    "150 ml Tetra",
+    "200 ml RGB",
+    "250 ml PET",
+    "300 ml RGB",
+    "330 ml CAN",
+    "300 ml CAN",
+    "300 ml",
+    "350 ml CAN",
+    "400 ml CSD",
+    "400 mlcsd",
+    "500 ml",
+    "600 ml PET",
+    "740 ml",
+    "750 ml",
+    "850 ml",
+    "1 ltr PET",
+    "1 ltr",
+    "1.2 ltr",
+    "1.25 Ltr PET",
+    "1.5 ltr PET",
+    "1.75 ltr",
+    "2 ltr",
+    "2.25 Ltr PET",
+];
+
+const normalizeKey = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+
+// ─── Input validation helpers ──────────────────────────────────────────────────
+/** Blocks -, +, ., e, E from being typed into integer-only inputs */
+function blockNonInteger(e: KeyboardEvent<HTMLInputElement>) {
+    if (["-", "+", ".", "e", "E"].includes(e.key)) {
+        e.preventDefault();
+    }
+}
+
+/** Strips non-numeric characters on paste */
+function handleIntPaste(
+    e: ClipboardEvent<HTMLInputElement>,
+    setter: (v: string) => void
+) {
+    e.preventDefault();
+    const clean = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+    setter(clean);
+}
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+interface CartItem {
+    productId: string;
+    pack: string;
+    flavour: string;
+    bottlesPerPack: number;
+    qtyAdded: number; // total bottles
+}
+
+interface ConfirmedRestock {
+    restockId: string;
+    userName: string;
+    warehouseName: string;
+    createdAt: string;
+    items: CartItem[];
+}
+
+// ─── Component ─────────────────────────────────────────────────────────────────
 export default function AddStockPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const [mode, setMode] = useState<"new" | "existing">("existing");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // ── Existing (Restock) state ───────────────────────────────────────────────
     const [products, setProducts] = useState<any[]>([]);
-
-    // Selection State
+    const [packGroups, setPackGroups] = useState<{ pack: string; flavours: string[] }[]>([]);
     const [selectedPack, setSelectedPack] = useState("");
     const [selectedFlavour, setSelectedFlavour] = useState("");
-
-    // Derived/Data State
-    const [availablePacks, setAvailablePacks] = useState<string[]>([]);
-    const [availableFlavours, setAvailableFlavours] = useState<string[]>([]);
     const [targetProduct, setTargetProduct] = useState<any>(null);
-
     const [addPacks, setAddPacks] = useState("0");
     const [addBottles, setAddBottles] = useState("0");
 
+    // Cart
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [saving, setSaving] = useState(false);
+
+    // After confirmation — hold receipt data for print
+    const [confirmedRestock, setConfirmedRestock] = useState<ConfirmedRestock | null>(null);
+
+    // ── New Product state ──────────────────────────────────────────────────────
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    // ── Fetch products when on existing tab ───────────────────────────────────
     useEffect(() => {
-        if (mode === "existing") {
-            fetch("/api/products")
-                .then(res => res.json())
-                .then(data => {
-                    setProducts(data);
-                    
-                    // Extract unique packs
-                    const packs = data.map((p: any) => p.pack).filter(Boolean);
-                    const uniquePacks = Array.from(new Set(packs)) as string[];
-                    
-                    // Sort packs logic: ml first, then Ltr
-                    uniquePacks.sort((a, b) => {
-                        const getPackIndex = (p: string) => {
-                            const idx = PRODUCT_SORT_ORDER.findIndex(s => s.toLowerCase().startsWith(p.toLowerCase()));
-                            return idx === -1 ? 999 : idx;
-                        };
-                        return getPackIndex(a) - getPackIndex(b);
+        if (mode !== "existing") return;
+        fetch("/api/products")
+            .then((r) => r.json())
+            .then((data: any[]) => {
+                setProducts(data);
+
+                // Build pack → flavours map
+                const packMap = new Map<string, string[]>();
+                data.forEach((p: any) => {
+                    if (!p.pack || !p.flavour) return;
+                    if (!packMap.has(p.pack)) packMap.set(p.pack, []);
+                    const list = packMap.get(p.pack)!;
+                    if (!list.includes(p.flavour)) list.push(p.flavour);
+                });
+
+                // Sort flavours using PRODUCT_SORT_ORDER
+                packMap.forEach((flavours) => {
+                    flavours.sort((a, b) => {
+                        const ia = PRODUCT_SORT_ORDER.findIndex((s) =>
+                            s.toLowerCase().includes(a.toLowerCase())
+                        );
+                        const ib = PRODUCT_SORT_ORDER.findIndex((s) =>
+                            s.toLowerCase().includes(b.toLowerCase())
+                        );
+                        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
                     });
-                    
-                    setAvailablePacks(uniquePacks);
-                })
-                .catch(console.error);
-        }
+                });
+
+                // Order packs by PACK_ORDER
+                const ordered: { pack: string; flavours: string[] }[] = [];
+                PACK_ORDER.forEach((orderedPack) => {
+                    const norm = normalizeKey(orderedPack);
+                    for (const [key, flavours] of packMap.entries()) {
+                        if (normalizeKey(key) === norm) {
+                            ordered.push({ pack: key, flavours });
+                            packMap.delete(key);
+                            break;
+                        }
+                    }
+                });
+                packMap.forEach((flavours, pack) => ordered.push({ pack, flavours }));
+                setPackGroups(ordered);
+            })
+            .catch(console.error);
     }, [mode]);
 
-    useEffect(() => {
-        if (selectedPack) {
-            // Filter flavours for this pack
-            const flavours = products
-                .filter(p => p.pack === selectedPack)
-                .map(p => p.flavour)
-                .filter(Boolean);
-            
-            // Unique flavours in order
-            const uniqueFlavours: string[] = [];
-            PRODUCT_SORT_ORDER.forEach(item => {
-                const flav = item.split(" - ")[1];
-                if (flav && !uniqueFlavours.includes(flav) && flavours.includes(flav)) {
-                    uniqueFlavours.push(flav);
-                }
-            });
-            // Add any leftovers
-            const others = flavours.filter(f => !uniqueFlavours.includes(f));
-            const sortedFlavours = Array.from(new Set([...uniqueFlavours, ...others.sort()])) as string[];
-            
-            setAvailableFlavours(sortedFlavours);
-        } else {
-            setAvailableFlavours([]);
-        }
-    }, [selectedPack, products]);
-
+    // ── Resolve target product ─────────────────────────────────────────────────
     useEffect(() => {
         if (selectedPack && selectedFlavour) {
-            const prod = products.find(p => p.pack === selectedPack && p.flavour === selectedFlavour);
+            const prod = products.find(
+                (p) => p.pack === selectedPack && p.flavour === selectedFlavour
+            );
             setTargetProduct(prod || null);
+            if (prod) {
+                setAddPacks("0");
+                setAddBottles("0");
+            }
         } else {
             setTargetProduct(null);
         }
     }, [selectedPack, selectedFlavour, products]);
 
-    const handleAddBottleChange = (val: string, bpp: number) => {
-        const b = parseInt(val, 10);
-        if (!isNaN(b) && b >= bpp) {
+    // ── Auto-convert excess bottles → packs ──────────────────────────────────
+    useEffect(() => {
+        if (!targetProduct) return;
+        const bpp: number = targetProduct.bottlesPerPack;
+        const b = parseInt(addBottles || "0", 10);
+        if (b >= bpp) {
             const extraPacks = Math.floor(b / bpp);
-            const remBottles = b % bpp;
-            setAddPacks(prev => String(parseInt(prev || "0", 10) + extraPacks));
-            setAddBottles(String(remBottles));
-        } else {
-            setAddBottles(val);
+            setAddPacks((prev) => (parseInt(prev || "0", 10) + extraPacks).toString());
+            setAddBottles((b % bpp).toString());
         }
+    }, [addBottles, targetProduct]);
+
+    // ── Cart actions ───────────────────────────────────────────────────────────
+    const addToCart = () => {
+        if (!targetProduct) return;
+        const bpp: number = targetProduct.bottlesPerPack;
+        const totalBottles =
+            parseInt(addPacks || "0", 10) * bpp + parseInt(addBottles || "0", 10);
+        if (totalBottles <= 0) return;
+
+        setCart((prev) => {
+            const existingIdx = prev.findIndex(
+                (c) => c.productId === targetProduct._id
+            );
+            if (existingIdx >= 0) {
+                const updated = [...prev];
+                updated[existingIdx] = {
+                    ...updated[existingIdx],
+                    qtyAdded: updated[existingIdx].qtyAdded + totalBottles,
+                };
+                return updated;
+            }
+            return [
+                ...prev,
+                {
+                    productId: targetProduct._id,
+                    pack: targetProduct.pack,
+                    flavour: targetProduct.flavour,
+                    bottlesPerPack: bpp,
+                    qtyAdded: totalBottles,
+                },
+            ];
+        });
+
+        setAddPacks("0");
+        setAddBottles("0");
+        setSelectedFlavour(""); // keep pack open for next flavour
     };
 
-    const handleRestock = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
+    const removeFromCart = (idx: number) =>
+        setCart((prev) => prev.filter((_, i) => i !== idx));
 
-        if (!targetProduct) return;
-
-        const bpp = targetProduct.bottlesPerPack;
-        const bottlesAdded = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
-
+    // ── Confirm restock ────────────────────────────────────────────────────────
+    const handleConfirmRestock = async () => {
+        if (cart.length === 0) return;
+        setSaving(true);
         try {
-            const res = await fetch(`/api/products/${targetProduct._id}`, {
-                method: "PATCH",
+            const res = await fetch("/api/restocks", {
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    quantityToAdd: bottlesAdded
+                    items: cart.map((c) => ({
+                        productId: c.productId,
+                        qtyAdded: c.qtyAdded,
+                        pack: c.pack,
+                        flavour: c.flavour,
+                        bottlesPerPack: c.bottlesPerPack,
+                    })),
                 }),
             });
+            if (!res.ok) throw new Error((await res.json()).error || "Failed");
+            const restock = await res.json();
 
-            if (!res.ok) {
-                const json = await res.json();
-                throw new Error(json.error || "Failed to update stock");
-            }
+            // Store for print receipt
+            setConfirmedRestock({
+                restockId: restock.restockId,
+                userName: restock.userName,
+                warehouseName: restock.warehouseName,
+                createdAt: restock.createdAt,
+                items: cart,
+            });
 
-            router.push("/stock");
-            router.refresh();
+            // Clear cart and refresh products (stock changed)
+            setCart([]);
+            fetch("/api/products")
+                .then((r) => r.json())
+                .then(setProducts)
+                .catch(() => {});
         } catch (err: any) {
-            setError(err.message);
+            alert(err.message);
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     };
 
+    // ── New Product form submit ────────────────────────────────────────────────
     const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
@@ -145,20 +279,20 @@ export default function AddStockPage() {
         const name = `${pack} ${flavour}`.trim();
         const bpp = Number(formData.get("bottlesPerPack") || parsePack(pack, name));
 
-        const initialPacks = parseInt(formData.get("initialPacks") as string || "0", 10);
-        const initialBottles = parseInt(formData.get("initialBottles") as string || "0", 10);
-        const totalBottles = (initialPacks * bpp) + initialBottles;
+        const initialPacks = parseInt((formData.get("initialPacks") as string) || "0", 10);
+        const initialBottles = parseInt((formData.get("initialBottles") as string) || "0", 10);
+        const totalBottles = initialPacks * bpp + initialBottles;
 
         const data = {
-            name: name,
+            name,
             quantity: totalBottles,
             price: Number(formData.get("price")),
             invoiceCost: Number(formData.get("invoiceCost")),
             mrp: Number(formData.get("mrp")),
             salePrice: Number(formData.get("salePrice")),
-            pack: pack,
-            flavour: flavour,
-            bottlesPerPack: bpp
+            pack,
+            flavour,
+            bottlesPerPack: bpp,
         };
 
         try {
@@ -182,188 +316,506 @@ export default function AddStockPage() {
         }
     };
 
+    // ─── Derived ────────────────────────────────────────────────────────────────
+    const isAddDisabled =
+        !targetProduct ||
+        parseInt(addPacks || "0", 10) * (targetProduct?.bottlesPerPack ?? 1) +
+            parseInt(addBottles || "0", 10) <=
+            0;
+
+    const cartTotals = cart.reduce(
+        (acc, item) => {
+            acc.packs += Math.floor(item.qtyAdded / item.bottlesPerPack);
+            acc.bottles += item.qtyAdded % item.bottlesPerPack;
+            return acc;
+        },
+        { packs: 0, bottles: 0 }
+    );
+
+    // ─── Render ─────────────────────────────────────────────────────────────────
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-4 mb-8">
+        <div className="max-w-6xl mx-auto pb-12">
+
+            {/* ── Header ── */}
+            <div className="flex items-center gap-4 mb-8 print:hidden">
                 <Link
                     href="/stock"
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
-                <h1 className="text-2xl font-bold text-gray-900">Manage Stock</h1>
+                <div className="flex-1">
+                    <h1 className="text-2xl font-bold text-gray-900">Manage Stock</h1>
+                    <p className="text-sm text-gray-500">Restock existing products or add new ones</p>
+                </div>
             </div>
 
-            {/* Mode Toggle */}
-            <div className="bg-gray-100 p-1 rounded-xl flex gap-1 mb-8 max-w-md mx-auto">
+            {/* ── Mode Toggle ── */}
+            <div className="bg-gray-100 p-1 rounded-xl flex gap-1 mb-8 max-w-md mx-auto print:hidden">
                 <button
                     onClick={() => setMode("existing")}
-                    className={clsx("flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all", {
-                        "bg-white text-ruby-700 shadow-sm": mode === "existing",
-                        "text-gray-500 hover:text-gray-900": mode !== "existing"
-                    })}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all",
+                        {
+                            "bg-white text-ruby-700 shadow-sm": mode === "existing",
+                            "text-gray-500 hover:text-gray-900": mode !== "existing",
+                        }
+                    )}
                 >
                     <Box className="w-4 h-4" />
                     Restock Existing
                 </button>
                 <button
                     onClick={() => setMode("new")}
-                    className={clsx("flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all", {
-                        "bg-white text-ruby-700 shadow-sm": mode === "new",
-                        "text-gray-500 hover:text-gray-900": mode !== "new"
-                    })}
+                    className={clsx(
+                        "flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all",
+                        {
+                            "bg-white text-ruby-700 shadow-sm": mode === "new",
+                            "text-gray-500 hover:text-gray-900": mode !== "new",
+                        }
+                    )}
                 >
                     <Plus className="w-4 h-4" />
                     Add New Product
                 </button>
             </div>
 
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6">
-                        {error}
-                    </div>
-                )}
+            {mode === "existing" ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {mode === "existing" ? (
-                    <form onSubmit={handleRestock} className="space-y-8">
+                    {/* ══ LEFT: Product selector ══ */}
+                    <div className="lg:col-span-2 space-y-6 print:hidden">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <PackagePlus className="w-4 h-4 text-ruby-600" />
+                                Select Products to Restock
+                            </h2>
 
-                        {/* 1. Pack Selection */}
-                        <div>
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <span className="bg-ruby-100 text-ruby-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
-                                Select Pack
-                            </h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                                {availablePacks.map(pack => (
-                                    <button
-                                        key={pack}
-                                        type="button"
-                                        onClick={() => {
-                                            setSelectedPack(pack);
-                                            setSelectedFlavour(""); // Reset flavour when pack changes
-                                        }}
-                                        className={clsx("p-4 rounded-xl border text-sm font-medium transition-all text-center hover:shadow-md", {
-                                            "border-ruby-500 bg-ruby-50 text-ruby-900 ring-2 ring-ruby-100": selectedPack === pack,
-                                            "border-gray-200 bg-white text-gray-600 hover:border-ruby-200": selectedPack !== pack
-                                        })}
-                                    >
-                                        {pack}
-                                    </button>
+                            <label className="text-xs font-semibold text-gray-500 uppercase mb-3 block">
+                                Step 1 — Select Pack Size
+                            </label>
+
+                            <div className="space-y-3">
+                                {packGroups.map((group) => (
+                                    <div key={group.pack}>
+                                        {/* Pack accordion header */}
+                                        <button
+                                            onClick={() => {
+                                                setSelectedPack((prev) =>
+                                                    prev === group.pack ? "" : group.pack
+                                                );
+                                                setSelectedFlavour("");
+                                                setAddPacks("0");
+                                                setAddBottles("0");
+                                            }}
+                                            className={clsx(
+                                                "w-full text-left px-4 py-3 rounded-xl border font-bold text-sm transition-all flex items-center justify-between",
+                                                selectedPack === group.pack
+                                                    ? "border-ruby-500 bg-ruby-50 text-ruby-900 ring-1 ring-ruby-500"
+                                                    : "border-gray-200 bg-gray-50 text-gray-700 hover:border-ruby-300 hover:bg-ruby-50/40"
+                                            )}
+                                        >
+                                            <span>{group.pack}</span>
+                                            <span className="text-xs font-medium text-gray-400">
+                                                {group.flavours.length} flavour
+                                                {group.flavours.length !== 1 ? "s" : ""}
+                                            </span>
+                                        </button>
+
+                                        {/* Flavour cards */}
+                                        {selectedPack === group.pack && (
+                                            <div className="mt-2 ml-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                                                    Step 2 — Select Flavour &amp; Quantity
+                                                </label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                    {group.flavours.map((flav) => {
+                                                        const prod = products.find(
+                                                            (p) =>
+                                                                p.pack === group.pack &&
+                                                                p.flavour === flav
+                                                        );
+                                                        return (
+                                                            <div
+                                                                key={flav}
+                                                                className={clsx(
+                                                                    "rounded-xl border transition-all overflow-hidden flex flex-col",
+                                                                    selectedFlavour === flav
+                                                                        ? "border-teal-500 bg-teal-50/50 ring-1 ring-teal-500"
+                                                                        : "border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/20"
+                                                                )}
+                                                            >
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedFlavour((prev) =>
+                                                                            prev === flav ? "" : flav
+                                                                        );
+                                                                        setAddPacks("0");
+                                                                        setAddBottles("0");
+                                                                    }}
+                                                                    className={clsx(
+                                                                        "p-3 w-full text-sm font-bold text-left flex justify-between items-center",
+                                                                        selectedFlavour === flav
+                                                                            ? "text-teal-900 bg-teal-100/50"
+                                                                            : "text-gray-700"
+                                                                    )}
+                                                                >
+                                                                    <span>{flav}</span>
+                                                                    {prod && (
+                                                                        <span className="text-[10px] font-semibold text-gray-400">
+                                                                            {formatPacksAndBottles(
+                                                                                prod.quantity,
+                                                                                prod.bottlesPerPack
+                                                                            )}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+
+                                                                {selectedFlavour === flav &&
+                                                                    targetProduct && (
+                                                                        <div className="p-3 bg-white border-t border-teal-100 flex flex-col gap-3 animate-in slide-in-from-top-1">
+                                                                            <div className="text-xs text-gray-500">
+                                                                                In stock:{" "}
+                                                                                <span className="font-bold text-gray-900">
+                                                                                    {formatPacksAndBottles(
+                                                                                        targetProduct.quantity,
+                                                                                        targetProduct.bottlesPerPack
+                                                                                    )}
+                                                                                </span>
+                                                                                <span className="text-gray-400 ml-1">
+                                                                                    ({targetProduct.bottlesPerPack} per pack)
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="flex gap-2">
+                                                                                <div className="flex-1">
+                                                                                    <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">
+                                                                                        Packs
+                                                                                    </label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        min="0"
+                                                                                        value={addPacks}
+                                                                                        onChange={(e) =>
+                                                                                            setAddPacks(
+                                                                                                e.target.value
+                                                                                            )
+                                                                                        }
+                                                                                        onKeyDown={blockNonInteger}
+                                                                                        onPaste={(e) =>
+                                                                                            handleIntPaste(
+                                                                                                e,
+                                                                                                setAddPacks
+                                                                                            )
+                                                                                        }
+                                                                                        onBlur={(e) => {
+                                                                                            if (
+                                                                                                e.target.value === "" ||
+                                                                                                e.target.value === "-"
+                                                                                            )
+                                                                                                setAddPacks("0");
+                                                                                        }}
+                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="flex-1">
+                                                                                    <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">
+                                                                                        Bottles
+                                                                                        <span className="ml-1 text-gray-400 normal-case">
+                                                                                            (max{" "}
+                                                                                            {targetProduct.bottlesPerPack -
+                                                                                                1}
+                                                                                            )
+                                                                                        </span>
+                                                                                    </label>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        min="0"
+                                                                                        max={
+                                                                                            targetProduct.bottlesPerPack -
+                                                                                            1
+                                                                                        }
+                                                                                        value={addBottles}
+                                                                                        onChange={(e) =>
+                                                                                            setAddBottles(
+                                                                                                e.target.value
+                                                                                            )
+                                                                                        }
+                                                                                        onKeyDown={blockNonInteger}
+                                                                                        onPaste={(e) =>
+                                                                                            handleIntPaste(
+                                                                                                e,
+                                                                                                setAddBottles
+                                                                                            )
+                                                                                        }
+                                                                                        onBlur={(e) => {
+                                                                                            if (
+                                                                                                e.target.value === "" ||
+                                                                                                e.target.value === "-"
+                                                                                            )
+                                                                                                setAddBottles("0");
+                                                                                        }}
+                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                onClick={addToCart}
+                                                                                disabled={isAddDisabled}
+                                                                                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md font-bold text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                                                                            >
+                                                                                <Plus className="w-4 h-4" />
+                                                                                Add to Restock
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
-                        </div>
 
-                        {/* 2. Flavour Selection */}
-                        {selectedPack && (
-                            <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <span className="bg-ruby-100 text-ruby-700 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
-                                    Select Flavour
-                                </h3>
-                                <div className="flex flex-wrap gap-3">
-                                    {availableFlavours.map(flav => (
-                                        <button
-                                            key={flav}
-                                            type="button"
-                                            onClick={() => setSelectedFlavour(flav)}
-                                            className={clsx("px-6 py-3 rounded-full border text-sm font-bold transition-all hover:shadow-md flex items-center gap-2", {
-                                                "border-teal-500 bg-teal-50 text-teal-800 ring-2 ring-teal-100": selectedFlavour === flav,
-                                                "border-gray-200 bg-white text-gray-600 hover:border-teal-200": selectedFlavour !== flav
-                                            })}
-                                        >
-                                            {flav}
-                                            {selectedFlavour === flav && <Check className="w-4 h-4" />}
-                                        </button>
-                                    ))}
+                            {!targetProduct && selectedPack && selectedFlavour && (
+                                <div className="mt-4 text-amber-600 text-sm p-4 bg-amber-50 rounded-lg border border-amber-100">
+                                    Product not found for this combination.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ══ RIGHT: Restock cart ══ */}
+                    <div className="lg:col-span-1 print:col-span-3">
+                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 sticky top-6 overflow-hidden flex flex-col print:shadow-none print:border-none print:relative print:top-0">
+
+                            {/* ── Print-only receipt header ── */}
+                            <div className="hidden print:block p-8 border-b-2 border-black mb-2">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h1 className="text-4xl font-black uppercase tracking-tighter text-black">
+                                            Restock Receipt
+                                        </h1>
+                                        <p className="text-sm font-bold text-gray-600 mt-1">
+                                            {confirmedRestock?.restockId ?? "—"}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                                            Warehouse
+                                        </div>
+                                        <div className="text-2xl font-black text-black">
+                                            {confirmedRestock?.warehouseName ?? "—"}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-8 text-sm mt-2">
+                                    <div>
+                                        <span className="font-bold text-gray-400 uppercase text-xs tracking-widest mr-2">
+                                            By
+                                        </span>
+                                        <span className="font-bold text-black">
+                                            {confirmedRestock?.userName ?? "—"}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="font-bold text-gray-400 uppercase text-xs tracking-widest mr-2">
+                                            Date
+                                        </span>
+                                        <span className="font-bold text-black">
+                                            {confirmedRestock
+                                                ? formatIST(new Date(confirmedRestock.createdAt), {
+                                                      dateStyle: "long",
+                                                      timeStyle: "short",
+                                                  })
+                                                : formatIST(new Date())}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        )}
 
-                        {/* 3. Confirmation & Quantity */}
-                        {targetProduct && (
-                            <div className="animate-in fade-in slide-in-from-top-4 duration-300 pt-6 border-t border-gray-100">
-                                <div className="bg-gradient-to-r from-gray-50 to-white p-6 rounded-xl border border-gray-200 flex flex-col md:flex-row gap-8 items-center justify-between">
-                                    <div className="flex-1">
-                                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Selected Product</p>
-                                        <div className="flex flex-col gap-1 mb-2">
-                                            <p className="text-xl font-bold text-gray-900">{targetProduct.pack} - {targetProduct.flavour}</p>
-                                            <div className="flex gap-4 text-sm text-gray-500">
-                                                <span>Cost: ₹{targetProduct.invoiceCost || "-"}</span>
-                                                <span>Price: ₹{targetProduct.price}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-8">
-                                        <div className="text-center">
-                                            <p className="text-xs text-ruby-600 font-bold uppercase tracking-wider">Current</p>
-                                            <p className="text-2xl font-bold text-ruby-900">{Math.floor(targetProduct.quantity / targetProduct.bottlesPerPack)}P + {targetProduct.quantity % targetProduct.bottlesPerPack}B</p>
-                                        </div>
-                                        <div className="text-gray-300">
-                                            <Plus className="w-6 h-6" />
-                                        </div>
-                                        <div className="w-48 flex items-center gap-2">
-                                            <input
-                                                type="number"
-                                                value={addPacks}
-                                                onChange={(e) => setAddPacks(e.target.value)}
-                                                placeholder="Packs"
-                                                className="w-full px-3 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
-                                                autoFocus
-                                            />
-                                            <span className="text-gray-300 font-bold">+</span>
-                                            <input
-                                                type="number"
-                                                value={addBottles}
-                                                onChange={(e) => handleAddBottleChange(e.target.value, targetProduct.bottlesPerPack)}
-                                                placeholder="Bottles"
-                                                className="w-full px-3 py-3 rounded-lg border border-ruby-200 text-center font-bold text-xl text-ruby-900 focus:ring-2 focus:ring-ruby-500 outline-none placeholder:text-gray-300"
-                                            />
-                                        </div>
-                                        <div className="text-gray-300">
-                                            <ArrowRight className="w-6 h-6" />
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-xs text-teal-600 font-bold uppercase tracking-wider">New Total</p>
-                                            <p className="text-3xl font-bold text-teal-700">
-                                                {(() => {
-                                                    const bpp = targetProduct.bottlesPerPack;
-                                                    const added = (parseInt(addPacks || "0", 10) * bpp) + parseInt(addBottles || "0", 10);
-                                                    const totalVal = targetProduct.quantity + added;
-                                                    return `${Math.floor(totalVal / bpp)}P + ${totalVal % bpp}B`;
-                                                })()}
-                                            </p>
-                                        </div>
-                                    </div>
+                            {/* ── Screen panel header ── */}
+                            <div className="p-4 bg-gray-50 border-b border-gray-100 print:bg-white print:border-b-2 print:border-black">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h2 className="font-bold text-gray-900 flex items-center gap-2 print:text-2xl print:font-black">
+                                        Restock Items
+                                        <span className="text-xs bg-ruby-100 text-ruby-700 px-2 py-1 rounded-full print:bg-black print:text-white">
+                                            {confirmedRestock
+                                                ? confirmedRestock.items.length
+                                                : cart.length}{" "}
+                                            Items
+                                        </span>
+                                    </h2>
+                                    {(cart.length > 0 || confirmedRestock) && (
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-ruby-600 transition-all border border-transparent hover:border-gray-200 print:hidden"
+                                            title="Print Receipt"
+                                        >
+                                            <Printer className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </div>
 
-                                <div className="pt-8 flex justify-end">
+                                {/* Cart / receipt totals */}
+                                {(cart.length > 0 || confirmedRestock) && (
+                                    <div className="flex justify-between text-sm print:mt-4">
+                                        <span className="text-gray-500 font-medium print:font-bold print:text-lg">
+                                            Total Added
+                                        </span>
+                                        <span className="font-bold text-gray-900 print:text-2xl print:font-black">
+                                            {(() => {
+                                                const items = confirmedRestock
+                                                    ? confirmedRestock.items
+                                                    : cart;
+                                                let p = 0,
+                                                    b = 0;
+                                                items.forEach((i) => {
+                                                    p += Math.floor(i.qtyAdded / i.bottlesPerPack);
+                                                    b += i.qtyAdded % i.bottlesPerPack;
+                                                });
+                                                return `${p} Packs + ${b} Bottles`;
+                                            })()}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Success banner after confirmation */}
+                                {confirmedRestock && (
+                                    <div className="mt-3 flex items-center gap-2 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 print:hidden">
+                                        <Check className="w-4 h-4 text-teal-600 shrink-0" />
+                                        <span>
+                                            Restock confirmed!{" "}
+                                            <span className="font-black">{confirmedRestock.restockId}</span>
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ── Cart / confirmed items ── */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 print:overflow-visible print:p-0 print:mt-6">
+                                {(() => {
+                                    const displayItems = confirmedRestock
+                                        ? confirmedRestock.items
+                                        : cart;
+                                    if (displayItems.length === 0) {
+                                        return (
+                                            <div className="text-center py-12 text-gray-400 print:hidden">
+                                                <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                    <PackagePlus className="w-8 h-8 text-gray-300" />
+                                                </div>
+                                                <p className="text-sm">No items added yet.</p>
+                                                <p className="text-xs mt-1">
+                                                    Pick a pack size → flavour on the left.
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div className="space-y-3 print:space-y-0 print:border-t print:border-black">
+                                            {displayItems.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm print:shadow-none print:border-b print:border-gray-200 print:rounded-none print:p-4"
+                                                >
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium text-gray-900 truncate print:text-xl print:font-black">
+                                                            {item.pack} — {item.flavour}
+                                                        </div>
+                                                        <div className="text-xs font-semibold text-teal-600 mt-0.5 print:hidden">
+                                                            +{formatPacksAndBottles(
+                                                                item.qtyAdded,
+                                                                item.bottlesPerPack
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="font-black text-gray-900 text-lg print:text-3xl">
+                                                        {formatPacksAndBottles(
+                                                            item.qtyAdded,
+                                                            item.bottlesPerPack
+                                                        )}
+                                                    </div>
+                                                    {/* Only show remove when in cart (not confirmed) */}
+                                                    {!confirmedRestock && (
+                                                        <button
+                                                            onClick={() => removeFromCart(idx)}
+                                                            className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors print:hidden"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* ── Print footer signature lines ── */}
+                            <div className="hidden print:block mt-12 pt-8 border-t-2 border-black">
+                                <div className="flex justify-between px-4">
+                                    <div className="text-center">
+                                        <div className="w-48 border-b border-black mb-2" />
+                                        <div className="text-xs font-black uppercase">
+                                            Warehouse In-charge
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="w-48 border-b border-black mb-2" />
+                                        <div className="text-xs font-black uppercase">Manager</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── Action buttons ── */}
+                            <div className="p-4 border-t border-gray-100 bg-gray-50 print:hidden space-y-2">
+                                {confirmedRestock ? (
+                                    /* After confirmation: offer to start a new restock */
                                     <button
-                                        type="submit"
-                                        disabled={loading || ((parseInt(addPacks || "0", 10) * targetProduct.bottlesPerPack) + parseInt(addBottles || "0", 10)) <= 0}
-                                        className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-teal-900/10"
+                                        onClick={() => {
+                                            setConfirmedRestock(null);
+                                            setCart([]);
+                                            setSelectedPack("");
+                                            setSelectedFlavour("");
+                                        }}
+                                        className="w-full bg-ruby-600 hover:bg-ruby-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md"
                                     >
-                                        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <PackagePlus className="w-6 h-6" />}
+                                        <RefreshCw className="w-5 h-5" />
+                                        New Restock
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleConfirmRestock}
+                                        disabled={cart.length === 0 || saving}
+                                        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        {saving ? (
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        ) : (
+                                            <Save className="w-5 h-5" />
+                                        )}
                                         Confirm Restock
                                     </button>
-                                </div>
+                                )}
                             </div>
-                        )}
-
-                        {!targetProduct && selectedPack && selectedFlavour && (
-                            <div className="p-4 bg-amber-50 text-amber-700 rounded-lg text-sm border border-amber-100 flex items-center gap-2">
-                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                                Product not found for this specific combination.
-                            </div>
-                        )}
-
-                    </form>
-                ) : (
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                /* ══ Add New Product form (unchanged) ══ */
+                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
+                    {error && (
+                        <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6">
+                            {error}
+                        </div>
+                    )}
                     <form onSubmit={handleCreate} className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Pack Description</label>
+                                <label className="text-sm font-medium text-gray-700">
+                                    Pack Description
+                                </label>
                                 <input
                                     name="pack"
                                     required
@@ -384,7 +836,9 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Invoice Cost (₹)</label>
+                                <label className="text-sm font-medium text-gray-700">
+                                    Invoice Cost (₹)
+                                </label>
                                 <input
                                     name="invoiceCost"
                                     type="number"
@@ -395,7 +849,9 @@ export default function AddStockPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Bottles Per Pack (BPP)</label>
+                                <label className="text-sm font-medium text-gray-700">
+                                    Bottles Per Pack (BPP)
+                                </label>
                                 <input
                                     name="bottlesPerPack"
                                     type="number"
@@ -409,7 +865,9 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">MRP (Base) (₹)</label>
+                                <label className="text-sm font-medium text-gray-700">
+                                    MRP (Base) (₹)
+                                </label>
                                 <input
                                     name="mrp"
                                     type="number"
@@ -422,7 +880,9 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700 text-ruby-700 font-bold">Initial Quantity</label>
+                                <label className="text-sm font-medium text-ruby-700 font-bold">
+                                    Initial Quantity
+                                </label>
                                 <div className="flex items-center gap-2">
                                     <input
                                         name="initialPacks"
@@ -443,8 +903,12 @@ export default function AddStockPage() {
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-gray-700">Sale Price (₹)</label>
-                                    <span className="text-[10px] text-ruby-600 font-bold uppercase">Required</span>
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Sale Price (₹)
+                                    </label>
+                                    <span className="text-[10px] text-ruby-600 font-bold uppercase">
+                                        Required
+                                    </span>
                                 </div>
                                 <input
                                     name="salePrice"
@@ -458,8 +922,12 @@ export default function AddStockPage() {
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-gray-700">Today's Price (₹)</label>
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Default: Sale Price</span>
+                                    <label className="text-sm font-medium text-gray-700">
+                                        Today&apos;s Price (₹)
+                                    </label>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
+                                        Default: Sale Price
+                                    </span>
                                 </div>
                                 <input
                                     name="price"
@@ -477,7 +945,12 @@ export default function AddStockPage() {
                                 <Check className="w-5 h-5 text-emerald-600" />
                             </div>
                             <p className="text-sm font-medium text-emerald-800">
-                                <span className="font-bold">Pro Tip:</span> Profit will be calculated as <span className="underline decoration-emerald-300 underline-offset-4 font-black">Today's Price - Invoice Cost</span> automatically.
+                                <span className="font-bold">Pro Tip:</span> Profit will be
+                                calculated as{" "}
+                                <span className="underline decoration-emerald-300 underline-offset-4 font-black">
+                                    Today&apos;s Price - Invoice Cost
+                                </span>{" "}
+                                automatically.
                             </p>
                         </div>
 
@@ -487,13 +960,17 @@ export default function AddStockPage() {
                                 disabled={loading}
                                 className="bg-ruby-700 hover:bg-ruby-800 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-ruby-900/10 active:scale-95"
                             >
-                                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
+                                {loading ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <Save className="w-6 h-6" />
+                                )}
                                 Save New Product
                             </button>
                         </div>
                     </form>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

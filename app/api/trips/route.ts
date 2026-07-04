@@ -96,6 +96,7 @@ export async function GET() {
 
         const trips = await Trip.find(filter)
             .populate("vehicleId", "number driverName status") // Only needed fields
+            .populate("loadedItems.productId", "name pack flavour price salePrice bottlesPerPack") // Needed for verification page calculations
             .sort({ createdAt: -1 })
             .lean();
             

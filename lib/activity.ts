@@ -8,7 +8,7 @@ interface LogPayload {
     action: string;
     details: string;
     targetId?: string;
-    targetModel?: "Product" | "Vehicle" | "Trip" | "Bill" | "User" | "Warehouse" | "AccessRequest";
+    targetModel?: "Product" | "Vehicle" | "Trip" | "Bill" | "User" | "Warehouse" | "AccessRequest" | "VehiclePayment";
 }
 
 export async function logActivity(payload: LogPayload) {

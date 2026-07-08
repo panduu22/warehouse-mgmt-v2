@@ -112,7 +112,9 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
             { Metric: "Trips Initiated", Value: dashboardData.metrics.trips.current, Growth: compareEnabled ? `${dashboardData.metrics.trips.growth ?? 0}%` : "-" },
             { Metric: "Active Fleet Vehicles", Value: dashboardData.metrics.activeTrips, Growth: "-" },
             { Metric: "Pending Verification Trips", Value: dashboardData.metrics.pendingVerifications, Growth: "-" },
-            { Metric: "Total Inventory Value", Value: `₹${Math.round(dashboardData.totalStockValue)}`, Growth: "-" }
+            { Metric: "Total Inventory Value", Value: `₹${Math.round(dashboardData.totalStockValue)}`, Growth: "-" },
+            { Metric: "Total Outstanding Balance", Value: `₹${dashboardData.balanceStats?.totalOutstandingBalance || 0}`, Growth: "-" },
+            { Metric: "Balance Collected Today", Value: `₹${dashboardData.balanceStats?.totalCollectedToday || 0}`, Growth: "-" }
         ];
         
         const productSalesData = dashboardData.topProducts.map((p: any) => ({
@@ -312,11 +314,41 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Outstanding Payments"
-                        value="₹0"
+                        title="Total Outstanding"
+                        value={`₹${(dashboardData.balanceStats?.totalOutstandingBalance || 0).toLocaleString('en-IN')}`}
                         icon={AlertCircle}
-                        color="gray"
-                        subtitle="Mocked outstanding"
+                        color="rose"
+                        subtitle="Across all vehicles"
+                    />
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                    <StatCard
+                        title="Today's Outstanding"
+                        value={`₹${(dashboardData.balanceStats?.todayOutstandingBalance || 0).toLocaleString('en-IN')}`}
+                        icon={TrendingDown}
+                        color="amber"
+                        subtitle="New balance today"
+                    />
+                </motion.div>
+
+                <motion.div variants={itemVariants}>
+                    <StatCard
+                        title="Collected Today"
+                        value={`₹${(dashboardData.balanceStats?.totalCollectedToday || 0).toLocaleString('en-IN')}`}
+                        icon={TrendingUp}
+                        color="emerald"
+                        subtitle="Balance payments received"
+                    />
+                </motion.div>
+                
+                <motion.div variants={itemVariants}>
+                    <StatCard
+                        title="Pending Vehicles"
+                        value={(dashboardData.balanceStats?.vehiclesWithPendingBalance || 0).toString()}
+                        icon={Truck}
+                        color="blue"
+                        subtitle="Vehicles with balance"
                     />
                 </motion.div>
                 

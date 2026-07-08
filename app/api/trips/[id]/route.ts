@@ -139,16 +139,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const safeCash = Math.max(0, Number(cashAmount) || 0);
         const receivedTotal = safeUPI + safeCash;
 
-        // Floating-point safe comparison (paise precision)
-        if (Math.round(receivedTotal * 100) !== Math.round(serverGrandTotal * 100)) {
+        // Allow partial payments — receivedTotal must not exceed grandTotal
+        // Balance Amount = grandTotal - receivedTotal (can be 0 if fully paid)
+        if (Math.round(receivedTotal * 100) > Math.round(serverGrandTotal * 100)) {
             return NextResponse.json({
-                error: `Payment mismatch: received ₹${receivedTotal.toFixed(2)} but grand total is ₹${serverGrandTotal.toFixed(2)}`
+                error: `Payment exceeds grand total: received ₹${receivedTotal.toFixed(2)} but grand total is ₹${serverGrandTotal.toFixed(2)}`
             }, { status: 400 });
         }
+
+        const balanceAmount = Math.max(0, serverGrandTotal - receivedTotal);
 
         trip.upiAmount     = safeUPI;
         trip.cashAmount    = safeCash;
         trip.receivedTotal = receivedTotal;
+        trip.balanceAmount = Math.round(balanceAmount * 100) / 100;
+        trip.grandTotal    = Math.round(serverGrandTotal * 100) / 100;
         // ─────────────────────────────────────────────────────────────────────
         
         // Capture precise live tracking time in IST

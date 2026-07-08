@@ -398,6 +398,11 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
 
     const { totalNormalSales, totalSchemeSales, totalSales, totalDiscount, totalPacksLoaded } = calculateSales();
 
+    // Balance Amount: always = grandTotal - receivedTotal (read-only, shown in red)
+    const balanceAmount = Math.max(0, totalSales - receivedTotal);
+    // Validation: UPI + Cash must NOT exceed Grand Total
+    const paymentExceedsTotal = receivedTotal > totalSales + 0.01;
+
     const handleVerify = async () => {
         const returnedItems = [];
         for (const item of trip.loadedItems) {
@@ -814,31 +819,24 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 <h3 className="font-black text-foreground text-sm uppercase tracking-widest">Payment Collection</h3>
                             </div>
                             {/* Real-time payment status chip */}
-                            {(() => {
-                                const diff = receivedTotal - totalSales;
-                                const matched = Math.abs(diff) < 0.01;
-                                const extra   = diff > 0.01;
-                                if (matched) return (
-                                    <span className="flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1.5 rounded-full border border-emerald-500/30 animate-pulse">
-                                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                                        Payment Matched
-                                    </span>
-                                );
-                                if (extra) return (
-                                    <span className="flex items-center gap-1.5 bg-rose-500/15 text-rose-600 text-xs font-black px-3 py-1.5 rounded-full border border-rose-500/30">
-                                        ⚠ Extra Received ₹{Math.abs(diff).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                );
-                                return (
-                                    <span className="flex items-center gap-1.5 bg-rose-500/15 text-rose-600 text-xs font-black px-3 py-1.5 rounded-full border border-rose-500/30">
-                                        ⏳ Pending ₹{Math.abs(diff).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </span>
-                                );
-                            })()}
+                            {paymentExceedsTotal ? (
+                                <span className="flex items-center gap-1.5 bg-rose-500/15 text-rose-600 text-xs font-black px-3 py-1.5 rounded-full border border-rose-500/30">
+                                    ⚠ Exceeds Grand Total
+                                </span>
+                            ) : balanceAmount < 0.01 ? (
+                                <span className="flex items-center gap-1.5 bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1.5 rounded-full border border-emerald-500/30 animate-pulse">
+                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                    Fully Paid
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5 bg-amber-500/15 text-amber-600 text-xs font-black px-3 py-1.5 rounded-full border border-amber-500/30">
+                                    ⏳ Balance ₹{balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            )}
                         </div>
 
                         <div className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                                 {PAYMENT_METHODS.map((method) => (
                                     <div key={method.key} className="flex flex-col gap-2">
                                         <label
@@ -863,7 +861,11 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                                     if (val !== "" && Number(val) < 0) return;
                                                     setPaymentAmounts(prev => ({ ...prev, [method.key]: val }));
                                                 }}
-                                                className="w-full pl-8 pr-4 py-3 rounded-2xl border-2 border-border focus:border-primary focus:ring-0 text-foreground font-bold bg-background transition-all shadow-sm text-sm"
+                                                className={`w-full pl-8 pr-4 py-3 rounded-2xl border-2 focus:ring-0 text-foreground font-bold bg-background transition-all shadow-sm text-sm ${
+                                                    paymentExceedsTotal
+                                                        ? 'border-rose-500 focus:border-rose-600'
+                                                        : 'border-border focus:border-primary'
+                                                }`}
                                             />
                                         </div>
                                     </div>
@@ -880,7 +882,30 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                         <span>{receivedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 </div>
+
+                                {/* Balance Amount — always read-only, always red */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black text-rose-600 uppercase tracking-widest flex items-center gap-1.5">
+                                        <span>💳</span>
+                                        Balance Amount
+                                    </label>
+                                    <div className={`w-full px-4 py-3 rounded-2xl border-2 font-black text-sm flex items-center justify-between ${
+                                        balanceAmount < 0.01
+                                            ? 'border-emerald-500/40 bg-emerald-500/5 text-emerald-600'
+                                            : 'border-rose-500/40 bg-rose-500/5 text-rose-600'
+                                    }`}>
+                                        <span>₹</span>
+                                        <span>{balanceAmount < 0.01 ? '0.00' : balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                </div>
                             </div>
+
+                            {paymentExceedsTotal && (
+                                <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 rounded-2xl px-5 py-3 mb-4">
+                                    <svg className="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                                    <p className="text-rose-600 font-bold text-xs">UPI + Cash (₹{receivedTotal.toFixed(2)}) exceeds Grand Total (₹{totalSales.toFixed(2)}). Please reduce the payment amount.</p>
+                                </div>
+                            )}
 
                             {/* Comparison bar */}
                             <div className="flex items-center gap-3 bg-muted/50 rounded-2xl px-5 py-3">
@@ -888,11 +913,18 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Grand Total</p>
                                     <p className="font-black text-foreground text-base">₹{totalSales.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
-                                <div className="text-muted-foreground/40 font-black text-lg">vs</div>
-                                <div className="flex-1 text-right">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Received Total</p>
-                                    <p className={`font-black text-base ${Math.abs(receivedTotal - totalSales) < 0.01 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                <div className="text-muted-foreground/40 font-black text-lg">→</div>
+                                <div className="flex-1 text-center">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Received</p>
+                                    <p className="font-black text-base text-foreground">
                                         ₹{receivedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </p>
+                                </div>
+                                <div className="text-muted-foreground/40 font-black text-lg">→</div>
+                                <div className="flex-1 text-right">
+                                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-rose-600">Balance</p>
+                                    <p className={`font-black text-base ${ balanceAmount < 0.01 ? 'text-emerald-500' : 'text-rose-600'}`}>
+                                        ₹{balanceAmount < 0.01 ? '0.00' : balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
                                 </div>
                             </div>
@@ -901,14 +933,16 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 )}
 
                 {/* ── Verified Payment Summary (read-only) ───────────────────── */}
-                {isVerified && (trip.upiAmount || trip.cashAmount) && (
+                {isVerified && (trip.upiAmount || trip.cashAmount || trip.balanceAmount) && (
                     <div className="mx-6 mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
                         <div className="px-6 py-4 border-b border-emerald-500/20 flex items-center gap-2">
                             <span className="text-lg">💰</span>
                             <h3 className="font-black text-emerald-700 text-sm uppercase tracking-widest">Payment Summary</h3>
-                            <span className="ml-auto bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30">✓ Collected</span>
+                            <span className="ml-auto bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30">
+                                {(trip.balanceAmount || 0) < 0.01 ? '✓ Fully Paid' : `⏳ Balance Pending`}
+                            </span>
                         </div>
-                        <div className="p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
                             {trip.upiAmount > 0 && (
                                 <div className="bg-card/60 p-4 rounded-2xl border border-border">
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">📱 UPI</p>
@@ -924,6 +958,17 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                             <div className="bg-emerald-500 p-4 rounded-2xl shadow-md shadow-emerald-500/20">
                                 <p className="text-[10px] text-emerald-900 font-black uppercase tracking-widest mb-1">🧾 Total Received</p>
                                 <p className="font-black text-white text-lg">₹{(trip.receivedTotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                            {/* Balance Amount — always shown in red if > 0 */}
+                            <div className={`p-4 rounded-2xl border-2 ${
+                                (trip.balanceAmount || 0) < 0.01
+                                    ? 'bg-emerald-50/50 border-emerald-300/60'
+                                    : 'bg-rose-50/50 border-rose-400/60'
+                            }`}>
+                                <p className="text-[10px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 text-rose-600">💳 Balance Amt</p>
+                                <p className={`font-black text-lg ${ (trip.balanceAmount || 0) < 0.01 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {(trip.balanceAmount || 0) < 0.01 ? '₹0 (Paid)' : `₹${(trip.balanceAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -942,23 +987,29 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                             />
                         </div>
                         {(() => {
-                            const paymentMatched = Math.abs(receivedTotal - totalSales) < 0.01;
+                            // Allow verification when payments do NOT exceed grand total
+                            const canVerify = !paymentExceedsTotal;
                             return (
                                 <div className="flex flex-col items-end gap-1 w-full md:w-auto">
-                                    {!paymentMatched && (
+                                    {paymentExceedsTotal && (
                                         <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">
-                                            Match payment to enable
+                                            Payment exceeds grand total
+                                        </p>
+                                    )}
+                                    {balanceAmount > 0.01 && !paymentExceedsTotal && (
+                                        <p className="text-[10px] text-amber-500 font-bold uppercase tracking-widest">
+                                            Balance ₹{balanceAmount.toFixed(2)} will be recorded as outstanding
                                         </p>
                                     )}
                                     <button
                                         onClick={handleVerify}
-                                        disabled={verifying || !paymentMatched}
+                                        disabled={verifying || !canVerify}
                                         className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-600/20 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none active:scale-95 text-sm uppercase tracking-widest"
                                     >
                                         {verifying ? "Processing..." : (
                                             <>
                                                 <CheckCircle className="w-5 h-5" />
-                                                Complete Verification
+                                                {balanceAmount > 0.01 ? 'Verify with Balance' : 'Complete Verification'}
                                             </>
                                         )}
                                     </button>

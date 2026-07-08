@@ -6,6 +6,7 @@ import Bill from "@/models/Bill";
 import Trip from "@/models/Trip";
 import Restock from "@/models/Restock";
 import Product from "@/models/Product";
+import VehiclePayment from "@/models/VehiclePayment";
 import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
@@ -67,7 +68,9 @@ export async function GET(req: NextRequest) {
             currentActiveTrips, currentPendingVerifications,
             topProductsAgg, topVehiclesAgg, mostRestockedAgg, mostReturnedAgg,
             productsList,
-            recentActivityTrips, recentActivityBills, recentActivityRestocks
+            recentActivityTrips, recentActivityBills, recentActivityRestocks,
+            totalOutstandingAgg, collectedTodayAgg, allCollectedAgg,
+            vehiclesWithPendingAgg, todayOutstandingAgg
         ] = await Promise.all([
             // Primary Bills (Sales)
             Bill.aggregate([
@@ -158,7 +161,39 @@ export async function GET(req: NextRequest) {
             // Recent Activity limited to Primary Date Filter
             Trip.find({ ...warehouseFilter, updatedAt: primaryDateFilter }).sort({ updatedAt: -1 }).limit(10).populate("vehicleId").lean(),
             Bill.find({ ...warehouseFilter, generatedAt: primaryDateFilter }).sort({ generatedAt: -1 }).limit(10).lean(),
-            Restock.find({ ...warehouseFilter, createdAt: primaryDateFilter }).sort({ createdAt: -1 }).limit(10).lean()
+            Restock.find({ ...warehouseFilter, createdAt: primaryDateFilter }).sort({ createdAt: -1 }).limit(10).lean(),
+
+            // Balance Stats: Total outstanding (all unpaid trip balances)
+            Trip.aggregate([
+                { $match: { ...warehouseFilter, status: "VERIFIED", balanceAmount: { $gt: 0 } } },
+                { $group: { _id: null, total: { $sum: "$balanceAmount" } } }
+            ]),
+            // Balance collected today (VehiclePayments in primary date range)
+            VehiclePayment.aggregate([
+                { $match: { ...warehouseFilter, collectedAt: primaryDateFilter } },
+                { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } }
+            ]),
+            // All VehiclePayments ever (to subtract from outstanding)
+            VehiclePayment.aggregate([
+                { $match: warehouseFilter },
+                { $group: { _id: null, total: { $sum: "$amount" } } }
+            ]),
+            // Vehicles with pending balance (count)
+            Trip.aggregate([
+                { $match: { ...warehouseFilter, status: "VERIFIED", balanceAmount: { $gt: 0 } } },
+                { $group: { _id: "$vehicleId" } },
+                { $count: "count" }
+            ]),
+            // Today's outstanding balance (new balance created in primary date range)
+            Trip.aggregate([
+                { $match: { ...warehouseFilter, status: "VERIFIED", balanceAmount: { $gt: 0 },
+                    $or: [
+                        { endTime: primaryDateFilter },
+                        { updatedAt: primaryDateFilter }
+                    ]
+                } },
+                { $group: { _id: null, total: { $sum: "$balanceAmount" } } }
+            ]),
         ]);
 
         // Process Products for names and stock snapshot
@@ -229,6 +264,14 @@ export async function GET(req: NextRequest) {
         const primaryInvoices = primaryBills[0]?.count || 0;
         const compareInvoices = compareBills[0]?.count || 0;
 
+        // Balance widget stats
+        const totalAllOutstanding = (totalOutstandingAgg[0]?.total || 0);
+        const totalAllCollected = (allCollectedAgg[0]?.total || 0);
+        const netOutstandingBalance = Math.max(0, totalAllOutstanding - totalAllCollected);
+        const collectedToday = collectedTodayAgg[0]?.total || 0;
+        const vehiclesWithPending = vehiclesWithPendingAgg[0]?.count || 0;
+        const todayOutstanding = todayOutstandingAgg[0]?.total || 0;
+
         return NextResponse.json({
             metrics: {
                 sales: { current: primarySales, growth: calculateGrowth(primarySales, compareSales) },
@@ -244,7 +287,13 @@ export async function GET(req: NextRequest) {
             topVehicles: topVehiclesAgg,
             mostRestocked: enhancedMostRestocked,
             mostReturned: enhancedMostReturned,
-            recentActivity: combinedActivity
+            recentActivity: combinedActivity,
+            balanceStats: {
+                totalOutstandingBalance: netOutstandingBalance,
+                todayOutstandingBalance: todayOutstanding,
+                totalCollectedToday: collectedToday,
+                vehiclesWithPendingBalance: vehiclesWithPending,
+            }
         });
 
     } catch (error) {

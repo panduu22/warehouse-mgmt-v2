@@ -78,10 +78,17 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     <div className="md:text-right">
                         <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Payment Summary</p>
                         <p className="text-3xl font-black text-black">₹{bill.totalAmount.toLocaleString('en-IN')}</p>
-                        <p className="text-emerald-700 font-black text-xs uppercase tracking-wider mt-1 flex items-center md:justify-end gap-1">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Payment Settled
-                        </p>
+                        {(bill.tripId?.balanceAmount || 0) > 0.01 ? (
+                            <p className="text-rose-600 font-black text-xs uppercase tracking-wider mt-1 flex items-center md:justify-end gap-1">
+                                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                                Balance Pending ₹{(bill.tripId.balanceAmount || 0).toLocaleString('en-IN')}
+                            </p>
+                        ) : (
+                            <p className="text-emerald-700 font-black text-xs uppercase tracking-wider mt-1 flex items-center md:justify-end gap-1">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                Payment Settled
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -193,6 +200,20 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                     {bill.tripId?.status === "VERIFIED" 
                                         ? `₹${(bill.tripId.receivedTotal || 0).toLocaleString('en-IN')}` 
                                         : "₹0 (Not Verified)"}
+                                </span>
+                            </div>
+                            {/* Balance Amount — always shown in red */}
+                            <div className={`flex justify-between items-center pt-3 border-t border-gray-200/60 text-xs font-black uppercase tracking-widest print:border-black ${
+                                (bill.tripId?.balanceAmount || 0) > 0.01 ? 'text-rose-600' : 'text-emerald-700'
+                            }`}>
+                                <span>Balance Amount</span>
+                                <span>
+                                    {bill.tripId?.status === "VERIFIED"
+                                        ? ((bill.tripId?.balanceAmount || 0) > 0.01
+                                            ? `₹${(bill.tripId.balanceAmount).toLocaleString('en-IN')}`
+                                            : '₹0 (Paid)')
+                                        : '—'
+                                    }
                                 </span>
                             </div>
                         </div>

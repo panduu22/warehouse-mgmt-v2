@@ -29,6 +29,8 @@ export interface ITrip extends Document {
     upiAmount?: number;
     cashAmount?: number;
     receivedTotal?: number;
+    balanceAmount?: number;  // grandTotal - receivedTotal (outstanding balance at time of verification)
+    grandTotal?: number;    // stored for reference in balance calculations
     createdAt: Date;
     updatedAt: Date;
 }
@@ -69,6 +71,8 @@ const TripSchema: Schema<ITrip> = new Schema(
         upiAmount:     { type: Number, default: 0 },
         cashAmount:    { type: Number, default: 0 },
         receivedTotal: { type: Number, default: 0 },
+        balanceAmount: { type: Number, default: 0 },  // outstanding balance at verification
+        grandTotal:    { type: Number, default: 0 },  // stored for balance calculations
     },
     { timestamps: true }
 );

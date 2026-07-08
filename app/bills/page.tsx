@@ -145,14 +145,17 @@ export default function BillsPage() {
                                     <th className="px-6 py-4 font-bold uppercase text-[10px] tracking-widest">Verified Date</th>
                                     <th className="px-6 py-4 font-bold uppercase text-[10px] tracking-widest">Vehicle</th>
                                     <th className="px-6 py-4 text-right font-bold uppercase text-[10px] tracking-widest">Amount</th>
+                                    <th className="px-6 py-4 text-right font-bold uppercase text-[10px] tracking-widest">UPI</th>
+                                    <th className="px-6 py-4 text-right font-bold uppercase text-[10px] tracking-widest">Cash</th>
+                                    <th className="px-6 py-4 text-right font-bold uppercase text-[10px] tracking-widest text-rose-600">Balance</th>
                                     <th className="px-6 py-4"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {loading ? (
-                                    <tr><td colSpan={5} className="p-12 text-center"><Loader2 className="animate-spin inline w-8 h-8 text-muted-foreground" /></td></tr>
+                                    <tr><td colSpan={8} className="p-12 text-center"><Loader2 className="animate-spin inline w-8 h-8 text-muted-foreground" /></td></tr>
                                 ) : bills.length === 0 ? (
-                                    <tr><td colSpan={5} className="p-12 text-center text-muted-foreground italic">No invoices generated yet.</td></tr>
+                                    <tr><td colSpan={8} className="p-12 text-center text-muted-foreground italic">No invoices generated yet.</td></tr>
                                 ) : (
                                     bills.map(bill => (
                                         <tr key={bill._id} className="hover:bg-muted/30 transition-colors group">
@@ -160,6 +163,18 @@ export default function BillsPage() {
                                             <td className="px-6 py-4 text-muted-foreground">{bill.tripId?.endTime ? formatIST(bill.tripId.endTime, { dateStyle: 'medium' }) : '-'}</td>
                                             <td className="px-6 py-4 font-bold text-foreground">{bill.tripId?.vehicleId?.number}</td>
                                             <td className="px-6 py-4 text-right font-black text-primary text-base">₹{bill.totalAmount.toLocaleString()}</td>
+                                            <td className="px-6 py-4 text-right font-semibold text-foreground text-sm">
+                                                {bill.tripId?.upiAmount > 0 ? `₹${bill.tripId.upiAmount.toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-semibold text-foreground text-sm">
+                                                {bill.tripId?.cashAmount > 0 ? `₹${bill.tripId.cashAmount.toLocaleString()}` : '—'}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-black text-sm">
+                                                {(bill.tripId?.balanceAmount || 0) < 0.01
+                                                    ? <span className="text-emerald-600">₹0</span>
+                                                    : <span className="text-rose-600">₹{bill.tripId.balanceAmount.toLocaleString()}</span>
+                                                }
+                                            </td>
                                             <td className="px-6 py-4 text-right">
                                                 <Link href={`/bills/${bill._id}`} className="text-muted-foreground hover:text-primary inline-flex items-center gap-1 font-bold text-[10px] uppercase tracking-widest transition-all hover:gap-2">
                                                     View Invoice <ArrowRight className="w-4 h-4" />

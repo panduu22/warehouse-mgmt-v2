@@ -18,7 +18,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const { id } = await params;
-        const { returnedItems, status, verifiedAt, upiAmount, cashAmount } = await req.json(); // status should be "VERIFIED"
+        const { returnedItems, status, verifiedAt, upiAmount, cashAmount, expensesAmount } = await req.json(); // status should be "VERIFIED"
 
         // Only handling VERIFIED for now as per flow
         if (status !== "VERIFIED") {
@@ -135,9 +135,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             serverGrandTotal += schemeSalesValue;
         }
 
-        const safeUPI  = Math.max(0, Number(upiAmount)  || 0);
-        const safeCash = Math.max(0, Number(cashAmount) || 0);
-        const receivedTotal = safeUPI + safeCash;
+        const safeUPI      = Math.max(0, Number(upiAmount)      || 0);
+        const safeCash     = Math.max(0, Number(cashAmount)     || 0);
+        const safeExpenses = Math.max(0, Number(expensesAmount) || 0);
+        const receivedTotal = safeUPI + safeCash + safeExpenses;
 
         // Allow partial payments — receivedTotal must not exceed grandTotal
         // Balance Amount = grandTotal - receivedTotal (can be 0 if fully paid)
@@ -149,11 +150,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
         const balanceAmount = Math.max(0, serverGrandTotal - receivedTotal);
 
-        trip.upiAmount     = safeUPI;
-        trip.cashAmount    = safeCash;
-        trip.receivedTotal = receivedTotal;
-        trip.balanceAmount = Math.round(balanceAmount * 100) / 100;
-        trip.grandTotal    = Math.round(serverGrandTotal * 100) / 100;
+        trip.upiAmount      = safeUPI;
+        trip.cashAmount     = safeCash;
+        trip.expensesAmount = safeExpenses;
+        trip.receivedTotal  = receivedTotal;
+        trip.balanceAmount  = Math.round(balanceAmount * 100) / 100;
+        trip.grandTotal     = Math.round(serverGrandTotal * 100) / 100;
         // ─────────────────────────────────────────────────────────────────────
         
         // Capture precise live tracking time in IST

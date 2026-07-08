@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Truck, Package, Calendar, Loader2, TrendingUp, X } from "lucide-react";
+import { ArrowLeft, Truck, Package, Calendar, Loader2, TrendingUp, X, Download, FileSpreadsheet, IndianRupee, Receipt, Activity, Info } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useParams } from "next/navigation";
@@ -31,6 +32,20 @@ interface VehicleData {
     _id: string;
     number: string;
     driverName: string;
+}
+
+interface FinancialSummary {
+    totalGrossSales: number;
+    totalNetSales: number;
+    totalDiscounts: number;
+    totalExpenses: number;
+    totalUPI: number;
+    totalCash: number;
+    totalReceived: number;
+    totalOutstanding: number;
+    totalBills: number;
+    totalProductsSold: number;
+    activeDays: number;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -100,6 +115,9 @@ export default function VehicleDetailsPage() {
     const [fromDate, setFromDate] = useState<string>("");
     const [toDate, setToDate] = useState<string>("");
 
+    const [isConsolidated, setIsConsolidated] = useState(false);
+    const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
+
     // Whether a filter is currently active
     const isFiltered = !!(fromDate || toDate);
 
@@ -116,9 +134,13 @@ export default function VehicleDetailsPage() {
                     const data = await res.json();
                     setVehicle(data.vehicle);
                     setSales(data.sales || []);
+                    setIsConsolidated(data.isConsolidated || false);
+                    setFinancialSummary(data.financialSummary || null);
                 } else {
                     setVehicle(null);
                     setSales([]);
+                    setIsConsolidated(false);
+                    setFinancialSummary(null);
                 }
             } catch (e) {
                 console.error(e);
@@ -147,6 +169,70 @@ export default function VehicleDetailsPage() {
     const handleToChange = (v: string) => {
         setToDate(v);
         if (fromDate && v && v < fromDate) setFromDate(v);
+    };
+
+    const handleExport = () => {
+        if (!sales || sales.length === 0) return;
+
+        const wb = XLSX.utils.book_new();
+
+        if (isConsolidated && financialSummary) {
+            // 1. Financial Summary Sheet
+            const summaryData = [
+                { Metric: "Total Gross Sales", Value: formatCurrency(financialSummary.totalGrossSales) },
+                { Metric: "Total Discounts", Value: formatCurrency(financialSummary.totalDiscounts) },
+                { Metric: "Total Net Sales", Value: formatCurrency(financialSummary.totalNetSales) },
+                { Metric: "Total UPI Collection", Value: formatCurrency(financialSummary.totalUPI) },
+                { Metric: "Total Cash Collection", Value: formatCurrency(financialSummary.totalCash) },
+                { Metric: "Total Expenses", Value: formatCurrency(financialSummary.totalExpenses) },
+                { Metric: "Total Amount Received", Value: formatCurrency(financialSummary.totalReceived) },
+                { Metric: "Total Outstanding Balance", Value: formatCurrency(financialSummary.totalOutstanding) },
+                { Metric: "Total Bills Generated", Value: financialSummary.totalBills },
+                { Metric: "Total Products Sold", Value: financialSummary.totalProductsSold },
+                { Metric: "Active Days", Value: financialSummary.activeDays },
+            ];
+            const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+            // Auto width
+            wsSummary["!cols"] = [{ wch: 30 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, wsSummary, "Financial Summary");
+
+            // 2. Product Summary Sheet
+            const productData = sales[0].items.map((item) => ({
+                "Pack": item.pack,
+                "Flavour": item.flavour,
+                "Sale Price": formatCurrency(item.salePrice),
+                "Packs Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
+                "Bottles Sold": item.soldQty,
+                "Sales Amount": formatCurrency(item.salesAmount)
+            }));
+            const wsProducts = XLSX.utils.json_to_sheet(productData);
+            wsProducts["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(wb, wsProducts, "Product Summary");
+
+        } else {
+            // Unfiltered / Single-Day Export (Day-wise sheets)
+            for (const day of sales) {
+                const dayData = day.items.map((item) => ({
+                    "Pack": item.pack,
+                    "Flavour": item.flavour,
+                    "Sale Price": formatCurrency(item.salePrice),
+                    "Packs Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
+                    "Bottles Sold": item.soldQty,
+                    "Sales Amount": formatCurrency(item.salesAmount)
+                }));
+                const wsDay = XLSX.utils.json_to_sheet(dayData);
+                wsDay["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+                
+                // Truncate sheet name if needed (excel limit is 31 chars)
+                let sheetName = formatIST(day.date, { month: "short", day: "numeric", year: "numeric" });
+                if (sheetName.length > 31) sheetName = sheetName.substring(0, 31);
+                
+                XLSX.utils.book_append_sheet(wb, wsDay, sheetName);
+            }
+        }
+
+        const fileName = `${vehicle?.number}_Sales_${rangeLabel.replace(/[^a-zA-Z0-9- ]/g, "").replace(/\s+/g, "_")}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     };
 
     // Overall totals for the selected period
@@ -249,6 +335,16 @@ export default function VehicleDetailsPage() {
                             Showing all records · select dates to filter
                         </span>
                     )}
+
+                    {!loading && sales.length > 0 && (
+                        <button
+                            onClick={handleExport}
+                            className="ml-auto flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all active:scale-95"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            Export Report
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -314,7 +410,131 @@ export default function VehicleDetailsPage() {
                         </button>
                     )}
                 </div>
+            ) : isConsolidated && financialSummary ? (
+                // ── Consolidated View ──────────────────────────────────────────
+                <div className="space-y-8">
+                    {/* Financial Summary Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <IndianRupee className="w-3 h-3 text-emerald-500" /> Gross Sales
+                            </p>
+                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalGrossSales)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <TrendingUp className="w-3 h-3 text-rose-500" /> Discounts
+                            </p>
+                            <p className="text-lg font-black text-rose-500">{formatCurrency(financialSummary.totalDiscounts)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-emerald-600 tracking-widest mb-1 flex items-center gap-1.5">
+                                <Activity className="w-3 h-3 text-emerald-500" /> Net Sales
+                            </p>
+                            <p className="text-lg font-black text-emerald-600">{formatCurrency(financialSummary.totalNetSales)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <Info className="w-3 h-3 text-amber-500" /> Expenses
+                            </p>
+                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalExpenses)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <Receipt className="w-3 h-3 text-blue-500" /> Bills Gen
+                            </p>
+                            <p className="text-lg font-black text-foreground">{financialSummary.totalBills}</p>
+                        </Card>
+                        
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <IndianRupee className="w-3 h-3 text-indigo-500" /> UPI Total
+                            </p>
+                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalUPI)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <IndianRupee className="w-3 h-3 text-emerald-600" /> Cash Total
+                            </p>
+                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalCash)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-primary/5 hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-primary tracking-widest mb-1 flex items-center gap-1.5">
+                                <Download className="w-3 h-3 text-primary" /> Received
+                            </p>
+                            <p className="text-lg font-black text-primary">{formatCurrency(financialSummary.totalReceived)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-rose-500/5 hover:border-rose-500/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-rose-600 tracking-widest mb-1 flex items-center gap-1.5">
+                                <Activity className="w-3 h-3 text-rose-500" /> Outstanding
+                            </p>
+                            <p className="text-lg font-black text-rose-600">{formatCurrency(financialSummary.totalOutstanding)}</p>
+                        </Card>
+                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
+                                <Calendar className="w-3 h-3 text-blue-500" /> Active Days
+                            </p>
+                            <p className="text-lg font-black text-foreground">{financialSummary.activeDays}</p>
+                        </Card>
+                    </div>
+
+                    {/* Consolidated Product Summary Table */}
+                    <Card className="border shadow-sm overflow-hidden bg-card">
+                        <CardHeader className="bg-muted/30 border-b pb-4">
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <Package className="w-5 h-5 text-primary" />
+                                Product Summary
+                            </CardTitle>
+                        </CardHeader>
+
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <Table className="min-w-[800px]">
+                                    <TableHeader className="bg-muted/10">
+                                        <TableRow>
+                                            <TableHead className="font-bold">Pack</TableHead>
+                                            <TableHead className="font-bold">Flavour</TableHead>
+                                            <TableHead className="font-bold text-right">Sale Price</TableHead>
+                                            <TableHead className="font-bold text-right">Total Packs</TableHead>
+                                            <TableHead className="font-bold text-right">Total Bottles</TableHead>
+                                            <TableHead className="font-bold text-right">Total Sales</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sales[0]?.items.map((item, idx) => (
+                                            <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
+                                                <TableCell className="font-medium text-foreground">{item.pack}</TableCell>
+                                                <TableCell className="font-medium text-foreground">{item.flavour}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground font-medium">{formatCurrency(item.salePrice)}</TableCell>
+                                                <TableCell className="text-right text-foreground font-bold">
+                                                    {item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0}
+                                                </TableCell>
+                                                <TableCell className="text-right text-foreground font-bold">{item.soldQty}</TableCell>
+                                                <TableCell className="text-right text-primary font-bold">{formatCurrency(item.salesAmount)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                    <TableFooter className="bg-muted border-t-2 border-border font-bold text-foreground">
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-right">Grand Total:</TableCell>
+                                            <TableCell className="text-right">
+                                                {sales[0]?.items.reduce((sum, item) => sum + (item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0), 0)} packs
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {financialSummary.totalProductsSold} bottles
+                                            </TableCell>
+                                            <TableCell className="text-right text-primary text-lg">
+                                                {formatCurrency(financialSummary.totalGrossSales)}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableFooter>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             ) : (
+                // ── Day-Wise Grouped Layout (Default) ──────────────────────────
                 <div className="space-y-8">
                     {sales.map((day) => {
                         const totalSalesAmount = day.items.reduce((sum, item) => sum + item.salesAmount, 0);

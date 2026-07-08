@@ -36,13 +36,14 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
     // To add more payment methods (Card, Bank Transfer, etc.), append entries
     // to PAYMENT_METHODS and add a matching state key below.
     const PAYMENT_METHODS = [
-        { key: "upi",  label: "UPI Amount",  icon: "📱", color: "violet" },
-        { key: "cash", label: "Cash Amount", icon: "💵", color: "emerald" },
+        { key: "upi",      label: "UPI Amount",  icon: "📱", color: "violet" },
+        { key: "cash",     label: "Cash Amount", icon: "💵", color: "emerald" },
+        { key: "expenses", label: "Expenses",    icon: "💸", color: "amber" },
         // { key: "card",  label: "Card Amount",  icon: "💳", color: "blue" },
     ] as const;
 
     type PaymentKey = typeof PAYMENT_METHODS[number]["key"];
-    const [paymentAmounts, setPaymentAmounts] = useState<Record<PaymentKey, string>>({ upi: "", cash: "" });
+    const [paymentAmounts, setPaymentAmounts] = useState<Record<PaymentKey, string>>({ upi: "", cash: "", expenses: "" });
 
     const getAmount = (key: PaymentKey) => Math.max(0, parseFloat(paymentAmounts[key]) || 0);
     const receivedTotal = PAYMENT_METHODS.reduce((sum, m) => sum + getAmount(m.key), 0);
@@ -474,8 +475,9 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                     status: "VERIFIED",
                     returnedItems,
                     verifiedAt: verifyDate,
-                    upiAmount:  getAmount("upi"),
-                    cashAmount: getAmount("cash"),
+                    upiAmount:      getAmount("upi"),
+                    cashAmount:     getAmount("cash"),
+                    expensesAmount: getAmount("expenses"),
                 })
             });
 
@@ -836,7 +838,8 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                         </div>
 
                         <div className="p-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
+                            {/* Payment method inputs — rendered from PAYMENT_METHODS */}
                                 {PAYMENT_METHODS.map((method) => (
                                     <div key={method.key} className="flex flex-col gap-2">
                                         <label
@@ -903,7 +906,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                             {paymentExceedsTotal && (
                                 <div className="flex items-center gap-2 bg-rose-500/10 border border-rose-500/30 rounded-2xl px-5 py-3 mb-4">
                                     <svg className="w-4 h-4 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
-                                    <p className="text-rose-600 font-bold text-xs">UPI + Cash (₹{receivedTotal.toFixed(2)}) exceeds Grand Total (₹{totalSales.toFixed(2)}). Please reduce the payment amount.</p>
+                                    <p className="text-rose-600 font-bold text-xs">UPI + Cash + Expenses (₹{receivedTotal.toFixed(2)}) exceeds Grand Total (₹{totalSales.toFixed(2)}). Please reduce the payment amount.</p>
                                 </div>
                             )}
 
@@ -915,7 +918,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 </div>
                                 <div className="text-muted-foreground/40 font-black text-lg">→</div>
                                 <div className="flex-1 text-center">
-                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Received</p>
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-0.5">Received (UPI + Cash + Expenses)</p>
                                     <p className="font-black text-base text-foreground">
                                         ₹{receivedTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </p>
@@ -933,7 +936,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 )}
 
                 {/* ── Verified Payment Summary (read-only) ───────────────────── */}
-                {isVerified && (trip.upiAmount || trip.cashAmount || trip.balanceAmount) && (
+                {isVerified && (trip.upiAmount || trip.cashAmount || trip.expensesAmount || trip.balanceAmount) && (
                     <div className="mx-6 mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
                         <div className="px-6 py-4 border-b border-emerald-500/20 flex items-center gap-2">
                             <span className="text-lg">💰</span>
@@ -942,7 +945,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 {(trip.balanceAmount || 0) < 0.01 ? '✓ Fully Paid' : `⏳ Balance Pending`}
                             </span>
                         </div>
-                        <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="p-6 grid grid-cols-2 sm:grid-cols-5 gap-4">
                             {trip.upiAmount > 0 && (
                                 <div className="bg-card/60 p-4 rounded-2xl border border-border">
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">📱 UPI</p>
@@ -953,6 +956,12 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                                 <div className="bg-card/60 p-4 rounded-2xl border border-border">
                                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">💵 Cash</p>
                                     <p className="font-black text-foreground text-lg">₹{(trip.cashAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                </div>
+                            )}
+                            {(trip.expensesAmount || 0) > 0 && (
+                                <div className="bg-card/60 p-4 rounded-2xl border border-border">
+                                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 flex items-center gap-1">💸 Expenses</p>
+                                    <p className="font-black text-amber-600 text-lg">₹{(trip.expensesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                             )}
                             <div className="bg-emerald-500 p-4 rounded-2xl shadow-md shadow-emerald-500/20">

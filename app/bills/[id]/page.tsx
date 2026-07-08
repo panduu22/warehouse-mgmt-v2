@@ -194,6 +194,14 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                         : "₹0 (Not Verified)"}
                                 </span>
                             </div>
+                            <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <span>Expenses</span>
+                                <span className="text-gray-900">
+                                    {bill.tripId?.status === "VERIFIED" 
+                                        ? `₹${(bill.tripId.expensesAmount || 0).toLocaleString('en-IN')}` 
+                                        : "₹0 (Not Verified)"}
+                                </span>
+                            </div>
                             <div className="flex justify-between items-center pt-4 border-t border-gray-200/60 text-xs font-black text-emerald-700 uppercase tracking-widest print:border-black">
                                 <span>Total Received</span>
                                 <span>

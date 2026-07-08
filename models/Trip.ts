@@ -28,6 +28,7 @@ export interface ITrip extends Document {
     // Payment collection fields — extensible (add cardAmount, bankAmount, etc. here)
     upiAmount?: number;
     cashAmount?: number;
+    expensesAmount?: number; // Miscellaneous expenses incurred during the trip
     receivedTotal?: number;
     balanceAmount?: number;  // grandTotal - receivedTotal (outstanding balance at time of verification)
     grandTotal?: number;    // stored for reference in balance calculations
@@ -68,11 +69,12 @@ const TripSchema: Schema<ITrip> = new Schema(
         verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
         warehouseId: { type: Schema.Types.ObjectId, ref: "Warehouse", required: true },
         // Payment collection — add more payment method amounts here as needed
-        upiAmount:     { type: Number, default: 0 },
-        cashAmount:    { type: Number, default: 0 },
-        receivedTotal: { type: Number, default: 0 },
-        balanceAmount: { type: Number, default: 0 },  // outstanding balance at verification
-        grandTotal:    { type: Number, default: 0 },  // stored for balance calculations
+        upiAmount:      { type: Number, default: 0 },
+        cashAmount:     { type: Number, default: 0 },
+        expensesAmount: { type: Number, default: 0 }, // Miscellaneous expenses
+        receivedTotal:  { type: Number, default: 0 },
+        balanceAmount:  { type: Number, default: 0 },  // outstanding balance at verification
+        grandTotal:     { type: Number, default: 0 },  // stored for balance calculations
     },
     { timestamps: true }
 );

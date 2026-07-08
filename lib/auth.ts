@@ -63,12 +63,21 @@ export const authOptions: NextAuthOptions = {
                 await dbConnect();
                 const dbUser = await User.findOne({ email: session.user.email });
                 if (dbUser) {
+                    let currentWarehouseAccess = null;
+                    if (dbUser.activeWarehouseId) {
+                        currentWarehouseAccess = dbUser.assignedWarehouses?.find(
+                            (aw: any) => aw.warehouseId.toString() === dbUser.activeWarehouseId?.toString()
+                        );
+                    }
+
                     // Attach database fields to session
                     session.user = {
                         ...session.user,
                         role: dbUser.role,
                         id: dbUser._id.toString(),
-                        activeWarehouseId: dbUser.activeWarehouseId?.toString()
+                        activeWarehouseId: dbUser.activeWarehouseId?.toString(),
+                        grantedAt: currentWarehouseAccess?.grantedAt,
+                        expiresAt: currentWarehouseAccess?.expiresAt,
                     } as any;
                 }
             }

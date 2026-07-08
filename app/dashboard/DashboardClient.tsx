@@ -3,16 +3,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { 
-    Package, Truck, Receipt, ArrowRight, TrendingUp, TrendingDown, 
-    Clock, AlertTriangle, Plus, ClipboardCheck, IndianRupee, 
-    AlertCircle, FileText, Download, CheckCircle2, Building, FileSpreadsheet, RefreshCw, ChevronDown
+    IndianRupee, Package, Truck, ArrowRight, Activity, TrendingUp, AlertCircle, FileText, 
+    Download, CheckCircle2, Search, Filter, RefreshCw, X, Receipt, Building, ChevronDown, 
+    ClipboardCheck, FileSpreadsheet, AlertTriangle, CalendarDays, Lock, Unlock, Clock, TrendingDown, Plus
 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { DashboardDateFilterAdvanced, DateRange } from "@/components/DashboardDateFilterAdvanced";
 import * as XLSX from "xlsx";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 
 export function DashboardClient({ initialData, user, warehouses }: { initialData: any, user: any, warehouses: any[] }) {
     const [greeting, setGreeting] = useState("Welcome");
@@ -209,6 +209,76 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                     </button>
                 </div>
             </div>
+
+            {/* Subscription Validity Widget */}
+            {(user.grantedAt && user.expiresAt) ? (
+                <div className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${new Date(user.expiresAt) < new Date() ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'}`}>
+                            {new Date(user.expiresAt) < new Date() ? <Lock className="w-6 h-6" /> : <CalendarDays className="w-6 h-6" />}
+                        </div>
+                        <div>
+                            <h3 className="font-black text-foreground flex items-center gap-2">
+                                Subscription Status
+                            </h3>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-sm font-bold text-muted-foreground flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    Valid From: <span className="text-foreground">{format(new Date(user.grantedAt), "dd MMM yyyy")}</span>
+                                </span>
+                                <span className="text-muted-foreground/30">•</span>
+                                <span className="text-sm font-bold text-muted-foreground flex items-center gap-1.5">
+                                    {new Date(user.expiresAt) < new Date() ? (
+                                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                    ) : (
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    )}
+                                    Valid Until: <span className="text-foreground">{format(new Date(user.expiresAt), "dd MMM yyyy")}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {new Date(user.expiresAt) < new Date() && (
+                        <div className="bg-rose-500/10 border border-rose-500/30 px-4 py-2 rounded-xl text-rose-600 font-black text-sm uppercase tracking-widest animate-pulse">
+                            Access Expired on {format(new Date(user.expiresAt), "dd MMM yyyy")}
+                        </div>
+                    )}
+                </div>
+            ) : user.expiresAt ? (
+                /* Fallback if grantedAt is missing but expiresAt exists */
+                <div className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${new Date(user.expiresAt) < new Date() ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'}`}>
+                            {new Date(user.expiresAt) < new Date() ? <Lock className="w-6 h-6" /> : <CalendarDays className="w-6 h-6" />}
+                        </div>
+                        <div>
+                            <h3 className="font-black text-foreground flex items-center gap-2">
+                                Subscription Status
+                            </h3>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-sm font-bold text-muted-foreground flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    Valid From: <span className="text-foreground">{format(subDays(new Date(user.expiresAt), 365), "dd MMM yyyy")}</span>
+                                </span>
+                                <span className="text-muted-foreground/30">•</span>
+                                <span className="text-sm font-bold text-muted-foreground flex items-center gap-1.5">
+                                    {new Date(user.expiresAt) < new Date() ? (
+                                        <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                                    ) : (
+                                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                    )}
+                                    Valid Until: <span className="text-foreground">{format(new Date(user.expiresAt), "dd MMM yyyy")}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {new Date(user.expiresAt) < new Date() && (
+                        <div className="bg-rose-500/10 border border-rose-500/30 px-4 py-2 rounded-xl text-rose-600 font-black text-sm uppercase tracking-widest animate-pulse">
+                            Access Expired on {format(new Date(user.expiresAt), "dd MMM yyyy")}
+                        </div>
+                    )}
+                </div>
+            ) : null}
 
             {/* Quick Actions */}
             <motion.div 

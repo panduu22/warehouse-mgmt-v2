@@ -17,7 +17,7 @@ export async function PATCH(
     }
 
     try {
-        const { status, adminNotes, durationDays } = await req.json();
+        const { status, adminNotes } = await req.json();
         const { id: requestId } = await params;
 
         if (!["APPROVED", "REJECTED"].includes(status)) {
@@ -41,19 +41,15 @@ export async function PATCH(
                 return NextResponse.json({ error: "Target user not found" }, { status: 404 });
             }
 
-            // Inside APPROVED block - compute duration and log
-            const isTargetAdmin = targetUser.email === "rkagencies321@gmail.com";
-            const effectiveDuration = durationDays ?? accessRequest.requestedDuration ?? 1; // default 1 day for testing
+            // Enforce standard 365-day calendar validity
+            const grantedAt = new Date();
+            const expiresAt = new Date(grantedAt);
+            expiresAt.setDate(expiresAt.getDate() + 365);
 
-            const approvedAt = new Date();
-            const expiresAt = new Date(approvedAt);
-            expiresAt.setDate(expiresAt.getDate() + effectiveDuration);
-
-            console.log("[AccessApproval] approvedAt (IST):", isoDateIST(approvedAt));
+            console.log("[AccessApproval] grantedAt (IST):", isoDateIST(grantedAt));
             console.log("[AccessApproval] expiresAt (IST):", isoDateIST(expiresAt));
-            console.log("[AccessApproval] effectiveDuration days:", effectiveDuration);
             // Update the request record
-            accessRequest.approvedAt = approvedAt;
+            accessRequest.approvedAt = grantedAt;
             accessRequest.expiresAt = expiresAt;
             await accessRequest.save();
 
@@ -64,10 +60,12 @@ export async function PATCH(
                 (w: any) => w.warehouseId.toString() === accessRequest.warehouseId.toString()
             );
             if (existingIndex >= 0) {
+                user.assignedWarehouses[existingIndex].grantedAt = grantedAt;
                 user.assignedWarehouses[existingIndex].expiresAt = expiresAt;
             } else {
                 user.assignedWarehouses.push({
                     warehouseId: accessRequest.warehouseId,
+                    grantedAt,
                     expiresAt,
                 });
             }

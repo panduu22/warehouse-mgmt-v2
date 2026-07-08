@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { userId, warehouseIds, durationDays } = await req.json();
+        const { userId, warehouseIds } = await req.json();
 
         if (!userId || !warehouseIds || !Array.isArray(warehouseIds)) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -28,12 +28,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (durationDays || 365));
+        const grantedAt = new Date();
+        const expiresAt = new Date(grantedAt);
+        expiresAt.setDate(expiresAt.getDate() + 365);
 
         // Create new assignments
         const newAssignments = warehouseIds.map(id => ({
             warehouseId: id,
+            grantedAt,
             expiresAt
         }));
 
@@ -46,6 +48,7 @@ export async function POST(req: Request) {
             );
 
             if (existingIndex > -1) {
+                userToUpdate.assignedWarehouses[existingIndex].grantedAt = grantedAt;
                 userToUpdate.assignedWarehouses[existingIndex].expiresAt = expiresAt;
             } else {
                 userToUpdate.assignedWarehouses.push(newAs as any);

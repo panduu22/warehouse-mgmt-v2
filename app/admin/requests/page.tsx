@@ -82,8 +82,7 @@ export default function AdminRequestsPage() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                   userId: selectedUser,
-                  warehouseIds: selectedWarehouses,
-                  durationDays: 365
+                  warehouseIds: selectedWarehouses
               })
           });
 
@@ -103,7 +102,7 @@ export default function AdminRequestsPage() {
       }
   };
 
-  const handleAction = async (id: string, status: "APPROVED" | "REJECTED", duration?: number) => {
+  const handleAction = async (id: string, status: "APPROVED" | "REJECTED") => {
     setProcessingId(id);
     const adminNotes = status === "APPROVED" 
         ? prompt("Enter any notes for the user (optional):", "Access granted by administrator.")
@@ -120,8 +119,7 @@ export default function AdminRequestsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
-          adminNotes: adminNotes || "",
-          durationDays: duration || 365
+          adminNotes: adminNotes || ""
         })
       });
 
@@ -131,6 +129,34 @@ export default function AdminRequestsPage() {
         const data = await res.json();
         alert(data.error || "Failed to update request");
       }
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRenew = async (userId: string, warehouseId: string, userName: string, warehouseName: string) => {
+    if (!confirm(`Are you sure you want to renew ${userName}'s access to ${warehouseName} for another 365 days?`)) return;
+    
+    setProcessingId(`${userId}-${warehouseId}-renew`);
+    try {
+      const res = await fetch("/api/admin/users/assign", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              userId: userId,
+              warehouseIds: [warehouseId]
+          })
+      });
+
+      if (res.ok) {
+        fetchRequests();
+        alert("Access renewed successfully!");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to renew access");
+      }
+    } catch (error) {
+      alert("An error occurred");
     } finally {
       setProcessingId(null);
     }
@@ -283,8 +309,8 @@ export default function AdminRequestsPage() {
                       <Calendar className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Requested For</p>
-                      <p className="font-bold text-sm">{req.requestedDuration} Days</p>
+                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Access Cycle</p>
+                      <p className="font-bold text-sm">365 Days</p>
                     </div>
                   </div>
                 </div>
@@ -298,7 +324,7 @@ export default function AdminRequestsPage() {
                     <XCircle className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={() => handleAction(req._id, "APPROVED", req.requestedDuration)}
+                    onClick={() => handleAction(req._id, "APPROVED")}
                     disabled={processingId === req._id}
                     className="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black transition-all flex items-center justify-center gap-2"
                   >
@@ -343,13 +369,22 @@ export default function AdminRequestsPage() {
                                         <p className="text-[10px] text-muted-foreground">Expires: {formatIST(aw.expiresAt, { dateStyle: 'short' })}</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleRevoke(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
-                                    disabled={processingId === `${user._id}-${aw.warehouseId?._id}`}
-                                    className="text-[10px] font-black text-destructive/40 hover:text-destructive p-1 transition-all opacity-0 group-hover:opacity-100"
-                                >
-                                    REVOKE
-                                </button>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                        onClick={() => handleRenew(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
+                                        disabled={processingId === `${user._id}-${aw.warehouseId?._id}-renew`}
+                                        className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 p-1 transition-all"
+                                    >
+                                        RENEW
+                                    </button>
+                                    <button
+                                        onClick={() => handleRevoke(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
+                                        disabled={processingId === `${user._id}-${aw.warehouseId?._id}`}
+                                        className="text-[10px] font-black text-destructive/40 hover:text-destructive p-1 transition-all"
+                                    >
+                                        REVOKE
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         {(!user.assignedWarehouses || user.assignedWarehouses.length === 0) && (

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { warehouseId, requestedDuration } = await req.json();
+        const { warehouseId } = await req.json();
         if (!warehouseId) {
             return NextResponse.json({ error: "Warehouse ID is required" }, { status: 400 });
         }
@@ -28,14 +28,9 @@ export async function POST(req: Request) {
         if (existingRequest) {
             return NextResponse.json({ error: "Request already pending" }, { status: 400 });
         }
-
-        const isAdmin = (session.user as any).email === "rkagencies321@gmail.com";
-        const defaultDuration = isAdmin ? 36500 : 1; // 1 day for testing (non-admin) and 36500 days for admin
-
         const request = new AccessRequest({
             userId: (session.user as any).id,
             warehouseId,
-            requestedDuration: requestedDuration || defaultDuration,
             status: "PENDING"
         });
 

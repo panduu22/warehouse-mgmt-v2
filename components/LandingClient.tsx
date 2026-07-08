@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { LogOut, Warehouse, Timer, CheckCircle2, Clock, Send, ShieldCheck, Search, X } from "lucide-react";
+import { LogOut, Warehouse, CalendarDays, CheckCircle2, Clock, Send, ShieldCheck, Search, X } from "lucide-react";
 import clsx from "clsx";
 
 interface LandingClientProps {
@@ -12,7 +12,6 @@ interface LandingClientProps {
 
 export default function LandingClient({ user, warehouses }: LandingClientProps) {
   const [selectedWarehouse, setSelectedWarehouse] = useState("");
-  const [duration, setDuration] = useState(30);
   const [loading, setLoading] = useState(false);
   const [warehouseSearch, setWarehouseSearch] = useState("");
 
@@ -26,8 +25,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          warehouseId: selectedWarehouse,
-          requestedDuration: duration
+          warehouseId: selectedWarehouse
         })
       });
 
@@ -151,21 +149,16 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
 
           <div className="space-y-4 relative z-10">
             <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-              2. Access Period (Days)
+              2. Access Validity
             </label>
-            <div className="flex items-center gap-4 bg-muted p-5 rounded-2xl border border-border">
-              <Timer className="w-6 h-6 text-primary" />
-              <input 
-                type="number" 
-                min="1" 
-                max="365"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value))}
-                className="bg-transparent text-3xl font-black text-primary outline-none w-24 tracking-tighter"
-              />
-              <span className="text-muted-foreground font-black text-sm uppercase tracking-widest">Days Requested</span>
+            <div className="flex items-center gap-4 bg-primary/5 p-5 rounded-2xl border border-primary/20">
+              <CalendarDays className="w-6 h-6 text-primary" />
+              <div>
+                <p className="font-black text-primary text-lg leading-tight tracking-tight">1 Year</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">(365 Calendar Days)</p>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground/60 font-medium px-1">Default is 30 days. Final duration is at administrator discretion.</p>
+            <p className="text-[10px] text-muted-foreground/60 font-medium px-1">All new access requests are automatically granted for one calendar year from the approval date.</p>
           </div>
 
           <button

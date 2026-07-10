@@ -501,8 +501,8 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
     return (
         <div className="max-w-5xl mx-auto py-8">
             <div className="flex items-center gap-4 mb-8">
-                <Link href="/trips" className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
-                    <ArrowLeft className="w-6 h-6" />
+                <Link href="/trips" className="p-2 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-muted-foreground border border-transparent hover:border-border">
+                    <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <div>
                     <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
@@ -513,7 +513,7 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
                 </div>
             </div>
 
-            <div className="bg-card rounded-3xl shadow-xl border border-border overflow-hidden text-card-foreground">
+            <div className="bg-card rounded-2xl shadow-erp-card border border-border overflow-hidden text-card-foreground">
                 <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
                     <h2 className="font-black text-muted-foreground uppercase text-xs tracking-widest">Loaded Cargo Details</h2>
                     <div className="text-xs font-bold text-muted-foreground bg-background px-3 py-1 rounded-full border border-border">
@@ -814,8 +814,8 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
 
                 {/* ── Payment Collection Section ─────────────────────────────── */}
                 {!isVerified && (
-                    <div className="mx-6 mb-6 rounded-3xl border border-border bg-card/60 backdrop-blur-sm overflow-hidden shadow-sm">
-                        <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                    <div className="mx-6 mb-6 rounded-2xl border border-border bg-card/60 backdrop-blur-sm overflow-hidden shadow-sm">
+                        <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-lg">💰</span>
                                 <h3 className="font-black text-foreground text-sm uppercase tracking-widest">Payment Collection</h3>
@@ -937,8 +937,8 @@ export default function VerifyTripPage({ params }: { params: Promise<{ id: strin
 
                 {/* ── Verified Payment Summary (read-only) ───────────────────── */}
                 {isVerified && (trip.upiAmount || trip.cashAmount || trip.expensesAmount || trip.balanceAmount) && (
-                    <div className="mx-6 mb-6 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-emerald-500/20 flex items-center gap-2">
+                    <div className="mx-6 mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden shadow-sm">
+                        <div className="p-6 border-b border-emerald-500/20 bg-emerald-500/10 flex items-center justify-between">
                             <span className="text-lg">💰</span>
                             <h3 className="font-black text-emerald-700 text-sm uppercase tracking-widest">Payment Summary</h3>
                             <span className="ml-auto bg-emerald-500/15 text-emerald-600 text-xs font-black px-3 py-1 rounded-full border border-emerald-500/30">

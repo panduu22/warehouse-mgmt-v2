@@ -77,7 +77,7 @@ export function DashboardDateFilterAdvanced({
                 <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full h-10 px-4 py-2 bg-card hover:bg-muted/50 border border-border rounded-xl text-left font-semibold text-sm flex items-center justify-between shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full h-10 px-4 py-2 bg-card hover:bg-muted/50 border border-border rounded-[1rem] text-left font-semibold text-sm flex items-center justify-between shadow-erp transition-all focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                     <span className="flex items-center gap-2 text-foreground">
                         <CalendarIcon className="h-4 w-4 text-primary" />
@@ -93,7 +93,7 @@ export function DashboardDateFilterAdvanced({
                 </button>
 
                 {isOpen && (
-                    <div className="absolute top-12 left-0 z-50 w-[320px] sm:w-[480px] bg-card border border-border rounded-2xl shadow-xl flex flex-col sm:flex-row overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute top-12 left-0 z-50 w-[320px] sm:w-[480px] bg-card border border-border rounded-[1rem] shadow-erp flex flex-col sm:flex-row overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                         {/* Presets Column */}
                         <div className="border-b sm:border-b-0 sm:border-r border-border p-3 space-y-1 w-full sm:w-[160px] bg-muted/20">
                             <div className="text-[10px] font-black uppercase text-muted-foreground mb-2 px-2 tracking-widest">Presets</div>
@@ -163,7 +163,7 @@ export function DashboardDateFilterAdvanced({
             </div>
 
             {/* Compare Toggle & Refresh */}
-            <div className="flex items-center gap-4 bg-card border border-border px-4 py-2 rounded-xl h-10 shadow-sm w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-4 bg-card border border-border px-4 py-2 rounded-[1rem] h-10 shadow-erp w-full sm:w-auto justify-between sm:justify-start">
                 <div className="flex items-center space-x-2.5">
                     <button
                         type="button"

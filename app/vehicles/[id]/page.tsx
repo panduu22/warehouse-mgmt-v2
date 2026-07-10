@@ -415,71 +415,71 @@ export default function VehicleDetailsPage() {
                 <div className="space-y-8">
                     {/* Financial Summary Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <IndianRupee className="w-3 h-3 text-emerald-500" /> Gross Sales
                             </p>
                             <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalGrossSales)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <TrendingUp className="w-3 h-3 text-rose-500" /> Discounts
                             </p>
                             <p className="text-lg font-black text-rose-500">{formatCurrency(financialSummary.totalDiscounts)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-emerald-600 tracking-widest mb-1 flex items-center gap-1.5">
                                 <Activity className="w-3 h-3 text-emerald-500" /> Net Sales
                             </p>
                             <p className="text-lg font-black text-emerald-600">{formatCurrency(financialSummary.totalNetSales)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <Info className="w-3 h-3 text-amber-500" /> Expenses
                             </p>
                             <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalExpenses)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <Receipt className="w-3 h-3 text-blue-500" /> Bills Gen
                             </p>
                             <p className="text-lg font-black text-foreground">{financialSummary.totalBills}</p>
                         </Card>
                         
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <IndianRupee className="w-3 h-3 text-indigo-500" /> UPI Total
                             </p>
                             <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalUPI)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <IndianRupee className="w-3 h-3 text-emerald-600" /> Cash Total
                             </p>
                             <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalCash)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-primary/5 hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-primary/5 hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-primary tracking-widest mb-1 flex items-center gap-1.5">
                                 <Download className="w-3 h-3 text-primary" /> Received
                             </p>
                             <p className="text-lg font-black text-primary">{formatCurrency(financialSummary.totalReceived)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-rose-500/5 hover:border-rose-500/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-rose-500/5 hover:border-rose-500/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-rose-600 tracking-widest mb-1 flex items-center gap-1.5">
                                 <Activity className="w-3 h-3 text-rose-500" /> Outstanding
                             </p>
                             <p className="text-lg font-black text-rose-600">{formatCurrency(financialSummary.totalOutstanding)}</p>
                         </Card>
-                        <Card className="border shadow-sm p-4 bg-card hover:border-primary/30 transition-colors">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
                             <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
                                 <Calendar className="w-3 h-3 text-blue-500" /> Active Days
                             </p>
                             <p className="text-lg font-black text-foreground">{financialSummary.activeDays}</p>
                         </Card>
                     </div>
-
+                    
                     {/* Consolidated Product Summary Table */}
-                    <Card className="border shadow-sm overflow-hidden bg-card">
+                    <Card className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
                         <CardHeader className="bg-muted/30 border-b pb-4">
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <Package className="w-5 h-5 text-primary" />
@@ -539,7 +539,7 @@ export default function VehicleDetailsPage() {
                     {sales.map((day) => {
                         const totalSalesAmount = day.items.reduce((sum, item) => sum + item.salesAmount, 0);
                         return (
-                            <Card key={day.date} className="border shadow-sm overflow-hidden bg-card">
+                            <Card key={day.date} className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
                                 <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between flex-wrap gap-3">
                                     <CardTitle className="text-xl flex items-center gap-2">
                                         <Calendar className="w-5 h-5 text-primary" />

@@ -197,62 +197,67 @@ export default function NewTripPage() {
     return (
         <div className="max-w-6xl mx-auto pb-12">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8 print:hidden">
-                <Link href="/trips" className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500">
-                    <ArrowLeft className="w-6 h-6" />
-                </Link>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900">Load Vehicle</h1>
-                    <p className="text-sm text-gray-500">Create a new trip manifest</p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 bg-card border border-border px-6 py-5 rounded-2xl shadow-erp-card mb-8 print:hidden">
+                <div className="flex items-center gap-4">
+                    <Link href="/trips" className="p-2 bg-muted/50 hover:bg-muted rounded-xl transition-colors text-muted-foreground border border-transparent hover:border-border">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground tracking-tight">Load Vehicle</h1>
+                        <p className="text-sm text-muted-foreground mt-1">Create a new trip manifest</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* ── LEFT: Selection ── */}
                 <div className="lg:col-span-2 space-y-6 print:hidden">
 
                     {/* Step 1: Vehicle */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <Truck className="w-4 h-4 text-ruby-600" />
-                            1. Select Vehicle
-                        </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-card p-6 rounded-2xl shadow-erp-card border border-border">
+                        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/60">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">1</div>
+                            <h2 className="text-base font-bold text-foreground tracking-tight">Select Vehicle</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {vehicles.map((v: any) => (
                                 <button
                                     key={v._id}
                                     onClick={() => setSelectedVehicle(v._id)}
                                     disabled={v.status !== "AVAILABLE"}
-                                    className={clsx("p-4 rounded-lg border text-left transition-all", {
-                                        "border-ruby-500 bg-ruby-50 ring-1 ring-ruby-500": selectedVehicle === v._id,
-                                        "border-gray-200 hover:border-ruby-200 bg-white": selectedVehicle !== v._id && v.status === "AVAILABLE",
-                                        "opacity-50 cursor-not-allowed bg-gray-50 border-gray-100": v.status !== "AVAILABLE",
+                                    className={clsx("p-4 rounded-xl border text-left transition-all duration-200", {
+                                        "border-primary bg-primary/5 ring-1 ring-primary shadow-sm": selectedVehicle === v._id,
+                                        "border-border hover:border-primary/40 bg-card hover:bg-muted/30": selectedVehicle !== v._id && v.status === "AVAILABLE",
+                                        "opacity-50 cursor-not-allowed bg-muted/50 border-border": v.status !== "AVAILABLE",
                                     })}
                                 >
-                                    <div className="font-bold text-gray-900">{v.number}</div>
-                                    <div className="text-sm text-gray-500">{v.driverName}</div>
-                                    {v.status !== "AVAILABLE" && <div className="text-xs text-amber-600 font-medium mt-1">Busy</div>}
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="font-bold text-foreground text-lg">{v.number}</div>
+                                        {v.status !== "AVAILABLE" && <span className="badge badge-amber">Busy</span>}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground flex items-center gap-1.5 font-medium">
+                                        <Truck className="w-3.5 h-3.5" /> {v.driverName}
+                                    </div>
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Step 2: Add Products — Pack Size first */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <PackagePlus className="w-4 h-4 text-ruby-600" />
-                            2. Add Products
-                        </h2>
+                    {/* Step 2: Add Products */}
+                    <div className="bg-card p-6 rounded-2xl shadow-erp-card border border-border">
+                        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-border/60">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">2</div>
+                            <h2 className="text-base font-bold text-foreground tracking-tight">Add Products</h2>
+                        </div>
 
-                        <label className="text-xs font-semibold text-gray-500 uppercase mb-3 block">
-                            Step 1 — Select Pack Size
+                        <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-3 block">
+                            Select Pack Size
                         </label>
 
                         <div className="space-y-3">
                             {packGroups.map(group => (
-                                <div key={group.pack}>
-                                    {/* Pack heading button */}
+                                <div key={group.pack} className="border border-border/60 rounded-xl overflow-hidden bg-card">
                                     <button
                                         onClick={() => {
                                             setSelectedPack(prev => prev === group.pack ? "" : group.pack);
@@ -261,30 +266,29 @@ export default function NewTripPage() {
                                             setAddBottles("0");
                                         }}
                                         className={clsx(
-                                            "w-full text-left px-4 py-3 rounded-xl border font-bold text-sm transition-all flex items-center justify-between",
+                                            "w-full text-left px-5 py-3.5 font-bold text-sm transition-all flex items-center justify-between",
                                             selectedPack === group.pack
-                                                ? "border-ruby-500 bg-ruby-50 text-ruby-900 ring-1 ring-ruby-500"
-                                                : "border-gray-200 bg-gray-50 text-gray-700 hover:border-ruby-300 hover:bg-ruby-50/40"
+                                                ? "bg-primary/5 text-primary border-b border-primary/10"
+                                                : "bg-muted/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                                         )}
                                     >
                                         <span>{group.pack}</span>
-                                        <span className="text-xs font-medium text-gray-400">
-                                            {group.flavours.length} flavour{group.flavours.length !== 1 ? "s" : ""}
+                                        <span className="badge badge-slate">
+                                            {group.flavours.length} variant{group.flavours.length !== 1 ? "s" : ""}
                                         </span>
                                     </button>
 
-                                    {/* Flavour cards — shown when pack is expanded */}
                                     {selectedPack === group.pack && (
-                                        <div className="mt-2 ml-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                                            <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
-                                                Step 2 — Select Flavour & Quantity
+                                        <div className="p-4 bg-background">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 block">
+                                                Select Flavour & Quantity
                                             </label>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                 {group.flavours.map(flav => (
-                                                    <div key={flav} className={clsx("rounded-xl border transition-all overflow-hidden flex flex-col",
+                                                    <div key={flav} className={clsx("rounded-xl border transition-all overflow-hidden flex flex-col shadow-sm",
                                                         selectedFlavour === flav
-                                                            ? "border-teal-500 bg-teal-50/50 ring-1 ring-teal-500"
-                                                            : "border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/20"
+                                                            ? "border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500"
+                                                            : "border-border bg-card hover:border-emerald-300 hover:bg-emerald-50/20"
                                                     )}>
                                                         <button
                                                             onClick={() => {
@@ -293,42 +297,43 @@ export default function NewTripPage() {
                                                                 setAddBottles("0");
                                                             }}
                                                             className={clsx(
-                                                                "p-3 w-full text-sm font-bold text-left flex justify-between items-center",
-                                                                selectedFlavour === flav ? "text-teal-900 bg-teal-100/50" : "text-gray-700"
+                                                                "px-3 py-2.5 w-full text-sm font-bold text-left flex justify-between items-center transition-colors",
+                                                                selectedFlavour === flav ? "text-emerald-900 bg-emerald-100/50" : "text-muted-foreground"
                                                             )}
                                                         >
                                                             {flav}
                                                         </button>
 
                                                         {selectedFlavour === flav && targetProduct && (
-                                                            <div className="p-3 bg-white border-t border-teal-100 flex flex-col gap-3 animate-in slide-in-from-top-1">
-                                                                <div className="text-xs text-gray-500">
-                                                                    Available: <span className="font-bold text-gray-900">{formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</span>
+                                                            <div className="p-3 bg-card border-t border-emerald-100/50 flex flex-col gap-3">
+                                                                <div className="text-xs text-muted-foreground font-medium flex justify-between items-center">
+                                                                    <span>Stock:</span>
+                                                                    <span className="font-bold text-foreground">{formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</span>
                                                                 </div>
                                                                 <div className="flex gap-2">
                                                                     <div className="flex-1">
-                                                                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Packs</label>
+                                                                        <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block mb-1">Packs</label>
                                                                         <input
                                                                             type="number" min="0"
                                                                             value={addPacks}
                                                                             onChange={e => setAddPacks(e.target.value)}
-                                                                            className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                            className="w-full h-8 px-2 text-center font-bold text-sm rounded-lg border border-border focus:ring-2 focus:ring-emerald-500 outline-none text-foreground bg-background shadow-sm"
                                                                         />
                                                                     </div>
                                                                     <div className="flex-1">
-                                                                        <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">Bottles</label>
+                                                                        <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block mb-1">Bottles</label>
                                                                         <input
                                                                             type="number" min="0"
                                                                             value={addBottles}
                                                                             onChange={e => setAddBottles(e.target.value)}
-                                                                            className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                            className="w-full h-8 px-2 text-center font-bold text-sm rounded-lg border border-border focus:ring-2 focus:ring-emerald-500 outline-none text-foreground bg-background shadow-sm"
                                                                         />
                                                                     </div>
                                                                 </div>
                                                                 <button
                                                                     onClick={addToManifest}
                                                                     disabled={(parseInt(addPacks || "0") * targetProduct.bottlesPerPack + parseInt(addBottles || "0")) <= 0}
-                                                                    className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md font-bold text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-50 shadow-sm"
+                                                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 shadow-sm"
                                                                 >
                                                                     <Plus className="w-4 h-4" /> Add
                                                                 </button>
@@ -344,8 +349,8 @@ export default function NewTripPage() {
                         </div>
 
                         {!targetProduct && selectedPack && selectedFlavour && (
-                            <div className="mt-4 text-amber-600 text-sm p-4 bg-amber-50 rounded-lg border border-amber-100">
-                                Product not found for this combination.
+                            <div className="mt-4 text-amber-600 text-sm p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-2 font-medium">
+                                <AlertCircle className="w-4 h-4" /> Product not found for this combination.
                             </div>
                         )}
                     </div>
@@ -353,7 +358,7 @@ export default function NewTripPage() {
 
                 {/* ── RIGHT: Manifest ── */}
                 <div className="lg:col-span-1 print:col-span-3">
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 sticky top-6 overflow-hidden flex flex-col print:shadow-none print:border-none print:relative print:top-0">
+                    <div className="bg-card rounded-2xl shadow-erp-card border border-border sticky top-24 overflow-hidden flex flex-col print:shadow-none print:border-none print:relative print:top-0">
 
                         {/* Print-only header */}
                         <div className="hidden print:block p-8 border-b-2 border-black mb-6">
@@ -366,81 +371,77 @@ export default function NewTripPage() {
                                     <div className="text-right">
                                         <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Vehicle</div>
                                         <div className="text-3xl font-black text-black">{activeVehicle.number}</div>
-                                        <div className="text-lg font-bold text-gray-700">{activeVehicle.driverName}</div>
+                                        <div className="text-lg font-bold text-muted-foreground">{activeVehicle.driverName}</div>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Screen header */}
-                        <div className="p-4 bg-gray-50 border-b border-gray-100 print:bg-white print:border-b-2 print:border-black">
-                            <div className="flex justify-between items-center mb-2">
-                                <h2 className="font-bold text-gray-900 flex items-center gap-2 print:text-2xl print:font-black">
-                                    Manifest Items
-                                    <span className="text-xs bg-ruby-100 text-ruby-700 px-2 py-1 rounded-full print:bg-black print:text-white">
-                                        {manifest.length} Items
-                                    </span>
+                        <div className="p-5 bg-muted/30 border-b border-border print:bg-card print:border-b-2 print:border-black">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="font-bold text-foreground text-lg print:text-2xl print:font-black">
+                                    Manifest
                                 </h2>
                                 {manifest.length > 0 && (
                                     <button
                                         onClick={() => window.print()}
-                                        className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-ruby-600 transition-all border border-transparent hover:border-gray-200 print:hidden"
-                                        title="Print Manifest"
+                                        className="h-8 px-3 bg-card hover:bg-muted border border-border rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground transition-all flex items-center gap-1.5 shadow-sm print:hidden"
                                     >
-                                        <Printer className="w-5 h-5" />
+                                        <Printer className="w-3.5 h-3.5" /> Print
                                     </button>
                                 )}
                             </div>
-                            {manifest.length > 0 && (
-                                <div className="flex flex-col gap-1 print:mt-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-500 font-medium print:font-bold print:text-lg">Total Loaded</span>
-                                        <span className="font-bold text-gray-900 print:text-2xl print:font-black">
-                                            {(() => {
-                                                let p = 0, b = 0;
-                                                manifest.forEach(item => { p += Math.floor(item.qtyLoaded / item.bottlesPerPack); b += item.qtyLoaded % item.bottlesPerPack; });
-                                                return `${p} Packs + ${b} Bottles`;
-                                            })()}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-gray-500 font-medium print:font-bold print:text-lg">Grand Total</span>
-                                        <span className="font-bold text-ruby-700 print:text-3xl print:font-black print:text-black">
-                                            ₹{manifest.reduce((acc, i) => acc + i.price * (i.qtyLoaded / i.bottlesPerPack), 0).toLocaleString()}
-                                        </span>
-                                    </div>
+                            
+                            <div className="flex flex-col gap-2 print:mt-4 bg-background border border-border/60 rounded-xl p-4 shadow-sm">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground font-medium print:font-bold print:text-lg">Total Loaded</span>
+                                    <span className="font-bold text-foreground print:text-xl print:font-black">
+                                        {(() => {
+                                            let p = 0, b = 0;
+                                            manifest.forEach(item => { p += Math.floor(item.qtyLoaded / item.bottlesPerPack); b += item.qtyLoaded % item.bottlesPerPack; });
+                                            return `${p} Packs + ${b} Btls`;
+                                        })()}
+                                    </span>
                                 </div>
-                            )}
+                                <div className="flex justify-between text-sm border-t border-border/60 pt-2 mt-1">
+                                    <span className="text-muted-foreground font-medium print:font-bold print:text-lg">Est. Value</span>
+                                    <span className="font-black text-primary print:text-2xl print:text-black">
+                                        ₹{manifest.reduce((acc, i) => acc + i.price * (i.qtyLoaded / i.bottlesPerPack), 0).toLocaleString('en-IN')}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Manifest items */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 print:overflow-visible print:p-0 print:mt-6">
+                        <div className="flex-1 max-h-[500px] overflow-y-auto p-4 space-y-2.5 custom-scrollbar print:overflow-visible print:max-h-none print:p-0 print:mt-6">
                             {manifest.length === 0 ? (
-                                <div className="text-center py-12 text-gray-400 print:hidden">
-                                    <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
-                                        <PackagePlus className="w-8 h-8 text-gray-300" />
+                                <div className="text-center py-12 text-muted-foreground print:hidden">
+                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+                                        <PackagePlus className="w-8 h-8 text-muted-foreground/30" />
                                     </div>
-                                    <p className="text-sm">No items added yet.</p>
-                                    <p className="text-xs mt-1">Pick a pack size → flavour on the left.</p>
+                                    <p className="text-sm font-medium text-foreground mb-1">Empty Manifest</p>
+                                    <p className="text-xs">Add products from the left.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3 print:space-y-0 print:border-t print:border-black">
+                                <div className="space-y-2.5 print:space-y-0 print:border-t print:border-black">
                                     {manifest.map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm print:shadow-none print:border-b print:border-gray-200 print:rounded-none print:p-4">
+                                        <div key={idx} className="flex items-center gap-3 bg-background border border-border/60 p-3.5 rounded-xl shadow-sm hover:border-primary/30 transition-colors group print:shadow-none print:border-b print:border-border print:rounded-none print:p-4">
                                             <div className="flex-1 min-w-0">
-                                                <div className="font-medium text-gray-900 truncate print:text-xl print:font-black">{item.pack} - {item.flavour}</div>
-                                                <div className="text-xs font-bold text-teal-600 mt-0.5 print:text-gray-900 print:text-sm">
-                                                    ₹{(item.price * (item.qtyLoaded / item.bottlesPerPack)).toLocaleString()} (₹{item.price}/pack)
+                                                <div className="font-bold text-sm text-foreground truncate print:text-xl print:font-black">{item.pack} - {item.flavour}</div>
+                                                <div className="text-[11px] font-semibold text-muted-foreground mt-0.5 print:text-foreground print:text-sm">
+                                                    <span className="text-emerald-600">₹{(item.price * (item.qtyLoaded / item.bottlesPerPack)).toLocaleString('en-IN')}</span> <span className="opacity-50">•</span> ₹{item.price}/pk
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="font-black text-gray-900 text-lg print:text-3xl">
+                                                <div className="font-black text-foreground text-sm bg-muted px-2 py-1 rounded-md print:bg-transparent print:text-2xl">
                                                     {formatPacksAndBottles(item.qtyLoaded, item.bottlesPerPack)}
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => removeFromManifest(idx)}
-                                                className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded transition-colors print:hidden"
+                                                className="p-1.5 text-muted-foreground/50 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 print:hidden"
+                                                title="Remove"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
@@ -465,13 +466,13 @@ export default function NewTripPage() {
                         </div>
 
                         {/* Confirm button */}
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 print:hidden">
+                        <div className="p-4 border-t border-border bg-background print:hidden">
                             <button
                                 onClick={handleSubmit}
                                 disabled={manifest.length === 0 || !selectedVehicle || saving}
-                                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-50"
+                                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
                             >
-                                {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                 Confirm Vehicle Load
                             </button>
                         </div>

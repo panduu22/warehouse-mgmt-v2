@@ -352,27 +352,27 @@ export default function AddStockPage() {
             <div className="flex items-center gap-4 mb-8 print:hidden">
                 <Link
                     href="/stock"
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+                    className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
                 >
                     <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900">Manage Stock</h1>
-                    <p className="text-sm text-gray-500">
-                        Restock existing products or add new ones for <span className="font-bold text-ruby-600">{activeWarehouse?.name || "Unit"}</span>
+                    <h1 className="text-2xl font-bold text-foreground">Manage Stock</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Restock existing products or add new ones for <span className="font-bold text-primary">{activeWarehouse?.name || "Unit"}</span>
                     </p>
                 </div>
             </div>
 
             {/* ── Mode Toggle ── */}
-            <div className="bg-gray-100 p-1 rounded-xl flex gap-1 mb-8 max-w-md mx-auto print:hidden">
+            <div className="bg-muted p-1 rounded-xl flex gap-1 mb-8 max-w-md mx-auto print:hidden">
                 <button
                     onClick={() => setMode("existing")}
                     className={clsx(
                         "flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all",
                         {
-                            "bg-white text-ruby-700 shadow-sm": mode === "existing",
-                            "text-gray-500 hover:text-gray-900": mode !== "existing",
+                            "bg-white text-primary shadow-sm": mode === "existing",
+                            "text-muted-foreground hover:text-foreground": mode !== "existing",
                         }
                     )}
                 >
@@ -384,8 +384,8 @@ export default function AddStockPage() {
                     className={clsx(
                         "flex-1 py-2 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all",
                         {
-                            "bg-white text-ruby-700 shadow-sm": mode === "new",
-                            "text-gray-500 hover:text-gray-900": mode !== "new",
+                            "bg-white text-primary shadow-sm": mode === "new",
+                            "text-muted-foreground hover:text-foreground": mode !== "new",
                         }
                     )}
                 >
@@ -399,13 +399,13 @@ export default function AddStockPage() {
 
                     {/* ══ LEFT: Product selector ══ */}
                     <div className="lg:col-span-2 space-y-6 print:hidden">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6 flex items-center gap-2">
-                                <PackagePlus className="w-4 h-4 text-ruby-600" />
+                        <div className="bg-card p-6 rounded-2xl shadow-erp-card border border-border">
+                            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
+                                <PackagePlus className="w-4 h-4 text-primary" />
                                 Select Products to Restock
                             </h2>
 
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-3 block">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase mb-3 block">
                                 Step 1 — Select Pack Size
                             </label>
 
@@ -425,8 +425,8 @@ export default function AddStockPage() {
                                             className={clsx(
                                                 "w-full text-left px-4 py-3 rounded-xl border font-bold text-sm transition-all flex items-center justify-between",
                                                 selectedPack === group.pack
-                                                    ? "border-ruby-500 bg-ruby-50 text-ruby-900 ring-1 ring-ruby-500"
-                                                    : "border-gray-200 bg-gray-50 text-gray-700 hover:border-ruby-300 hover:bg-ruby-50/40"
+                                                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary"
+                                                    : "border-border bg-muted/50 text-muted-foreground hover:border-primary/30 hover:bg-primary/10/40"
                                             )}
                                         >
                                             <span>{group.pack}</span>
@@ -439,7 +439,7 @@ export default function AddStockPage() {
                                         {/* Flavour cards */}
                                         {selectedPack === group.pack && (
                                             <div className="mt-2 ml-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">
+                                                <label className="text-xs font-semibold text-muted-foreground uppercase mb-2 block">
                                                     Step 2 — Select Flavour &amp; Quantity
                                                 </label>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -456,7 +456,7 @@ export default function AddStockPage() {
                                                                     "rounded-xl border transition-all overflow-hidden flex flex-col",
                                                                     selectedFlavour === flav
                                                                         ? "border-teal-500 bg-teal-50/50 ring-1 ring-teal-500"
-                                                                        : "border-gray-200 bg-white hover:border-teal-300 hover:bg-teal-50/20"
+                                                                        : "border-border bg-white hover:border-teal-300 hover:bg-teal-50/20"
                                                                 )}
                                                             >
                                                                 <button
@@ -471,7 +471,7 @@ export default function AddStockPage() {
                                                                         "p-3 w-full text-sm font-bold text-left flex justify-between items-center",
                                                                         selectedFlavour === flav
                                                                             ? "text-teal-900 bg-teal-100/50"
-                                                                            : "text-gray-700"
+                                                                            : "text-muted-foreground"
                                                                     )}
                                                                 >
                                                                     <span>{flav}</span>
@@ -488,9 +488,9 @@ export default function AddStockPage() {
                                                                 {selectedFlavour === flav &&
                                                                     targetProduct && (
                                                                         <div className="p-3 bg-white border-t border-teal-100 flex flex-col gap-3 animate-in slide-in-from-top-1">
-                                                                            <div className="text-xs text-gray-500">
+                                                                            <div className="text-xs text-muted-foreground">
                                                                                 In stock:{" "}
-                                                                                <span className="font-bold text-gray-900">
+                                                                                <span className="font-bold text-foreground">
                                                                                     {formatPacksAndBottles(
                                                                                         targetProduct.quantity,
                                                                                         targetProduct.bottlesPerPack
@@ -502,7 +502,7 @@ export default function AddStockPage() {
                                                                             </div>
                                                                             <div className="flex gap-2">
                                                                                 <div className="flex-1">
-                                                                                    <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">
+                                                                                    <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">
                                                                                         Packs
                                                                                     </label>
                                                                                     <input
@@ -528,11 +528,11 @@ export default function AddStockPage() {
                                                                                             )
                                                                                                 setAddPacks("0");
                                                                                         }}
-                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-foreground"
                                                                                     />
                                                                                 </div>
                                                                                 <div className="flex-1">
-                                                                                    <label className="text-[10px] text-gray-500 font-bold uppercase block mb-1">
+                                                                                    <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">
                                                                                         Bottles
                                                                                         <span className="ml-1 text-gray-400 normal-case">
                                                                                             (max{" "}
@@ -568,14 +568,14 @@ export default function AddStockPage() {
                                                                                             )
                                                                                                 setAddBottles("0");
                                                                                         }}
-                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-gray-900"
+                                                                                        className="w-full px-2 py-1.5 text-center font-bold text-sm rounded-md border border-gray-300 focus:ring-2 focus:ring-teal-500 outline-none text-foreground"
                                                                                     />
                                                                                 </div>
                                                                             </div>
                                                                             <button
                                                                                 onClick={addToCart}
                                                                                 disabled={isAddDisabled}
-                                                                                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md font-bold text-sm flex items-center justify-center gap-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                                                                                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-1 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm uppercase tracking-widest"
                                                                             >
                                                                                 <Plus className="w-4 h-4" />
                                                                                 Add to Restock
@@ -602,7 +602,7 @@ export default function AddStockPage() {
 
                     {/* ══ RIGHT: Restock cart ══ */}
                     <div className="lg:col-span-1 print:col-span-3">
-                        <div className="bg-white rounded-xl shadow-lg border border-gray-100 sticky top-6 overflow-hidden flex flex-col print:shadow-none print:border-none print:relative print:top-0">
+                        <div className="bg-white rounded-xl shadow-lg border border-border sticky top-6 overflow-hidden flex flex-col print:shadow-none print:border-none print:relative print:top-0">
 
                             {/* ── Print-only receipt header ── */}
                             <div className="hidden print:block p-8 border-b-2 border-black mb-2">
@@ -650,11 +650,11 @@ export default function AddStockPage() {
                             </div>
 
                             {/* ── Screen panel header ── */}
-                            <div className="p-4 bg-gray-50 border-b border-gray-100 print:bg-white print:border-b-2 print:border-black">
+                            <div className="p-4 bg-muted/50 border-b border-border print:bg-white print:border-b-2 print:border-black">
                                 <div className="flex justify-between items-center mb-2">
-                                    <h2 className="font-bold text-gray-900 flex items-center gap-2 print:text-2xl print:font-black">
+                                    <h2 className="font-bold text-foreground flex items-center gap-2 print:text-2xl print:font-black">
                                         Restock Items
-                                        <span className="text-xs bg-ruby-100 text-ruby-700 px-2 py-1 rounded-full print:bg-black print:text-white">
+                                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full print:bg-black print:text-white">
                                             {confirmedRestock
                                                 ? confirmedRestock.items.length
                                                 : cart.length}{" "}
@@ -664,7 +664,7 @@ export default function AddStockPage() {
                                     {(cart.length > 0 || confirmedRestock) && (
                                         <button
                                             onClick={() => window.print()}
-                                            className="p-2 hover:bg-white rounded-lg text-gray-500 hover:text-ruby-600 transition-all border border-transparent hover:border-gray-200 print:hidden"
+                                            className="p-2 hover:bg-white rounded-lg text-muted-foreground hover:text-primary transition-all border border-transparent hover:border-border print:hidden"
                                             title="Print Receipt"
                                         >
                                             <Printer className="w-5 h-5" />
@@ -675,10 +675,10 @@ export default function AddStockPage() {
                                 {/* Cart / receipt totals */}
                                 {(cart.length > 0 || confirmedRestock) && (
                                     <div className="flex justify-between text-sm print:mt-4">
-                                        <span className="text-gray-500 font-medium print:font-bold print:text-lg">
+                                        <span className="text-muted-foreground font-medium print:font-bold print:text-lg">
                                             Total Added
                                         </span>
-                                        <span className="font-bold text-gray-900 print:text-2xl print:font-black">
+                                        <span className="font-bold text-foreground print:text-2xl print:font-black">
                                             {(() => {
                                                 const items = confirmedRestock
                                                     ? confirmedRestock.items
@@ -716,7 +716,7 @@ export default function AddStockPage() {
                                     if (displayItems.length === 0) {
                                         return (
                                             <div className="text-center py-12 text-gray-400 print:hidden">
-                                                <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <div className="bg-muted/50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                                                     <PackagePlus className="w-8 h-8 text-gray-300" />
                                                 </div>
                                                 <p className="text-sm">No items added yet.</p>
@@ -731,10 +731,10 @@ export default function AddStockPage() {
                                             {displayItems.map((item, idx) => (
                                                 <div
                                                     key={idx}
-                                                    className="flex items-center gap-3 bg-white border border-gray-100 p-3 rounded-lg shadow-sm print:shadow-none print:border-b print:border-gray-200 print:rounded-none print:p-4"
+                                                    className="flex items-center gap-3 bg-white border border-border p-3 rounded-lg shadow-sm print:shadow-none print:border-b print:border-border print:rounded-none print:p-4"
                                                 >
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="font-medium text-gray-900 truncate print:text-xl print:font-black">
+                                                        <div className="font-medium text-foreground truncate print:text-xl print:font-black">
                                                             {item.pack} — {item.flavour}
                                                         </div>
                                                         <div className="text-xs font-semibold text-teal-600 mt-0.5 print:hidden">
@@ -744,7 +744,7 @@ export default function AddStockPage() {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="font-black text-gray-900 text-lg print:text-3xl">
+                                                    <div className="font-black text-foreground text-lg print:text-3xl">
                                                         {formatPacksAndBottles(
                                                             item.qtyAdded,
                                                             item.bottlesPerPack
@@ -783,7 +783,7 @@ export default function AddStockPage() {
                             </div>
 
                             {/* ── Action buttons ── */}
-                            <div className="p-4 border-t border-gray-100 bg-gray-50 print:hidden space-y-2">
+                            <div className="p-4 border-t border-border bg-muted/50 print:hidden space-y-2">
                                 {confirmedRestock ? (
                                     /* After confirmation: offer to start a new restock */
                                     <button
@@ -793,7 +793,7 @@ export default function AddStockPage() {
                                             setSelectedPack("");
                                             setSelectedFlavour("");
                                         }}
-                                        className="w-full bg-ruby-600 hover:bg-ruby-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md"
+                                        className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md"
                                     >
                                         <RefreshCw className="w-5 h-5" />
                                         New Restock
@@ -802,7 +802,7 @@ export default function AddStockPage() {
                                     <button
                                         onClick={handleConfirmRestock}
                                         disabled={cart.length === 0 || saving}
-                                        className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed"
+                                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 rounded-xl font-black flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed text-sm uppercase tracking-widest"
                                     >
                                         {saving ? (
                                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -818,31 +818,31 @@ export default function AddStockPage() {
                 </div>
             ) : (
                 /* ══ Add New Product form (unchanged) ══ */
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[400px]">
+                <div className="bg-card p-8 rounded-2xl shadow-erp-card border border-border min-h-[400px]">
                     {error && (
                         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6">
                             {error}
                         </div>
                     )}
                     <form onSubmit={handleCreate} className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-muted/50 p-6 rounded-xl">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Pack Description
                                 </label>
                                 <input
                                     name="pack"
                                     required
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="e.g. 12x1.5L, 250 ml PET"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Flavour</label>
+                                <label className="text-sm font-medium text-muted-foreground">Flavour</label>
                                 <input
                                     name="flavour"
                                     required
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="e.g. Regular, Orange"
                                 />
                             </div>
@@ -850,7 +850,7 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Invoice Cost (₹)
                                 </label>
                                 <input
@@ -858,12 +858,12 @@ export default function AddStockPage() {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="0.00"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     Bottles Per Pack (BPP)
                                 </label>
                                 <input
@@ -871,7 +871,7 @@ export default function AddStockPage() {
                                     type="number"
                                     min="1"
                                     defaultValue="24"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="24"
                                 />
                             </div>
@@ -879,14 +879,14 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">
+                                <label className="text-sm font-medium text-muted-foreground">
                                     MRP (Base) (₹)
                                 </label>
                                 <input
                                     name="mrp"
                                     type="number"
                                     step="0.01"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="0.00"
                                 />
                             </div>
@@ -894,7 +894,7 @@ export default function AddStockPage() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-ruby-700 font-bold">
+                                <label className="text-sm font-medium text-primary font-bold">
                                     Initial Quantity
                                 </label>
                                 <div className="flex items-center gap-2">
@@ -902,7 +902,7 @@ export default function AddStockPage() {
                                         name="initialPacks"
                                         type="number"
                                         min="0"
-                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                         placeholder="Packs"
                                     />
                                     <span className="text-gray-400 font-bold">+</span>
@@ -910,17 +910,17 @@ export default function AddStockPage() {
                                         name="initialBottles"
                                         type="number"
                                         min="0"
-                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                        className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                         placeholder="Bottles"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-gray-700">
+                                    <label className="text-sm font-medium text-muted-foreground">
                                         Sale Price (₹)
                                     </label>
-                                    <span className="text-[10px] text-ruby-600 font-bold uppercase">
+                                    <span className="text-[10px] text-primary font-bold uppercase">
                                         Required
                                     </span>
                                 </div>
@@ -930,13 +930,13 @@ export default function AddStockPage() {
                                     min="0"
                                     step="0.01"
                                     required
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900 font-bold"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground font-bold"
                                     placeholder="0.00"
                                 />
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-gray-700">
+                                    <label className="text-sm font-medium text-muted-foreground">
                                         Today&apos;s Price (₹)
                                     </label>
                                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
@@ -948,7 +948,7 @@ export default function AddStockPage() {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-ruby-500 focus:border-transparent transition-all text-gray-900"
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="Leave empty for Sale Price"
                                 />
                             </div>
@@ -972,7 +972,7 @@ export default function AddStockPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-ruby-700 hover:bg-ruby-800 text-white px-8 py-3 rounded-xl font-bold text-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-ruby-900/10 active:scale-95"
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-xl font-black flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 active:scale-95 text-sm uppercase tracking-widest"
                             >
                                 {loading ? (
                                     <Loader2 className="w-6 h-6 animate-spin" />

@@ -74,7 +74,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
           </p>
         </div>
 
-        <form onSubmit={handleRequest} className="bg-card p-8 rounded-[2rem] shadow-xl border border-border space-y-8 relative overflow-hidden">
+        <form onSubmit={handleRequest} className="bg-card p-8 rounded-[1rem] shadow-erp border border-border space-y-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
           
           <div className="space-y-4 relative z-10">
@@ -115,7 +115,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
                   type="button"
                   onClick={() => setSelectedWarehouse(w._id)}
                   className={clsx(
-                    "p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between group",
+                    "p-5 rounded-[1rem] border-2 text-left transition-all flex items-center justify-between group",
                     selectedWarehouse === w._id 
                       ? "border-primary bg-primary/5 ring-4 ring-primary/10" 
                       : "border-border hover:border-primary/50 hover:bg-muted"
@@ -151,7 +151,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
             <label className="block text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               2. Access Validity
             </label>
-            <div className="flex items-center gap-4 bg-primary/5 p-5 rounded-2xl border border-primary/20">
+            <div className="flex items-center gap-4 bg-primary/5 p-5 rounded-[1rem] border border-primary/20">
               <CalendarDays className="w-6 h-6 text-primary" />
               <div>
                 <p className="font-black text-primary text-lg leading-tight tracking-tight">1 Year</p>
@@ -164,7 +164,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
           <button
             type="submit"
             disabled={loading || !selectedWarehouse}
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-5 rounded-2xl font-black text-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95"
+            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground py-5 rounded-[1rem] font-black text-xl shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-3 active:scale-95"
           >
             {loading ? (
               <Clock className="w-6 h-6 animate-spin" />
@@ -177,7 +177,7 @@ export default function LandingClient({ user, warehouses }: LandingClientProps) 
           </button>
         </form>
 
-        <div className="p-8 bg-muted border border-border rounded-[2rem] space-y-4 shadow-sm relative overflow-hidden group">
+        <div className="p-8 bg-muted border border-border rounded-[1rem] space-y-4 shadow-erp relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-xl group-hover:scale-110 transition-transform"></div>
           <h4 className="font-black text-foreground text-sm uppercase tracking-widest relative z-10 flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />

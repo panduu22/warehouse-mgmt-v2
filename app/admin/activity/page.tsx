@@ -78,7 +78,7 @@ export default function AdminActivityPage() {
         <p className="text-muted-foreground font-medium mt-1">Audit log of all worker actions inside the active warehouse.</p>
       </div>
 
-      <div className="bg-card rounded-[2rem] p-8 shadow-sm border border-border">
+      <div className="bg-card rounded-2xl p-8 shadow-erp-card border border-border">
         {activities.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -101,7 +101,7 @@ export default function AdminActivityPage() {
                 </div>
 
                 {/* Content Box */}
-                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl shadow-sm border border-border bg-card relative transition-all duration-300 hover:shadow-md group-hover:-translate-y-1">
+                <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl shadow-erp-card border border-border bg-card relative transition-all duration-300 hover:shadow-erp-hover group-hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
                       {formatIST(activity.createdAt)}

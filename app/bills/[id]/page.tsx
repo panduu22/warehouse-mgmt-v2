@@ -49,35 +49,35 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                 </button>
             </div>
 
-            <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100 print:shadow-none print:border-none print:p-0">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-12 border-b border-gray-100 pb-10">
+            <div className="bg-card p-8 md:p-12 rounded-2xl shadow-erp-card border border-border print:shadow-none print:border-none print:p-0">
+                <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-12 border-b border-border pb-10">
                     <div className="flex flex-col gap-1">
-                        <div className="bg-ruby-700 text-white px-3 py-1 rounded-md w-fit text-xs font-bold tracking-widest mb-4">OFFICIAL INVOICE</div>
-                        <h1 className="text-3xl font-black text-gray-900 leading-tight">INVOICE <span className="text-ruby-700">#{bill._id.slice(-6).toUpperCase()}</span></h1>
-                        <p className="text-gray-500 font-medium">Generated on {formatIST(bill.generatedAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <div className="bg-primary text-primary-foreground px-3 py-1 rounded-md w-fit text-xs font-bold tracking-widest mb-4">OFFICIAL INVOICE</div>
+                        <h1 className="text-3xl font-black text-foreground leading-tight">INVOICE <span className="text-primary">#{bill._id.slice(-6).toUpperCase()}</span></h1>
+                        <p className="text-muted-foreground font-medium">Generated on {formatIST(bill.generatedAt, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                     </div>
                     <div className="md:text-right flex flex-col gap-1">
-                        <h2 className="font-black text-gray-900 text-2xl uppercase tracking-tighter">{bill.warehouseId?.name || "WMS CORP"}</h2>
-                        <p className="text-gray-500 text-sm leading-relaxed max-w-[200px] md:ml-auto">
+                        <h2 className="font-black text-foreground text-2xl uppercase tracking-tighter">{bill.warehouseId?.name || "WMS CORP"}</h2>
+                        <p className="text-muted-foreground text-sm leading-relaxed max-w-[200px] md:ml-auto">
                             {bill.warehouseId?.location || "Main Warehouse Facility"}<br />
                             Inventory Management System
                         </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12 bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12 bg-muted/50 p-6 rounded-2xl border border-border">
                     <div>
-                        <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Customer / Delivery Partner</p>
-                        <h3 className="font-black text-black text-2xl mb-1">{bill.tripId?.vehicleId?.driverName || "N/A"}</h3>
-                        <p className="text-gray-700 font-bold flex items-center gap-2">
-                            <span className="bg-ruby-50 text-ruby-700 px-2 py-0.5 rounded text-xs font-black ring-1 ring-ruby-200">VEHICLE {bill.tripId?.vehicleId?.number || "N/A"}</span>
+                        <p className="text-[10px] uppercase font-black text-primary tracking-[0.2em] mb-3">Customer / Delivery Partner</p>
+                        <h3 className="font-black text-foreground text-2xl mb-1">{bill.tripId?.vehicleId?.driverName || "N/A"}</h3>
+                        <p className="text-muted-foreground font-bold flex items-center gap-2">
+                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs font-black ring-1 ring-primary/20">VEHICLE {bill.tripId?.vehicleId?.number || "N/A"}</span>
                             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                             Trip Ref #{bill.tripId?._id.slice(-6).toUpperCase()}
                         </p>
                     </div>
                     <div className="md:text-right">
-                        <p className="text-[10px] uppercase font-black text-ruby-700 tracking-[0.2em] mb-3">Payment Summary</p>
-                        <p className="text-3xl font-black text-black">₹{bill.totalAmount.toLocaleString('en-IN')}</p>
+                        <p className="text-[10px] uppercase font-black text-primary tracking-[0.2em] mb-3">Payment Summary</p>
+                        <p className="text-3xl font-black text-foreground">₹{bill.totalAmount.toLocaleString('en-IN')}</p>
                         {(bill.tripId?.balanceAmount || 0) > 0.01 ? (
                             <p className="text-rose-600 font-black text-xs uppercase tracking-wider mt-1 flex items-center md:justify-end gap-1">
                                 <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
@@ -95,7 +95,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                 <div className="overflow-x-auto">
                     <table className="w-full mb-12 min-w-[800px]">
                         <thead>
-                            <tr className="border-b-4 border-black text-[10px] uppercase font-black text-black tracking-widest bg-gray-50/50">
+                            <tr className="border-b-2 border-primary text-[10px] uppercase font-black text-foreground tracking-widest bg-muted/50">
                                 <th className="px-3 py-4 text-left">Description</th>
                                 <th className="px-3 py-4 text-center">Type</th>
                                 <th className="px-3 py-4 text-right">Qty (P.B)</th>
@@ -103,7 +103,7 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                                 <th className="px-3 py-4 text-right">Row Total</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {bill.items && bill.items.length > 0 ? (
                                 bill.items.map((item: any, idx: number) => {
                                     const schemeSlabs = item.schemes && item.schemes.length > 0 ? item.schemes : [];
@@ -112,39 +112,39 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
 
                                     return (
                                         <React.Fragment key={`group-${idx}`}>
-                                            <tr key={`bill-item-${idx}-normal`} className="group hover:bg-gray-50/50">
-                                                <td className="px-3 py-4 border-b border-gray-100" rowSpan={1 + totalSchemeRows}>
-                                                    <div className="font-black text-black text-base leading-tight">{item.pack} - {item.flavour}</div>
+                                            <tr key={`bill-item-${idx}-normal`} className="group hover:bg-muted/50">
+                                                <td className="px-3 py-4 border-b border-border" rowSpan={1 + totalSchemeRows}>
+                                                    <div className="font-black text-foreground text-base leading-tight">{item.pack} - {item.flavour}</div>
                                                 </td>
-                                                <td className="px-3 py-4 text-center border-b border-gray-50">
-                                                    <span className="text-[10px] font-black uppercase text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">Normal</span>
+                                                <td className="px-3 py-4 text-center border-b border-border">
+                                                    <span className="text-[10px] font-black uppercase text-muted-foreground px-1.5 py-0.5 bg-muted rounded">Normal</span>
                                                 </td>
-                                                <td className="px-3 py-4 text-right font-bold text-gray-900">{formatPacksAndBottles(item.normalQty, item.bottlesPerPack, true)}</td>
-                                                <td className="px-3 py-4 text-right font-bold text-gray-600">₹{item.normalPrice.toLocaleString('en-IN')}</td>
-                                                <td className="px-3 py-4 text-right font-black text-black">₹{((item.normalQty / item.bottlesPerPack) * item.normalPrice).toLocaleString('en-IN')}</td>
+                                                <td className="px-3 py-4 text-right font-bold text-foreground">{formatPacksAndBottles(item.normalQty, item.bottlesPerPack, true)}</td>
+                                                <td className="px-3 py-4 text-right font-bold text-muted-foreground">₹{item.normalPrice.toLocaleString('en-IN')}</td>
+                                                <td className="px-3 py-4 text-right font-black text-foreground">₹{((item.normalQty / item.bottlesPerPack) * item.normalPrice).toLocaleString('en-IN')}</td>
                                             </tr>
 
                                             {/* Render each scheme slab */}
                                             {schemeSlabs.map((slab: any, sIdx: number) => (
-                                                <tr key={`bill-item-${idx}-scheme-${sIdx}`} className="bg-ruby-50/20 group">
-                                                    <td className="px-3 py-4 text-center border-b border-ruby-100/50">
-                                                        <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
+                                                <tr key={`bill-item-${idx}-scheme-${sIdx}`} className="bg-primary/5 group hover:bg-primary/10">
+                                                    <td className="px-3 py-4 text-center border-b border-primary/10">
+                                                        <span className="text-[10px] font-black uppercase text-primary px-1.5 py-0.5 bg-primary/10 rounded">Scheme</span>
                                                     </td>
-                                                    <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(slab.qty, item.bottlesPerPack, true)}</td>
-                                                    <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{(slab.price).toLocaleString('en-IN')}</td>
-                                                    <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((slab.qty / item.bottlesPerPack) * slab.price).toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-primary">{formatPacksAndBottles(slab.qty, item.bottlesPerPack, true)}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-primary">₹{(slab.price).toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-black text-primary italic">₹{((slab.qty / item.bottlesPerPack) * slab.price).toLocaleString('en-IN')}</td>
                                                 </tr>
                                             ))}
 
                                             {/* Legacy Fallback for older bills */}
                                             {hasLegacyScheme && (
-                                                <tr key={`bill-item-${idx}-scheme-legacy`} className="bg-ruby-50/20 group">
-                                                    <td className="px-3 py-4 text-center border-b border-ruby-100/50">
-                                                        <span className="text-[10px] font-black uppercase text-ruby-600 px-1.5 py-0.5 bg-ruby-100/50 rounded">Scheme</span>
+                                                <tr key={`bill-item-${idx}-scheme-legacy`} className="bg-primary/5 group hover:bg-primary/10">
+                                                    <td className="px-3 py-4 text-center border-b border-primary/10">
+                                                        <span className="text-[10px] font-black uppercase text-primary px-1.5 py-0.5 bg-primary/10 rounded">Scheme</span>
                                                     </td>
-                                                    <td className="px-3 py-4 text-right font-bold text-ruby-800">{formatPacksAndBottles(item.schemeQty, item.bottlesPerPack, true)}</td>
-                                                    <td className="px-3 py-4 text-right font-bold text-ruby-700">₹{item.schemePrice.toLocaleString('en-IN')}</td>
-                                                    <td className="px-3 py-4 text-right font-black text-ruby-900 italic">₹{((item.schemeQty / item.bottlesPerPack) * item.schemePrice).toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-primary">{formatPacksAndBottles(item.schemeQty, item.bottlesPerPack, true)}</td>
+                                                    <td className="px-3 py-4 text-right font-bold text-primary">₹{item.schemePrice.toLocaleString('en-IN')}</td>
+                                                    <td className="px-3 py-4 text-right font-black text-primary italic">₹{((item.schemeQty / item.bottlesPerPack) * item.schemePrice).toLocaleString('en-IN')}</td>
                                                 </tr>
                                             )}
                                         </React.Fragment>
@@ -171,10 +171,10 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     </table>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t-4 border-black pt-10 mt-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-border pt-10 mt-12">
                     {/* Left Column: Payment Details Block */}
-                    <div className="space-y-4 bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50 print:bg-transparent print:border-none print:p-0">
-                        <h4 className="text-xs font-black text-black uppercase tracking-widest border-b border-gray-200 pb-3 flex items-center gap-2 print:border-black">
+                    <div className="space-y-4 bg-muted/50 p-6 rounded-2xl border border-border print:bg-transparent print:border-none print:p-0">
+                        <h4 className="text-xs font-black text-foreground uppercase tracking-widest border-b border-border pb-3 flex items-center gap-2 print:border-black">
                             <span>💰</span> Payment Details
                         </h4>
                         <div className="space-y-3">
@@ -230,18 +230,18 @@ export default function InvoicePage({ params }: { params: Promise<{ id: string }
                     {/* Right Column: Invoice Summary (Net Total) */}
                     <div className="space-y-6 md:pl-8 flex flex-col justify-between">
                         <div className="space-y-4">
-                            <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            <div className="flex justify-between items-center text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                                 <span>Gross Value (Excl. Disc)</span>
-                                <span className="text-gray-900">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
+                                <span className="text-foreground">₹{(bill.totalAmount + (bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0)).toLocaleString('en-IN')}</span>
                             </div>
-                            <div className="flex justify-between items-center text-[10px] font-black text-ruby-600 uppercase tracking-widest">
+                            <div className="flex justify-between items-center text-[10px] font-black text-primary uppercase tracking-widest">
                                 <span>Total Scheme Discount</span>
                                 <span>- ₹{(bill.items?.reduce((acc: number, item: any) => acc + (item.discount || 0), 0) || 0).toLocaleString('en-IN')}</span>
                             </div>
                         </div>
-                        <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-auto print:border-black">
-                            <span className="text-lg font-black text-black uppercase tracking-tighter">Net Total Amount</span>
-                            <span className="text-3xl font-black text-ruby-700">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
+                        <div className="flex justify-between items-center pt-6 border-t border-border mt-auto print:border-black">
+                            <span className="text-lg font-black text-foreground uppercase tracking-tighter">Net Total Amount</span>
+                            <span className="text-3xl font-black text-primary">₹{bill.totalAmount.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
                 </div>

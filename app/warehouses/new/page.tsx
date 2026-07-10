@@ -63,7 +63,7 @@ export default function NewWarehousePage() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="bg-card p-10 rounded-[2rem] shadow-xl border border-border space-y-8 relative overflow-hidden group">
+            <form onSubmit={handleSubmit} className="bg-card p-10 rounded-2xl shadow-erp-card border border-border space-y-8 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-110 transition-transform"></div>
                 
                 <div className="space-y-4">
@@ -72,7 +72,7 @@ export default function NewWarehousePage() {
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full px-5 py-4 rounded-2xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/30 shadow-sm"
+                        className="w-full px-5 py-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/30 shadow-sm"
                         placeholder="e.g. North Zone Depot"
                         required
                     />
@@ -83,7 +83,7 @@ export default function NewWarehousePage() {
                     <textarea
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="w-full px-5 py-4 rounded-2xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/30 shadow-sm resize-none"
+                        className="w-full px-5 py-4 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground transition-all placeholder:text-muted-foreground/30 shadow-sm resize-none"
                         placeholder="123 Logistics Way..."
                         rows={3}
                     />
@@ -93,7 +93,7 @@ export default function NewWarehousePage() {
                     <button
                         type="submit"
                         disabled={loading || !name}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 h-[60px] active:scale-95 text-lg"
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-4 rounded-xl font-black flex items-center justify-center gap-3 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 h-[60px] active:scale-95 text-lg"
                     >
                         {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Plus className="w-6 h-6" />}
                         Provision Warehouse

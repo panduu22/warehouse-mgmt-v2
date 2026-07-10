@@ -159,16 +159,14 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
     };
 
     return (
-        <div className="space-y-8 w-full max-w-7xl mx-auto pb-10">
+        <div className="space-y-6 w-full max-w-7xl mx-auto pb-12">
             {/* Header Control Panel */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-card border border-border p-6 rounded-3xl shadow-sm">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-card border border-border px-6 py-5 rounded-2xl shadow-erp-card">
                 <div>
-                    <h1 className="text-3xl font-black text-foreground tracking-tight">
-                        {greeting}, <span className="text-primary">{user.name?.split(" ")[0]}</span>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-1">{greeting}</p>
+                    <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                        {user.name?.split(" ")[0]}<span className="text-muted-foreground/40">'s</span> Dashboard
                     </h1>
-                    <p className="text-muted-foreground mt-1 flex items-center gap-2 text-sm font-medium">
-                        Analytical dashboard for operations.
-                    </p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
@@ -212,7 +210,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
             {/* Subscription Validity Widget */}
             {(user.grantedAt && user.expiresAt) ? (
-                <div className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-card border border-border p-5 rounded-2xl shadow-erp-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${new Date(user.expiresAt) < new Date() ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'}`}>
                             {new Date(user.expiresAt) < new Date() ? <Lock className="w-6 h-6" /> : <CalendarDays className="w-6 h-6" />}
@@ -246,7 +244,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 </div>
             ) : user.expiresAt ? (
                 /* Fallback if grantedAt is missing but expiresAt exists */
-                <div className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="bg-card border border-border p-5 rounded-2xl shadow-erp-card flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${new Date(user.expiresAt) < new Date() ? 'bg-rose-500/10 text-rose-500' : 'bg-primary/10 text-primary'}`}>
                             {new Date(user.expiresAt) < new Date() ? <Lock className="w-6 h-6" /> : <CalendarDays className="w-6 h-6" />}
@@ -283,45 +281,31 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
             {/* Quick Actions */}
             <motion.div 
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                className="grid grid-cols-2 md:grid-cols-4 gap-3"
             >
-                <Link href="/trips/new" className="group bg-card hover:bg-primary/5 border border-border hover:border-primary/30 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Truck className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">Load Vehicle</span>
-                </Link>
-                
-                <Link href="/trips" className="group bg-card hover:bg-blue-500/5 border border-border hover:border-blue-500/30 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ClipboardCheck className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-blue-500 transition-colors">Verify Trips</span>
-                </Link>
-                
-                <Link href="/stock/add" className="group bg-card hover:bg-emerald-500/5 border border-border hover:border-emerald-500/30 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all">
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Package className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-emerald-500 transition-colors">Add Stock</span>
-                </Link>
-                
-                <Link href="/bills" className="group bg-card hover:bg-amber-500/5 border border-border hover:border-amber-500/30 p-4 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Receipt className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-semibold text-foreground group-hover:text-amber-500 transition-colors">View Invoices</span>
-                </Link>
+                {[
+                    { href: "/trips/new", icon: Truck, label: "Load Vehicle", color: "primary", bg: "bg-primary/10", text: "text-primary", hover: "hover:border-primary/25 hover:bg-primary/5" },
+                    { href: "/trips", icon: ClipboardCheck, label: "Verify Trips", color: "blue", bg: "bg-blue-500/10", text: "text-blue-600", hover: "hover:border-blue-500/25 hover:bg-blue-50" },
+                    { href: "/stock/add", icon: Package, label: "Add Stock", color: "emerald", bg: "bg-emerald-500/10", text: "text-emerald-600", hover: "hover:border-emerald-500/25 hover:bg-emerald-50" },
+                    { href: "/bills", icon: Receipt, label: "View Invoices", color: "amber", bg: "bg-amber-500/10", text: "text-amber-600", hover: "hover:border-amber-500/25 hover:bg-amber-50" },
+                ].map(({ href, icon: Icon, label, bg, text, hover }) => (
+                    <Link key={href} href={href} className={`group bg-card border border-border ${hover} p-5 rounded-2xl shadow-erp-card hover:shadow-erp-hover flex flex-col items-center justify-center gap-3 transition-all duration-200`}>
+                        <div className={`w-11 h-11 rounded-2xl ${bg} ${text} flex items-center justify-center group-hover:scale-105 transition-transform duration-200`}>
+                            <Icon className="w-5 h-5" />
+                        </div>
+                        <span className={`text-xs font-semibold text-muted-foreground group-hover:${text} transition-colors text-center leading-tight`}>{label}</span>
+                    </Link>
+                ))}
             </motion.div>
 
             {/* KPI Stats Grid */}
             <motion.div 
                 variants={containerVariants} initial="hidden" animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
             >
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Total Sales"
+                        title="💰 Net Sales"
                         value={`₹${dashboardData.metrics.sales.current.toLocaleString('en-IN')}`}
                         icon={IndianRupee}
                         color="emerald"
@@ -332,7 +316,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Total Invoices"
+                        title="📊 Reports (Invoices)"
                         value={dashboardData.metrics.invoices.current.toString()}
                         icon={FileText}
                         color="amber"
@@ -343,7 +327,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Total Stock Value"
+                        title="📦 Products Value"
                         value={`₹${Math.round(dashboardData.totalStockValue).toLocaleString('en-IN')}`}
                         icon={Package}
                         color="primary"
@@ -353,7 +337,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Active Fleet"
+                        title="🚚 Vehicles Active"
                         value={dashboardData.metrics.activeTrips.toString()}
                         icon={Truck}
                         color="blue"
@@ -363,7 +347,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Pending Verification"
+                        title="✅ Verified (Pending)"
                         value={dashboardData.metrics.pendingVerifications.toString()}
                         icon={ClipboardCheck}
                         color="rose"
@@ -384,7 +368,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Total Outstanding"
+                        title="🔴 Balance Outstanding"
                         value={`₹${(dashboardData.balanceStats?.totalOutstandingBalance || 0).toLocaleString('en-IN')}`}
                         icon={AlertCircle}
                         color="rose"
@@ -394,17 +378,7 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 <motion.div variants={itemVariants}>
                     <StatCard
-                        title="Today's Outstanding"
-                        value={`₹${(dashboardData.balanceStats?.todayOutstandingBalance || 0).toLocaleString('en-IN')}`}
-                        icon={TrendingDown}
-                        color="amber"
-                        subtitle="New balance today"
-                    />
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                    <StatCard
-                        title="Collected Today"
+                        title="💵 Cash / Collected"
                         value={`₹${(dashboardData.balanceStats?.totalCollectedToday || 0).toLocaleString('en-IN')}`}
                         icon={TrendingUp}
                         color="emerald"
@@ -413,18 +387,8 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 </motion.div>
                 
                 <motion.div variants={itemVariants}>
-                    <StatCard
-                        title="Pending Vehicles"
-                        value={(dashboardData.balanceStats?.vehiclesWithPendingBalance || 0).toString()}
-                        icon={Truck}
-                        color="blue"
-                        subtitle="Vehicles with balance"
-                    />
-                </motion.div>
-                
-                <motion.div variants={itemVariants}>
                     <Link href="/stock" className="block h-full">
-                        <Card className="h-full border-rose-200 dark:border-rose-900/50 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-rose-300 dark:hover:border-rose-800 transition-all cursor-pointer bg-rose-50/30 dark:bg-rose-950/20">
+                        <Card className="h-full rounded-2xl shadow-erp-card hover:shadow-erp-hover border-rose-200 dark:border-rose-900/50 flex flex-col justify-between transition-all cursor-pointer bg-rose-50/30 dark:bg-rose-950/20">
                             <CardHeader className="pb-2">
                                 <div className="flex items-center gap-2 mb-2">
                                     <AlertTriangle className="w-5 h-5 text-rose-500" />
@@ -443,26 +407,32 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
             </motion.div>
 
             {/* Performance Analytics Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Top Selling Products */}
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="border-b pb-4">
-                        <CardTitle className="text-md font-bold text-foreground">Top Selling Products</CardTitle>
+                <Card className="border-border shadow-erp-card rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/60 pb-3 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-foreground">Top Selling Products</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {dashboardData.topProducts.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground text-sm">No product sales in this period.</div>
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
+                                <Package className="w-8 h-8 opacity-20" />
+                                No product sales in this period.
+                            </div>
                         ) : (
-                            <div className="divide-y divide-border">
+                            <div className="divide-y divide-border/60">
                                 {dashboardData.topProducts.map((p: any, i: number) => (
-                                    <div key={`${p._id}-${i}`} className="p-4 flex items-center justify-between hover:bg-muted/10">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-foreground">{p._id}</h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5">{p.pack} {p.flavour !== "-" ? `· ${p.flavour}` : ""}</p>
+                                    <div key={`${p._id}-${i}`} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <span className="text-xs font-bold text-muted-foreground/50 w-4 shrink-0">#{i+1}</span>
+                                            <div className="min-w-0">
+                                                <h4 className="font-semibold text-sm text-foreground truncate">{p._id}</h4>
+                                                <p className="text-xs text-muted-foreground mt-0.5">{p.pack}{p.flavour !== "-" ? ` · ${p.flavour}` : ""}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-right shrink-0 ml-4">
                                             <p className="font-bold text-sm text-foreground">₹{p.totalSales.toLocaleString('en-IN')}</p>
-                                            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">{p.totalQty} units sold</p>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">{p.totalQty.toLocaleString()} units</p>
                                         </div>
                                     </div>
                                 ))}
@@ -472,53 +442,65 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 </Card>
 
                 {/* Top Vehicles */}
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="border-b pb-4">
-                        <CardTitle className="text-md font-bold text-foreground">Top Vehicles</CardTitle>
+                <Card className="border-border shadow-erp-card rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/60 pb-3 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-foreground">Top Vehicles by Sales</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {dashboardData.topVehicles.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground text-sm">No vehicle deliveries recorded.</div>
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
+                                <Truck className="w-8 h-8 opacity-20" />
+                                No vehicle deliveries recorded.
+                            </div>
                         ) : (
-                            <div className="divide-y divide-border">
-                                {dashboardData.topVehicles.map((v: any, i: number) => (
-                                    <div key={`${v._id}-${i}`} className="p-4 flex items-center justify-between hover:bg-muted/10">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-foreground">{v.number}</h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5">Driver: {v.driver}</p>
+                            <div className="divide-y divide-border/60">
+                                {dashboardData.topVehicles.map((v: any, i: number) => {
+                                    const pct = dashboardData.topVehicles[0]?.totalSales > 0 ? Math.round((v.totalSales / dashboardData.topVehicles[0].totalSales) * 100) : 0;
+                                    return (
+                                        <div key={`${v._id}-${i}`} className="px-5 py-3.5 hover:bg-muted/20 transition-colors">
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <div className="flex items-center gap-2.5 min-w-0">
+                                                    <span className="text-xs font-bold text-muted-foreground/50 w-4 shrink-0">#{i+1}</span>
+                                                    <div className="min-w-0">
+                                                        <h4 className="font-semibold text-sm text-foreground">{v.number}</h4>
+                                                        <p className="text-xs text-muted-foreground">{v.driver} · {v.tripCount} trips</p>
+                                                    </div>
+                                                </div>
+                                                <p className="font-bold text-sm text-foreground shrink-0 ml-4">₹{v.totalSales.toLocaleString('en-IN')}</p>
+                                            </div>
+                                            <div className="w-full bg-muted rounded-full h-1 ml-7">
+                                                <div className="bg-primary/60 h-1 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-sm text-foreground">₹{v.totalSales.toLocaleString('en-IN')}</p>
-                                            <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">{v.tripCount} trips</p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
                 {/* Most Restocked */}
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="border-b pb-4">
-                        <CardTitle className="text-md font-bold text-foreground">Most Restocked Items</CardTitle>
+                <Card className="border-border shadow-erp-card rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/60 pb-3 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-foreground">Most Restocked Items</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {dashboardData.mostRestocked.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground text-sm">No stock actions recorded.</div>
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
+                                <Package className="w-8 h-8 opacity-20" />No stock actions recorded.
+                            </div>
                         ) : (
-                            <div className="divide-y divide-border">
+                            <div className="divide-y divide-border/60">
                                 {dashboardData.mostRestocked.map((m: any, i: number) => (
-                                    <div key={`${m._id}-${i}`} className="p-4 flex items-center justify-between hover:bg-muted/10">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-foreground">{m.product?.name || "Unknown"}</h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5">{m.product?.pack} {m.product?.flavour !== "-" ? `· ${m.product?.flavour}` : ""}</p>
+                                    <div key={`${m._id}-${i}`} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <span className="text-xs font-bold text-muted-foreground/50 w-4 shrink-0">#{i+1}</span>
+                                            <div className="min-w-0">
+                                                <h4 className="font-semibold text-sm text-foreground truncate">{m.product?.name || "Unknown"}</h4>
+                                                <p className="text-xs text-muted-foreground">{m.product?.pack}{m.product?.flavour !== "-" ? ` · ${m.product?.flavour}` : ""}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                                +{m.qtyAdded.toLocaleString()} units
-                                            </span>
-                                        </div>
+                                        <span className="badge badge-green shrink-0 ml-4">+{m.qtyAdded.toLocaleString()}</span>
                                     </div>
                                 ))}
                             </div>
@@ -527,26 +509,27 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                 </Card>
 
                 {/* Most Returned */}
-                <Card className="border-border shadow-sm">
-                    <CardHeader className="border-b pb-4">
-                        <CardTitle className="text-md font-bold text-foreground">Most Returned Items</CardTitle>
+                <Card className="border-border shadow-erp-card rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-border/60 pb-3 pt-4 px-5">
+                        <CardTitle className="text-sm font-semibold text-foreground">Most Returned Items</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
                         {dashboardData.mostReturned.length === 0 ? (
-                            <div className="text-center py-10 text-muted-foreground text-sm">No returns verified.</div>
+                            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
+                                <CheckCircle2 className="w-8 h-8 text-emerald-500/30" />All clear — no significant returns.
+                            </div>
                         ) : (
-                            <div className="divide-y divide-border">
+                            <div className="divide-y divide-border/60">
                                 {dashboardData.mostReturned.map((m: any, i: number) => (
-                                    <div key={`${m._id}-${i}`} className="p-4 flex items-center justify-between hover:bg-muted/10">
-                                        <div>
-                                            <h4 className="font-bold text-sm text-foreground">{m.product?.name || "Unknown"}</h4>
-                                            <p className="text-xs text-muted-foreground mt-0.5">{m.product?.pack} {m.product?.flavour !== "-" ? `· ${m.product?.flavour}` : ""}</p>
+                                    <div key={`${m._id}-${i}`} className="px-5 py-3.5 flex items-center justify-between hover:bg-muted/20 transition-colors">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <span className="text-xs font-bold text-muted-foreground/50 w-4 shrink-0">#{i+1}</span>
+                                            <div className="min-w-0">
+                                                <h4 className="font-semibold text-sm text-foreground truncate">{m.product?.name || "Unknown"}</h4>
+                                                <p className="text-xs text-muted-foreground">{m.product?.pack}{m.product?.flavour !== "-" ? ` · ${m.product?.flavour}` : ""}</p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-                                                {m.qtyReturned.toLocaleString()} returned
-                                            </span>
-                                        </div>
+                                        <span className="badge badge-rose shrink-0 ml-4">{m.qtyReturned.toLocaleString()} back</span>
                                     </div>
                                 ))}
                             </div>
@@ -556,14 +539,14 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
             </div>
 
             {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 
                 {/* Recent Activity Timeline (2 cols) */}
                 <div className="lg:col-span-2">
-                    <Card className="border-border shadow-sm h-full max-h-[500px] flex flex-col">
-                        <CardHeader className="flex flex-row justify-between items-center pb-4 border-b">
-                            <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
-                            <span className="text-xs font-semibold bg-muted px-2 py-1 rounded text-muted-foreground">All Events</span>
+                    <Card className="border-border shadow-erp-card h-full max-h-[520px] flex flex-col rounded-2xl overflow-hidden">
+                        <CardHeader className="flex flex-row justify-between items-center pb-3 pt-4 px-5 border-b border-border/60">
+                            <CardTitle className="text-sm font-semibold text-foreground">Recent Activity</CardTitle>
+                            <span className="text-xs font-medium bg-muted px-2.5 py-1 rounded-full text-muted-foreground">All Events</span>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto p-5 custom-scrollbar">
                             {dashboardData.recentActivity.length === 0 ? (
@@ -620,11 +603,11 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 
                 {/* Low Stock Widget (1 col) */}
                 <div className="lg:col-span-1">
-                    <Card className="border-border shadow-sm h-full max-h-[500px] flex flex-col">
-                        <CardHeader className="flex flex-row justify-between items-center pb-4 border-b">
-                            <CardTitle className="text-lg font-bold flex items-center gap-2 text-rose-600 dark:text-rose-500">
-                                <AlertCircle className="w-5 h-5" />
-                                Low Stock Alerts
+                    <Card className="border-border shadow-erp-card h-full max-h-[520px] flex flex-col rounded-2xl overflow-hidden">
+                        <CardHeader className="flex flex-row justify-between items-center pb-3 pt-4 px-5 border-b border-border/60">
+                            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 text-rose-500" />
+                                Low Stock
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="flex-1 overflow-y-auto p-0 custom-scrollbar">
@@ -634,21 +617,17 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
                                     All products are well stocked.
                                 </div>
                             ) : (
-                                <div className="divide-y divide-border">
+                                <div className="divide-y divide-border/60">
                                     {dashboardData.lowStockItems.map((item: any) => (
-                                        <div key={item._id} className="p-4 hover:bg-muted/30 transition-colors">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <h4 className="font-bold text-foreground text-sm leading-tight">{item.name}</h4>
-                                                    <p className="text-xs text-muted-foreground mt-0.5">{item.pack} {item.flavour !== "-" ? `· ${item.flavour}` : ""}</p>
+                                        <div key={item._id} className="px-5 py-3.5 hover:bg-muted/20 transition-colors">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <div className="min-w-0">
+                                                    <h4 className="font-semibold text-foreground text-sm leading-tight truncate">{item.name}</h4>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">{item.pack}{item.flavour !== "-" ? ` · ${item.flavour}` : ""}</p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-                                                        {item.quantity} Left
-                                                    </span>
-                                                </div>
+                                                <span className="badge badge-rose shrink-0">{item.quantity} left</span>
                                             </div>
-                                            <Link href={`/stock/add`} className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 rounded-md transition-colors">
+                                            <Link href="/stock/add" className="mt-2.5 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 rounded-lg transition-colors">
                                                 <Plus className="w-3.5 h-3.5" /> Restock Now
                                             </Link>
                                         </div>
@@ -665,42 +644,41 @@ export function DashboardClient({ initialData, user, warehouses }: { initialData
 }
 
 function StatCard({ title, value, icon: Icon, subtitle, growth, color, compare }: any) {
-    const colors = {
-        primary: "text-primary bg-primary/10 border-primary/20",
-        emerald: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
-        amber: "text-amber-500 bg-amber-500/10 border-amber-500/20",
-        rose: "text-rose-500 bg-rose-500/10 border-rose-500/20",
-        blue: "text-blue-500 bg-blue-500/10 border-blue-500/20",
-        indigo: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20",
-        gray: "text-muted-foreground bg-muted border-border",
-    }[color as string] || "text-foreground bg-muted border-border";
+    const iconColor = {
+        primary: "text-primary bg-primary/10",
+        emerald: "text-emerald-600 bg-emerald-50",
+        amber: "text-amber-600 bg-amber-50",
+        rose: "text-rose-600 bg-rose-50",
+        blue: "text-blue-600 bg-blue-50",
+        indigo: "text-indigo-600 bg-indigo-50",
+        gray: "text-muted-foreground bg-muted",
+    }[color as string] || "text-foreground bg-muted";
 
     return (
-        <Card className="border-border shadow-sm hover:shadow-md transition-all duration-300 h-full">
-            <CardHeader className="flex flex-row justify-between items-start pb-2">
-                <div className={clsx("p-2.5 rounded-xl border", colors)}>
-                    <Icon className="w-5 h-5" />
-                </div>
-                
-                {compare && growth !== undefined && (
-                    <div className={clsx(
-                        "flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border",
-                        growth > 0 
-                            ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20" 
-                            : growth < 0 
-                                ? "text-rose-600 bg-rose-500/10 border-rose-500/20"
-                                : "text-muted-foreground bg-muted border-border"
-                    )}>
-                        {growth > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : growth < 0 ? <TrendingDown className="w-3.5 h-3.5" /> : null}
-                        {growth > 0 ? "+" : ""}{growth}%
+        <Card className="border-border rounded-2xl shadow-erp-card hover:shadow-erp-hover transition-all duration-200 h-full">
+            <CardContent className="pt-5 pb-4 px-5">
+                <div className="flex items-start justify-between mb-3">
+                    <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", iconColor)}>
+                        <Icon className="w-4.5 h-4.5" />
                     </div>
-                )}
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground text-xs font-medium mb-1.5">{title}</p>
-                <h3 className="text-2xl font-black text-foreground tracking-tight">{value}</h3>
+                    {compare && growth !== undefined && (
+                        <div className={clsx(
+                            "flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full",
+                            growth > 0 
+                                ? "text-emerald-700 bg-emerald-50 border border-emerald-200" 
+                                : growth < 0 
+                                    ? "text-rose-700 bg-rose-50 border border-rose-200"
+                                    : "text-muted-foreground bg-muted border border-border"
+                        )}>
+                            {growth > 0 ? <TrendingUp className="w-3 h-3" /> : growth < 0 ? <TrendingDown className="w-3 h-3" /> : null}
+                            {growth > 0 ? "+" : ""}{growth}%
+                        </div>
+                    )}
+                </div>
+                <p className="text-xs text-muted-foreground font-medium mb-1 truncate">{title}</p>
+                <h3 className="text-[22px] font-bold text-foreground tracking-tight leading-none">{value}</h3>
                 {(subtitle || compare) && (
-                    <p className="text-[10px] text-muted-foreground mt-2 font-medium">
+                    <p className="text-[11px] text-muted-foreground mt-2">
                         {subtitle || "vs previous period"}
                     </p>
                 )}

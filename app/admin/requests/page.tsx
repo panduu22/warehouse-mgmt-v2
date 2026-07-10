@@ -205,7 +205,7 @@ export default function AdminRequestsPage() {
       </div>
 
       {/* Manual Assignment Section */}
-      <div className="bg-card p-8 rounded-[2rem] shadow-xl border border-border space-y-6">
+      <div className="bg-card p-8 rounded-2xl shadow-erp-card border border-border space-y-6">
         <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-primary" />
             Quick Access Assignment
@@ -216,7 +216,7 @@ export default function AdminRequestsPage() {
                 <select 
                     value={selectedUser} 
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full h-12 bg-muted rounded-xl px-4 border-none focus:ring-2 focus:ring-primary font-bold text-sm outline-none appearance-none"
+                    className="w-full h-12 bg-muted rounded-[1rem] px-4 border border-border focus:ring-2 focus:ring-primary font-bold text-sm outline-none appearance-none"
                 >
                     <option value="">Select User...</option>
                     {activeUsers.map(u => (
@@ -254,7 +254,7 @@ export default function AdminRequestsPage() {
                 <button
                     onClick={handleManualAssign}
                     disabled={assigning || !selectedUser || selectedWarehouses.length === 0}
-                    className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                    className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                     {assigning ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Authorize Access"}
                 </button>
@@ -273,13 +273,13 @@ export default function AdminRequestsPage() {
         </h2>
         
         {pendingRequests.length === 0 ? (
-          <div className="bg-card p-12 rounded-[2rem] border-2 border-dashed border-border text-center space-y-4">
+          <div className="bg-card p-12 rounded-2xl border-2 border-dashed border-border text-center space-y-4">
             <p className="text-muted-foreground font-bold italic">No pending requests at this time.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {pendingRequests.map((req) => (
-              <div key={req._id} className="bg-card p-6 rounded-[2rem] shadow-sm border border-border flex flex-col lg:flex-row gap-6 items-center">
+              <div key={req._id} className="bg-card p-6 rounded-2xl shadow-erp-card border border-border flex flex-col lg:flex-row gap-6 items-center">
                 <div className="flex items-center gap-4 w-full lg:w-1/3">
                   <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0 border border-border">
                     {req.userId?.image ? (
@@ -346,7 +346,7 @@ export default function AdminRequestsPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeUsers.map(user => (
-                <div key={user._id} className="bg-card p-6 rounded-[2rem] border border-border shadow-sm flex flex-col gap-4">
+                <div key={user._id} className="bg-card p-6 rounded-2xl border border-border shadow-erp-card flex flex-col gap-4">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg">
                         {user.name.charAt(0)}
@@ -403,7 +403,7 @@ export default function AdminRequestsPage() {
           <ChevronRight className="w-4 h-4" />
           Recent Activity
         </h2>
-        <div className="bg-card rounded-[2rem] border border-border overflow-hidden shadow-sm">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-erp-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left min-w-[600px]">
               <thead className="bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest border-b border-border">

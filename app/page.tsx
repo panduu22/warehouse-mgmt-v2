@@ -61,7 +61,7 @@ export default async function Home() {
         <div className="flex gap-4 items-center flex-col sm:flex-row w-full sm:w-auto mt-4">
           <Link
             href="/api/auth/signin?callbackUrl=/"
-            className="w-full sm:w-auto rounded-2xl border border-primary/20 transition-all flex items-center justify-center bg-primary text-primary-foreground gap-3 hover:bg-primary/90 hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 active:scale-95 text-lg font-black h-16 px-10 shadow-xl tracking-tight"
+            className="w-full sm:w-auto rounded-[1rem] border border-primary/20 transition-all flex items-center justify-center bg-primary text-primary-foreground gap-3 hover:bg-primary/90 hover:scale-105 hover:shadow-2xl hover:shadow-primary/20 active:scale-95 text-lg font-black h-16 px-10 shadow-xl tracking-tight"
           >
             Access Dashboard
             <span className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">→</span>

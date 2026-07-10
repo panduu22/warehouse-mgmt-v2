@@ -101,7 +101,7 @@ function CollectBalanceModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-3xl shadow-2xl border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-card rounded-2xl shadow-erp-card border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-rose-500/10 to-orange-500/10 px-6 py-5 border-b border-border flex items-center justify-between">
                     <div>
@@ -237,7 +237,7 @@ function PaymentHistoryModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-3xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-card rounded-2xl shadow-erp-card border border-border w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-6 py-5 border-b border-border flex items-center justify-between">
                     <div>
                         <h2 className="text-lg font-black text-foreground flex items-center gap-2">
@@ -431,36 +431,36 @@ export default function VehiclesPage() {
             {/* Fleet Summary Cards */}
             {!loading && vehicles.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
-                        <div className="p-3 bg-emerald-500/10 rounded-xl">
-                            <TrendingUp className="w-6 h-6 text-emerald-500" />
+                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-erp-card">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                            <TrendingUp className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                        <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
                                 Fleet Sales · {timeframeLabel[timeframe]}
                             </p>
-                            <p className="text-2xl font-black text-emerald-500 mt-0.5">
+                            <p className="text-2xl font-black text-emerald-600 mt-0.5 truncate">
                                 {formatCurrency(totalFleetSales)}
                             </p>
                         </div>
                     </div>
-                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
-                        <div className="p-3 bg-blue-500/10 rounded-xl">
-                            <BarChart2 className="w-6 h-6 text-blue-500" />
+                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-erp-card">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                            <BarChart2 className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                        <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
                                 Total Trips · {timeframeLabel[timeframe]}
                             </p>
-                            <p className="text-2xl font-black text-foreground mt-0.5">{totalTrips}</p>
+                            <p className="text-2xl font-black text-foreground mt-0.5 truncate">{totalTrips}</p>
                         </div>
                     </div>
-                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-sm">
-                        <div className="p-3 bg-amber-500/10 rounded-xl">
-                            <Truck className="w-6 h-6 text-amber-500" />
+                    <div className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-erp-card">
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+                            <Truck className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                        <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
                                 Top Vehicle · {timeframeLabel[timeframe]}
                             </p>
                             <p className="text-lg font-black text-foreground mt-0.5 truncate">
@@ -470,17 +470,17 @@ export default function VehiclesPage() {
                     </div>
                     {/* Outstanding Balance Widget */}
                     <div className={clsx(
-                        "border rounded-2xl p-5 flex items-center gap-4 shadow-sm",
-                        totalOutstanding > 0 ? "bg-rose-500/5 border-rose-500/30" : "bg-card border-border"
+                        "border rounded-2xl p-5 flex items-center gap-4 shadow-erp-card",
+                        totalOutstanding > 0 ? "bg-rose-50/30 border-rose-200" : "bg-card border-border"
                     )}>
-                        <div className={clsx("p-3 rounded-xl", totalOutstanding > 0 ? "bg-rose-500/10" : "bg-emerald-500/10")}>
-                            <Wallet className={clsx("w-6 h-6", totalOutstanding > 0 ? "text-rose-500" : "text-emerald-500")} />
+                        <div className={clsx("p-3 rounded-xl shrink-0", totalOutstanding > 0 ? "bg-rose-100 text-rose-600" : "bg-emerald-50 text-emerald-600")}>
+                            <Wallet className="w-6 h-6" />
                         </div>
-                        <div>
-                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                        <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
                                 Fleet Outstanding
                             </p>
-                            <p className={clsx("text-2xl font-black mt-0.5", totalOutstanding > 0 ? "text-rose-600" : "text-emerald-500")}>
+                            <p className={clsx("text-2xl font-black mt-0.5 truncate", totalOutstanding > 0 ? "text-rose-600" : "text-emerald-600")}>
                                 {totalOutstanding > 0 ? formatCurrency(totalOutstanding) : "₹0"}
                             </p>
                         </div>
@@ -492,11 +492,11 @@ export default function VehiclesPage() {
                 {/* Vehicle List */}
                 <div className="lg:col-span-2 space-y-4">
                     {loading ? (
-                        <div className="flex justify-center p-12 bg-card rounded-2xl border border-border">
+                        <div className="flex justify-center p-12 bg-card rounded-2xl border border-border shadow-sm">
                             <Loader2 className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : vehicles.length === 0 ? (
-                        <div className="p-12 text-center bg-card rounded-2xl border border-dashed border-border">
+                        <div className="p-12 text-center bg-card rounded-2xl border border-dashed border-border shadow-sm">
                             <p className="text-muted-foreground font-medium">No vehicles found in the fleet.</p>
                         </div>
                     ) : (
@@ -515,8 +515,8 @@ export default function VehiclesPage() {
                                     <div
                                         key={v._id}
                                         className={clsx(
-                                            "bg-card p-5 rounded-2xl shadow-sm border transition-all group",
-                                            hasBalance ? "border-rose-500/30 hover:border-rose-500/60 hover:shadow-rose-500/10 hover:shadow-md" : "border-border hover:shadow-md"
+                                            "bg-card p-5 rounded-2xl shadow-erp-card border transition-all group duration-200",
+                                            hasBalance ? "border-rose-200 hover:border-rose-300 hover:shadow-erp-hover" : "border-border hover:border-primary/30 hover:shadow-erp-hover"
                                         )}
                                     >
                                         <div className="flex items-center justify-between gap-4">
@@ -682,7 +682,7 @@ export default function VehiclesPage() {
                 </div>
 
                 {/* Add Form */}
-                <div className="bg-card p-8 rounded-2xl shadow-sm border border-border h-fit sticky top-24">
+                <div className="bg-card p-6 rounded-2xl shadow-erp-card border border-border h-fit sticky top-24">
                     <h2 className="text-lg font-black text-foreground mb-6 flex items-center gap-2">
                         <Plus className="w-5 h-5 text-primary" />
                         Add New Vehicle

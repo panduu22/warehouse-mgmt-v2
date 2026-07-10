@@ -111,7 +111,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                 <StockSearch />
             </div>
 
-            <Card className="border shadow-sm overflow-hidden bg-card text-card-foreground">
+            <Card className="border shadow-erp-card rounded-2xl overflow-hidden bg-card text-card-foreground">
                 <CardContent className="p-0">
                     <Table className="min-w-[1000px]">
                         <TableHeader className="bg-muted/50">
@@ -200,22 +200,22 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                     <TableCell colSpan={11} className="p-4 sm:p-6">
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                                             {/* Card 1: Total Products */}
-                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">
                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Products</span>
                                                 <span className="text-base sm:text-lg font-black text-foreground mt-1">{products.length}</span>
                                             </div>
                                             {/* Card 2: Total Quantity */}
-                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">
                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Quantity</span>
                                                 <span className="text-base sm:text-lg font-black text-teal-600 mt-1">{totalPacks}P + {totalBottles}B</span>
                                             </div>
                                             {/* Card 3: Inventory Value */}
-                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">
                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Inventory Value</span>
                                                 <span className="text-base sm:text-lg font-black text-foreground mt-1">{formatCurrency(inventoryValue)}</span>
                                             </div>
                                             {/* Card 4: Sales Value */}
-                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-md hover:scale-[1.02]">
+                                            <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">
                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Sales Value</span>
                                                 <span className="text-base sm:text-lg font-black text-primary mt-1">{formatCurrency(salesValue)}</span>
                                             </div>

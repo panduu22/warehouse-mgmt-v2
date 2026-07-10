@@ -99,7 +99,7 @@ export default function BillsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {pendingTrips.map(trip => (
-                            <div key={trip._id} className="bg-card p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
+                            <div key={trip._id} className="bg-card p-6 rounded-2xl border border-border shadow-erp-card hover:shadow-erp-hover transition-all duration-200">
                                 <div className="mb-4">
                                     <h3 className="font-bold text-foreground text-lg">{trip.vehicleId?.number}</h3>
                                     <p className="text-sm text-muted-foreground">Verified on {formatIST(trip.endTime, { dateStyle: 'medium' })}</p>
@@ -136,7 +136,7 @@ export default function BillsPage() {
                     Invoice History
                 </h2>
 
-                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                <div className="bg-card rounded-2xl shadow-erp-card border border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm min-w-[800px]">
                             <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border">
@@ -161,7 +161,14 @@ export default function BillsPage() {
                                         <tr key={bill._id} className="hover:bg-muted/30 transition-colors group">
                                             <td className="px-6 py-4 font-medium text-foreground">{formatIST(bill.generatedAt, { dateStyle: 'medium' })}</td>
                                             <td className="px-6 py-4 text-muted-foreground">{bill.tripId?.endTime ? formatIST(bill.tripId.endTime, { dateStyle: 'medium' }) : '-'}</td>
-                                            <td className="px-6 py-4 font-bold text-foreground">{bill.tripId?.vehicleId?.number}</td>
+                                            <td className="px-6 py-4 font-bold text-foreground">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+                                                        <CheckCircle className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    {bill.tripId?.vehicleId?.number}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4 text-right font-black text-primary text-base">₹{bill.totalAmount.toLocaleString()}</td>
                                             <td className="px-6 py-4 text-right font-semibold text-foreground text-sm">
                                                 {bill.tripId?.upiAmount > 0 ? `₹${bill.tripId.upiAmount.toLocaleString()}` : '—'}

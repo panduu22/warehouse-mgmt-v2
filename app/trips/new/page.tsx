@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useWarehouse } from "@/components/WarehouseContext";
-import { Loader2, Save, Trash2, Plus, PackagePlus, ArrowLeft, Truck, Printer } from "lucide-react";
+import { Loader2, Save, Trash2, Plus, PackagePlus, ArrowLeft, Truck, Printer, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { formatPacksAndBottles, PRODUCT_SORT_ORDER } from "@/lib/stock-utils";

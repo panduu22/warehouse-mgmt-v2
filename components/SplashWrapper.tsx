@@ -267,9 +267,9 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}>
             {CHARS.map((char, i) => {
               const isVisible = revealedCount > i;
-              // Each character shows one slice of the full gradient.
-              // backgroundSize is CHARS.length * 100% wide; backgroundPosition
-              // moves the correct slice under each character.
+              // Each span shows its correct slice of the full gradient.
+              // backgroundSize = N×100% makes the gradient span the full word width.
+              // backgroundPosition slides the correct slice under each character.
               const N = CHARS.length; // 14
               const gradientPos = `${(i / (N - 1)) * 100}%`;
               return (
@@ -277,26 +277,25 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                   key={`${char}-${i}`}
                   aria-hidden={i > 0 && char === CHARS[i - 1]}
                   style={{
-                    display:"inline-block",
-                    fontSize:"clamp(18px,4.2vw,64px)",
-                    fontWeight:900,
-                    letterSpacing:"clamp(0.5px,0.25vw,3px)",
-                    fontFamily:"'Inter','SF Pro Display',sans-serif",
-                    // Premium gradient: #ED8306 → #F8CD1A → #0DE2F7 → #1494E3 → #044EE8
-                    background:"linear-gradient(90deg, #ED8306 0%, #F8CD1A 25%, #0DE2F7 55%, #1494E3 78%, #044EE8 100%)",
-                    backgroundSize:`${N * 100}% 100%`,
-                    backgroundPosition:`${gradientPos} center`,
-                    WebkitBackgroundClip:"text",
-                    WebkitTextFillColor:"transparent",
-                    backgroundClip:"text",
-                    color:"transparent",
-                    // Only show when it's this character's turn
+                    display: "inline-block",
+                    fontSize: "clamp(18px,4.2vw,64px)",
+                    fontWeight: 900,
+                    letterSpacing: "clamp(0.5px,0.25vw,3px)",
+                    fontFamily: "'Inter','SF Pro Display',sans-serif",
+                    // Gradient: #EE8506 → #F7CC1B → #F8EA77 → #0FD2F5 → #0760F0
+                    background: "linear-gradient(90deg, #EE8506 0%, #F7CC1B 25%, #F8EA77 40%, #0FD2F5 62%, #0760F0 100%)",
+                    backgroundSize: `${N * 100}% 100%`,
+                    backgroundPosition: `${gradientPos} center`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    backgroundClip: "text",
+                    color: "transparent",
+                    // No textShadow, no filter, no blur — crisp sharp letters only
                     opacity: isVisible ? 1 : 0,
-                    // Fly-in animation runs only when a character is first revealed
                     animation: isVisible ? "letterFlyIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
-                    willChange:"transform, opacity",
-                    lineHeight:1,
-                    WebkitFontSmoothing:"antialiased",
+                    willChange: "transform, opacity",
+                    lineHeight: 1,
+                    WebkitFontSmoothing: "antialiased",
                   }}
                 >
                   {char}

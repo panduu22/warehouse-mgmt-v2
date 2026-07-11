@@ -64,20 +64,16 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}
         >
           {/*
-            ── Background image (sharp on all screens) ──────────────────
-            A standard <img srcSet> is the most reliable cross-browser way to
-            serve Retina images.  The browser picks the right density:
-              1x  → 1024 × 576  (1 MB)
-              2x  → 2048 × 1152 (Retina)
-              3x  → 3072 × 1728 (HiDPI / large monitors)
-            Unsharp-mask was applied to all upscaled versions during generation.
-            pointerEvents: none ensures every click falls through to the hotspot.
+            ── Background image (Forced 4K Sharpness) ──────────────────
+            We are serving a pre-rendered 4K (3840x2160) version of the image
+            with aggressive edge enhancement applied.
+            By providing a single ultra-high-res source, we force the browser
+            to render it sharply on any display, bypassing any srcSet or 
+            caching fallback issues.
           */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/AI-wide@3x.jpg"
-            srcSet="/AI-wide.jpg 1024w, /AI-wide@2x.jpg 2048w, /AI-wide@3x.jpg 3072w"
-            sizes="(min-resolution: 2dppx) 200vw, 100vw"
+            src="/AI-wide-ultra.jpg"
             alt=""
             style={{
               position:      "absolute",
@@ -86,7 +82,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
               height:        "100%",
               objectFit:     "fill",
               display:       "block",
-              pointerEvents: "none",   // ← clicks fall through to hotspot
+              pointerEvents: "none",
               userSelect:    "none",
             }}
           />

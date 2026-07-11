@@ -7,6 +7,9 @@ import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
 
 export default async function HomePage() {
+  // WORKAROUND: Next.js Turbopack bug throws "Performance cannot have a negative time stamp"
+  // when a Server Component resolves instantly. This tiny delay ensures a positive time delta.
+  await new Promise((resolve) => setTimeout(resolve, 1));
   let session = null;
   try {
     session = await getServerSession(authOptions);

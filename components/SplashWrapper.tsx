@@ -312,6 +312,101 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
             })}
           </div>
 
+          {/* BRAND DIVIDER LINE + DIAMOND SPARKLE */}
+          <div style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "clamp(220px, 38vw, 540px)",
+            height: "20px",
+            marginTop: "clamp(2px,0.4vh,6px)",
+            marginBottom: "clamp(2px,0.4vh,6px)",
+            opacity: taglineVisible ? 1 : 0,
+            transition: "opacity 0.8s ease 0.1s",
+          }}>
+            {/* Left half — gold gradient line */}
+            <div style={{
+              flex: 1,
+              height: "1.5px",
+              background: "linear-gradient(90deg, transparent 0%, #EE8506 30%, #F7B916 70%, #FFE36E 100%)",
+              boxShadow: "0 0 4px 0px rgba(238,133,6,0.55), 0 0 8px 0px rgba(247,185,22,0.3)",
+              borderRadius: "1px",
+            }} />
+
+            {/* Centre diamond sparkle */}
+            <div style={{
+              position: "relative",
+              width: "clamp(12px,1.5vw,18px)",
+              height: "clamp(12px,1.5vw,18px)",
+              flexShrink: 0,
+              margin: "0 clamp(3px,0.4vw,6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}>
+              {/* Main diamond (rotated square, split gold-left / cyan-right) */}
+              <div style={{
+                width: "clamp(8px,1vw,13px)",
+                height: "clamp(8px,1vw,13px)",
+                transform: "rotate(45deg)",
+                background: "linear-gradient(90deg, #F7B916 0%, #FFE36E 49%, #0FD2F5 51%, #0760F0 100%)",
+                boxShadow: "0 0 6px 1px rgba(247,185,22,0.55), 0 0 10px 2px rgba(15,210,245,0.35)",
+                borderRadius: "1px",
+              }} />
+              {/* Four thin sparkle rays */}
+              {/* Top ray */}
+              <div style={{
+                position: "absolute",
+                top: 0, left: "50%",
+                transform: "translateX(-50%)",
+                width: "1.5px",
+                height: "clamp(4px,0.5vw,7px)",
+                background: "linear-gradient(to top, #FFE36E, transparent)",
+                borderRadius: "1px",
+              }} />
+              {/* Bottom ray */}
+              <div style={{
+                position: "absolute",
+                bottom: 0, left: "50%",
+                transform: "translateX(-50%)",
+                width: "1.5px",
+                height: "clamp(4px,0.5vw,7px)",
+                background: "linear-gradient(to bottom, #0FD2F5, transparent)",
+                borderRadius: "1px",
+              }} />
+              {/* Left ray */}
+              <div style={{
+                position: "absolute",
+                left: 0, top: "50%",
+                transform: "translateY(-50%)",
+                height: "1.5px",
+                width: "clamp(4px,0.5vw,7px)",
+                background: "linear-gradient(to left, #F7B916, transparent)",
+                borderRadius: "1px",
+              }} />
+              {/* Right ray */}
+              <div style={{
+                position: "absolute",
+                right: 0, top: "50%",
+                transform: "translateY(-50%)",
+                height: "1.5px",
+                width: "clamp(4px,0.5vw,7px)",
+                background: "linear-gradient(to right, #0FD2F5, transparent)",
+                borderRadius: "1px",
+              }} />
+            </div>
+
+            {/* Right half — cyan-to-blue gradient line */}
+            <div style={{
+              flex: 1,
+              height: "1.5px",
+              background: "linear-gradient(90deg, #0FD2F5 0%, #1A8CF0 40%, #0760F0 70%, transparent 100%)",
+              boxShadow: "0 0 4px 0px rgba(15,210,245,0.55), 0 0 8px 0px rgba(7,96,240,0.3)",
+              borderRadius: "1px",
+            }} />
+          </div>
+
           {/* TAGLINE */}
           <div style={{
             display:"flex", alignItems:"center", gap:"clamp(6px,1.2vw,18px)",

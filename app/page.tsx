@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import LandingClient from "@/components/LandingClient";
+import SplashScreen from "@/components/SplashScreen";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
 
@@ -43,6 +44,6 @@ export default async function HomePage() {
     );
   }
 
-  // If unauthenticated, redirect to the login page.
-  redirect("/login");
+  // If unauthenticated, show the Splash Screen (which links to /login)
+  return <SplashScreen />;
 }

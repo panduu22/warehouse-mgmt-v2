@@ -27,9 +27,7 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased`}
       >
         <Providers>
-          <SplashWrapper>
-            {children}
-          </SplashWrapper>
+          {children}
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

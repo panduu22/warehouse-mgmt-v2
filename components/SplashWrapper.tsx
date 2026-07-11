@@ -267,11 +267,19 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}>
             {CHARS.map((char, i) => {
               const isVisible = revealedCount > i;
-              // Each span shows its correct slice of the full gradient.
-              // backgroundSize = N×100% makes the gradient span the full word width.
-              // backgroundPosition slides the correct slice under each character.
-              const N = CHARS.length; // 14
-              const gradientPos = `${(i / (N - 1)) * 100}%`;
+
+              // --- Two-group gradient logic ---
+              // ADITHYA = indices 0–6 → premium metallic gold
+              // TECH.IN = indices 7–13 → cyan to electric blue
+              const isGold = i <= 6;
+              const groupSize = 7; // each group has 7 characters
+              const posWithinGroup = isGold ? i : i - 7; // 0..6 within each group
+              const gradientPos = `${(posWithinGroup / (groupSize - 1)) * 100}%`;
+
+              const gradient = isGold
+                ? "linear-gradient(90deg, #EE8506 0%, #F7B916 50%, #FFE36E 100%)"
+                : "linear-gradient(90deg, #0FD2F5 0%, #1A8CF0 55%, #0760F0 100%)";
+
               return (
                 <span
                   key={`${char}-${i}`}
@@ -282,9 +290,9 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                     fontWeight: 900,
                     letterSpacing: "clamp(0.5px,0.25vw,3px)",
                     fontFamily: "'Inter','SF Pro Display',sans-serif",
-                    // Gradient: #EE8506 → #F7CC1B → #F8EA77 → #0FD2F5 → #0760F0
-                    background: "linear-gradient(90deg, #EE8506 0%, #F7CC1B 25%, #F8EA77 40%, #0FD2F5 62%, #0760F0 100%)",
-                    backgroundSize: `${N * 100}% 100%`,
+                    // Group-specific gradient clipped to text shape
+                    background: gradient,
+                    backgroundSize: `${groupSize * 100}% 100%`,
                     backgroundPosition: `${gradientPos} center`,
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",

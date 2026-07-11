@@ -294,17 +294,9 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                     opacity: isVisible ? 1 : 0,
                     // Fly-in animation runs only when a character is first revealed
                     animation: isVisible ? "letterFlyIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
-                    textShadow: pulseActive
-                      ? `0 0 18px rgba(77,144,254,0.95), 0 0 36px rgba(77,144,254,0.5), 0 0 54px rgba(255,140,0,0.3)`
-                      : isVisible
-                        ? "0 0 12px rgba(77,144,254,0.5)"
-                        : "none",
-                    transition: "text-shadow 0.6s ease",
                     willChange:"transform, opacity",
                     lineHeight:1,
                     WebkitFontSmoothing:"antialiased",
-                    // Extra subtle glow during pulse sweep
-                    ...(pulseActive ? { filter:`brightness(1.15)` } : {}),
                   }}
                 >
                   {char}
@@ -403,10 +395,10 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
       {/* Keyframes */}
       <style>{`
         @keyframes letterFlyIn {
-          0%   { opacity:0; transform: translateY(clamp(-120px,-18vh,-60px)) scale(0.25) rotateX(80deg) rotateZ(-8deg); filter: blur(4px); }
-          60%  { opacity:1; filter: blur(0px); }
+          0%   { opacity:0; transform: translateY(clamp(-120px,-18vh,-60px)) scale(0.25) rotateX(80deg) rotateZ(-8deg); }
+          60%  { opacity:1; }
           80%  { transform: translateY(4px) scale(1.06) rotateX(0deg) rotateZ(0deg); }
-          100% { opacity:1; transform: translateY(0) scale(1) rotateX(0deg) rotateZ(0deg); filter: blur(0px); }
+          100% { opacity:1; transform: translateY(0) scale(1) rotateX(0deg) rotateZ(0deg); }
         }
         @keyframes logoPulse {
           0%   { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }

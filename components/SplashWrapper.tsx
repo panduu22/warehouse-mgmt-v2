@@ -6,13 +6,16 @@ import clsx from "clsx";
 
 // Every character is its own DOM element, driven by state
 const CHARS = ['A','D','I','T','H','Y','A','T','E','C','H','.','I','N'] as const;
-const CHAR_DELAY_MS = 220; // ms between each character being thrown
-const BOX_OPEN_AT_MS = 900; // when box lid starts opening
-const FIRST_CHAR_AT_MS = 1700; // when A is thrown
+const CHAR_DELAY_MS = 220;   // ms between each character being thrown
+const BOX_SHOW_AT_MS  = 100; // box appears, lid closed, logo visible
+const LOGO_PULSE_AT_MS = 950; // logo energy pulse on box face
+const BOX_OPEN_AT_MS  = 1350; // lid rotates open
+const FIRST_CHAR_AT_MS = 2150; // A is thrown
 
 type Phase =
   | "idle"        // before mount
-  | "box"         // box closed, no letters shown
+  | "box"         // box closed, logo visible on front face
+  | "logoPulse"   // logo on box pulses with blue-gold energy before opening
   | "opening"     // lid rotates open
   | "throwing"    // characters being released one by one
   | "pulse"       // name complete, energy sweep
@@ -45,8 +48,9 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
     }
     setIsMounted(true);
 
-    addTimer(() => setPhase("box"),      100);
-    addTimer(() => setPhase("opening"),  BOX_OPEN_AT_MS);
+    addTimer(() => setPhase("box"),       BOX_SHOW_AT_MS);
+    addTimer(() => setPhase("logoPulse"), LOGO_PULSE_AT_MS);
+    addTimer(() => setPhase("opening"),   BOX_OPEN_AT_MS);
 
     // Start releasing characters one by one
     addTimer(() => {
@@ -89,12 +93,13 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
   if (!showSplash && !isMounted) return <>{children}</>;
   if (!showSplash) return <div style={{ animation: "splashFadeIn 1s ease forwards" }}>{children}</div>;
 
-  const boxVisible     = phase === "box" || phase === "opening" || phase === "throwing";
-  const pulseActive    = phase === "pulse" || phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const logoVisible    = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const taglineVisible = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const buttonVisible  = phase === "ready" && !isLoading;
-  const loadingVisible = isLoading;
+  const boxVisible      = phase === "box" || phase === "logoPulse" || phase === "opening" || phase === "throwing";
+  const isBoxPulsing    = phase === "logoPulse";
+  const pulseActive     = phase === "pulse" || phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const logoVisible     = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const taglineVisible  = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const buttonVisible   = phase === "ready" && !isLoading;
+  const loadingVisible  = isLoading;
 
   return (
     <>
@@ -159,9 +164,42 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
               position:"relative", transformStyle:"preserve-3d",
               animation: phase === "opening" || phase === "throwing" ? "boxFloat 2s ease infinite alternate" : undefined,
             }}>
-              {/* 5 static box faces */}
+              {/* FRONT FACE – bears the official AdithyaTech logo */}
+              <div style={{
+                position:"absolute", width:"100%", height:"100%",
+                transform:`translateZ(clamp(35px,5.5vw,70px))`,
+                background:"linear-gradient(135deg, rgba(10,25,51,0.92) 0%, rgba(5,15,35,0.96) 100%)",
+                border:"1px solid rgba(77,144,254,0.4)",
+                boxShadow:"inset 0 0 18px rgba(77,144,254,0.07), 0 0 14px rgba(77,144,254,0.18)",
+                backfaceVisibility:"hidden",
+                display:"flex", alignItems:"center", justifyContent:"center",
+              }}>
+                <div style={{ position:"absolute", inset:4, border:"1px solid rgba(77,144,254,0.12)", borderRadius:2 }} />
+                {/* Official logo – physically embedded on the front face surface */}
+                <div style={{
+                  position:"relative", zIndex:2, display:"flex", alignItems:"center", justifyContent:"center",
+                  width:"72%", height:"72%",
+                  animation: isBoxPulsing ? "logoPulse 0.45s ease-in-out 2 alternate" : undefined,
+                }}>
+                  <Image
+                    src="/adithyatech-emblem.png"
+                    alt="AdithyaTech"
+                    fill
+                    priority
+                    quality={100}
+                    style={{
+                      objectFit:"contain",
+                      filter: isBoxPulsing
+                        ? "drop-shadow(0 0 14px rgba(77,144,254,1)) drop-shadow(0 0 28px rgba(255,180,0,0.9)) brightness(1.3)"
+                        : "drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4))",
+                      transition:"filter 0.3s ease",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* The other 4 faces (back, left, right, bottom) */}
               {[
-                { key:"front",  xf:`translateZ(clamp(35px,5.5vw,70px))` },
                 { key:"back",   xf:`rotateY(180deg) translateZ(clamp(35px,5.5vw,70px))` },
                 { key:"left",   xf:`rotateY(-90deg) translateZ(clamp(35px,5.5vw,70px))` },
                 { key:"right",  xf:`rotateY(90deg) translateZ(clamp(35px,5.5vw,70px))` },
@@ -192,7 +230,6 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                 transition:"transform 0.75s cubic-bezier(0.34,1.56,0.64,1)",
               }}>
                 <div style={{ position:"absolute", inset:4, border:"1px solid rgba(77,144,254,0.22)", borderRadius:2 }} />
-                <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:"clamp(16px,2.5vw,30px)", color:"rgba(77,144,254,0.75)", fontWeight:900, letterSpacing:2, textShadow:"0 0 10px rgba(77,144,254,0.8)" }}>AT</div>
               </div>
 
               {/* Neon edge lights */}
@@ -359,6 +396,11 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           60%  { opacity:1; filter: blur(0px); }
           80%  { transform: translateY(4px) scale(1.06) rotateX(0deg) rotateZ(0deg); }
           100% { opacity:1; transform: translateY(0) scale(1) rotateX(0deg) rotateZ(0deg); filter: blur(0px); }
+        }
+        @keyframes logoPulse {
+          0%   { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
+          50%  { transform: scale(1.12); filter: drop-shadow(0 0 20px rgba(77,144,254,1)) drop-shadow(0 0 40px rgba(255,180,0,1)) brightness(1.4); }
+          100% { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
         }
         @keyframes boxFloat {
           from { transform: rotateY(-5deg) rotateX(3deg) translateY(0px); }

@@ -2,36 +2,34 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import clsx from "clsx";
 
 // Every character is its own DOM element, driven by state
 const CHARS = ['A','D','I','T','H','Y','A','T','E','C','H','.','I','N'] as const;
-const CHAR_DELAY_MS = 220;   // ms between each character being thrown
-const BOX_SHOW_AT_MS  = 100; // box appears, lid closed, logo visible
-const LOGO_PULSE_AT_MS = 950; // logo energy pulse on box face
-const BOX_OPEN_AT_MS  = 1350; // lid rotates open
-const FIRST_CHAR_AT_MS = 2150; // A is thrown
+const CHAR_DELAY_MS   = 220;
+const BOX_SHOW_AT_MS  = 100;
+const LOGO_PULSE_AT_MS = 950;
+const BOX_OPEN_AT_MS  = 1350;
+const FIRST_CHAR_AT_MS = 2150;
 
 type Phase =
-  | "idle"        // before mount
-  | "box"         // box closed, logo visible on front face
-  | "logoPulse"   // logo on box pulses with blue-gold energy before opening
-  | "opening"     // lid rotates open
-  | "throwing"    // characters being released one by one
-  | "pulse"       // name complete, energy sweep
-  | "reveal"      // logo + tagline
-  | "ready"       // ENTER WAREHOUSE button visible
-  | "loading"     // user clicked
-  | "exit";       // fading out
+  | "idle"
+  | "box"
+  | "logoPulse"
+  | "opening"
+  | "throwing"
+  | "pulse"
+  | "reveal"
+  | "ready"
+  | "loading"
+  | "exit";
 
 export default function SplashWrapper({ children }: { children: React.ReactNode }) {
-  const [showSplash, setShowSplash]   = useState(true);
-  const [isMounted, setIsMounted]     = useState(false);
-  const [phase, setPhase]             = useState<Phase>("idle");
-  // How many characters have been revealed so far (0 = none visible)
+  const [showSplash, setShowSplash]       = useState(true);
+  const [isMounted, setIsMounted]         = useState(false);
+  const [phase, setPhase]                 = useState<Phase>("idle");
   const [revealedCount, setRevealedCount] = useState(0);
-  const [isLoading, setIsLoading]     = useState(false);
-  const [progressKey, setProgressKey] = useState(0);
+  const [isLoading, setIsLoading]         = useState(false);
+  const [progressKey, setProgressKey]     = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timersRef   = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -42,34 +40,27 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     const hasSeenSplash = sessionStorage.getItem("hasSeenSplash");
-    if (hasSeenSplash) {
-      setShowSplash(false);
-      return;
-    }
+    if (hasSeenSplash) { setShowSplash(false); return; }
     setIsMounted(true);
 
     addTimer(() => setPhase("box"),       BOX_SHOW_AT_MS);
     addTimer(() => setPhase("logoPulse"), LOGO_PULSE_AT_MS);
     addTimer(() => setPhase("opening"),   BOX_OPEN_AT_MS);
 
-    // Start releasing characters one by one
     addTimer(() => {
       setPhase("throwing");
       let count = 0;
       intervalRef.current = setInterval(() => {
         count++;
         setRevealedCount(count);
-        if (count >= CHARS.length) {
-          clearInterval(intervalRef.current!);
-        }
+        if (count >= CHARS.length) clearInterval(intervalRef.current!);
       }, CHAR_DELAY_MS);
     }, FIRST_CHAR_AT_MS);
 
-    // After last letter settles (~300ms for its own animation) → pulse
     const allLettersAt = FIRST_CHAR_AT_MS + CHARS.length * CHAR_DELAY_MS + 300;
-    addTimer(() => setPhase("pulse"),   allLettersAt);
-    addTimer(() => setPhase("reveal"),  allLettersAt + 700);
-    addTimer(() => setPhase("ready"),   allLettersAt + 1700);
+    addTimer(() => setPhase("pulse"),  allLettersAt);
+    addTimer(() => setPhase("reveal"), allLettersAt + 700);
+    addTimer(() => setPhase("ready"),  allLettersAt + 1700);
 
     return () => {
       timersRef.current.forEach(clearTimeout);
@@ -93,13 +84,13 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
   if (!showSplash && !isMounted) return <>{children}</>;
   if (!showSplash) return <div style={{ animation: "splashFadeIn 1s ease forwards" }}>{children}</div>;
 
-  const boxVisible      = phase === "box" || phase === "logoPulse" || phase === "opening" || phase === "throwing";
-  const isBoxPulsing    = phase === "logoPulse";
-  const pulseActive     = phase === "pulse" || phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const logoVisible     = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const taglineVisible  = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
-  const buttonVisible   = phase === "ready" && !isLoading;
-  const loadingVisible  = isLoading;
+  const boxVisible     = phase === "box" || phase === "logoPulse" || phase === "opening" || phase === "throwing";
+  const isBoxPulsing   = phase === "logoPulse";
+  const pulseActive    = phase === "pulse" || phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const logoVisible    = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const taglineVisible = phase === "reveal" || phase === "ready" || phase === "loading" || phase === "exit";
+  const buttonVisible  = phase === "ready" && !isLoading;
+  const loadingVisible = isLoading;
 
   return (
     <>
@@ -108,109 +99,217 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
         {children}
       </div>
 
-      <div
-        style={{
-          position:"fixed", inset:0, zIndex:100,
-          width:"100vw", height:"100dvh", overflow:"hidden",
-          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-          // Deep cinematic black-navy base
-          background:"radial-gradient(ellipse 80% 60% at 50% 50%, #07101f 0%, #040b15 45%, #020508 100%)",
-          opacity: phase === "exit" ? 0 : 1,
-          transition:"opacity 1s ease",
-          pointerEvents: phase === "exit" ? "none" : "auto",
-        }}
-      >
-        {/* ── LEFT side: warm black-to-dark-orange atmosphere ── */}
-        {/* Main warm amber radial glow, top-left */}
-        <div style={{ position:"absolute", top:"-10%", left:"-8%", width:"52vw", height:"70vh", borderRadius:"50%", background:"radial-gradient(ellipse at 20% 30%, rgba(210,90,0,0.18) 0%, rgba(150,50,0,0.10) 35%, transparent 70%)", pointerEvents:"none" }} />
-        {/* Secondary warm floor reflection, bottom-left */}
-        <div style={{ position:"absolute", bottom:0, left:0, width:"38vw", height:"35vh", background:"radial-gradient(ellipse at 10% 100%, rgba(180,70,0,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+      {/* ═══════════════════════════════════════════════════════════
+          FULL-SCREEN SPLASH CONTAINER
+      ═══════════════════════════════════════════════════════════ */}
+      <div style={{
+        position:"fixed", inset:0, zIndex:100,
+        width:"100vw", height:"100dvh", overflow:"hidden",
+        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+        // Deep cinematic black-midnight navy base
+        background:"#020509",
+        opacity: phase === "exit" ? 0 : 1,
+        transition:"opacity 1s ease",
+        pointerEvents: phase === "exit" ? "none" : "auto",
+      }}>
 
-        {/* ── RIGHT side: deep navy-to-black atmosphere with electric blue ── */}
-        {/* Main electric-blue radial glow, top-right */}
-        <div style={{ position:"absolute", top:"-5%", right:"-8%", width:"52vw", height:"70vh", borderRadius:"50%", background:"radial-gradient(ellipse at 80% 25%, rgba(0,80,200,0.22) 0%, rgba(0,40,120,0.12) 40%, transparent 70%)", pointerEvents:"none" }} />
-        {/* Secondary blue floor reflection, bottom-right */}
-        <div style={{ position:"absolute", bottom:0, right:0, width:"38vw", height:"35vh", background:"radial-gradient(ellipse at 90% 100%, rgba(7,96,240,0.14) 0%, transparent 70%)", pointerEvents:"none" }} />
-        {/* Electric-blue accent strip along right edge */}
-        <div style={{ position:"absolute", top:0, right:0, width:"2px", height:"100%", background:"linear-gradient(to bottom, transparent 0%, rgba(15,210,245,0.18) 30%, rgba(7,96,240,0.22) 60%, transparent 100%)", pointerEvents:"none" }} />
+        {/* ── BACKGROUND ATMOSPHERE ── */}
+        {/* Left warm orange-amber bloom */}
+        <div style={{ position:"absolute", top:"-15%", left:"-12%", width:"58vw", height:"80vh", pointerEvents:"none",
+          background:"radial-gradient(ellipse at 15% 35%, rgba(220,95,0,0.22) 0%, rgba(160,55,0,0.12) 30%, transparent 65%)" }} />
+        {/* Left lower amber reflection */}
+        <div style={{ position:"absolute", bottom:"-5%", left:"-5%", width:"45vw", height:"45vh", pointerEvents:"none",
+          background:"radial-gradient(ellipse at 5% 95%, rgba(190,75,0,0.14) 0%, transparent 60%)" }} />
 
-        {/* ── LEFT circuit lines (dark orange/gold) ── */}
-        <svg style={{ position:"absolute", top:0, left:0, width:"26vw", height:"100%", pointerEvents:"none", overflow:"visible" }} viewBox="0 0 260 700" preserveAspectRatio="xMinYMid meet">
-          <g opacity="0.38" stroke="#c96a00" strokeWidth="1" fill="none">
-            {/* Main trunk line */}
-            <polyline points="60,40 60,180 20,180 20,320 80,320 80,480 30,480 30,600" />
-            {/* Branch lines */}
-            <polyline points="60,100 100,100 100,140" />
-            <polyline points="20,250 -10,250" />
-            <polyline points="80,390 120,390 120,420" />
-            <polyline points="30,520 -20,520" />
-            <polyline points="60,180 140,180 140,220 90,220" />
+        {/* Right deep-blue/cyan bloom */}
+        <div style={{ position:"absolute", top:"-10%", right:"-12%", width:"58vw", height:"80vh", pointerEvents:"none",
+          background:"radial-gradient(ellipse at 85% 28%, rgba(2,60,180,0.26) 0%, rgba(0,35,110,0.14) 35%, transparent 65%)" }} />
+        {/* Right lower blue reflection */}
+        <div style={{ position:"absolute", bottom:"-5%", right:"-5%", width:"45vw", height:"45vh", pointerEvents:"none",
+          background:"radial-gradient(ellipse at 95% 95%, rgba(7,96,240,0.16) 0%, transparent 60%)" }} />
+
+        {/* Subtle floor glow centre */}
+        <div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", width:"55vw", height:"18vh", pointerEvents:"none",
+          background:"radial-gradient(ellipse at 50% 100%, rgba(5,60,160,0.1) 0%, transparent 70%)" }} />
+
+        {/* ── LEFT CIRCUIT GRAPHICS (orange / gold) ── */}
+        <svg
+          style={{ position:"absolute", top:0, left:0, width:"30vw", height:"100%", pointerEvents:"none" }}
+          viewBox="0 0 300 800" preserveAspectRatio="xMinYMid meet"
+        >
+          <defs>
+            <linearGradient id="goldFade" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ED8506" stopOpacity="0.85"/>
+              <stop offset="60%" stopColor="#F7B916" stopOpacity="0.55"/>
+              <stop offset="100%" stopColor="#FFE36E" stopOpacity="0"/>
+            </linearGradient>
+            <linearGradient id="goldFadeV" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#F7B916" stopOpacity="0.7"/>
+              <stop offset="100%" stopColor="#ED8506" stopOpacity="0.2"/>
+            </linearGradient>
+            <filter id="goldGlow">
+              <feGaussianBlur stdDeviation="1.2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* Main vertical trunk */}
+          <polyline points="55,30 55,130 18,130 18,260 72,260 72,400 28,400 28,540 65,540 65,660 20,660 20,780"
+            stroke="url(#goldFadeV)" strokeWidth="1.2" fill="none"/>
+
+          {/* Horizontal branches with 90° turns */}
+          <polyline points="55,90 110,90 110,130 145,130" stroke="#F79400" strokeWidth="1" fill="none" opacity="0.5"/>
+          <polyline points="18,195 -15,195" stroke="#ED8506" strokeWidth="1" fill="none" opacity="0.45"/>
+          <polyline points="72,320 125,320 125,355 95,355" stroke="#F7B916" strokeWidth="1" fill="none" opacity="0.5"/>
+          <polyline points="28,460 -20,460" stroke="#ED8506" strokeWidth="1" fill="none" opacity="0.4"/>
+          <polyline points="65,590 140,590 140,620 105,620 105,650" stroke="#F79400" strokeWidth="1" fill="none" opacity="0.45"/>
+          <polyline points="18,130 18,90 -10,90" stroke="#FFB000" strokeWidth="0.8" fill="none" opacity="0.35"/>
+          <polyline points="72,400 170,400 170,360 130,360" stroke="#F7B916" strokeWidth="0.9" fill="none" opacity="0.4"/>
+
+          {/* Diagonal accent lines */}
+          <line x1="55" y1="260" x2="30" y2="290" stroke="#ED8506" strokeWidth="0.8" opacity="0.35"/>
+          <line x1="72" y1="540" x2="50" y2="560" stroke="#F79400" strokeWidth="0.8" opacity="0.3"/>
+
+          {/* Circuit nodes (glowing dots) */}
+          <g filter="url(#goldGlow)">
+            <circle cx="55" cy="90" r="3" fill="#FFB000" opacity="0.9"/>
+            <circle cx="110" cy="130" r="2.5" fill="#F7B916" opacity="0.8"/>
+            <circle cx="18" cy="195" r="3" fill="#ED8506" opacity="0.85"/>
+            <circle cx="72" cy="320" r="3" fill="#FFB000" opacity="0.9"/>
+            <circle cx="125" cy="355" r="2" fill="#F7B916" opacity="0.7"/>
+            <circle cx="28" cy="460" r="3" fill="#ED8506" opacity="0.85"/>
+            <circle cx="65" cy="590" r="3" fill="#FFB000" opacity="0.8"/>
+            <circle cx="140" cy="620" r="2" fill="#F7B916" opacity="0.65"/>
+            <circle cx="18" cy="90" r="2" fill="#FFE36E" opacity="0.6"/>
+            <circle cx="170" cy="400" r="2.2" fill="#F79400" opacity="0.7"/>
           </g>
-          {/* Gold dots at nodes */}
-          <g fill="#f7b916" opacity="0.55">
-            <circle cx="60" cy="100" r="2.2"/><circle cx="20" cy="250" r="2.2"/>
-            <circle cx="80" cy="390" r="2.2"/><circle cx="30" cy="520" r="2.2"/>
-            <circle cx="100" cy="140" r="1.6"/><circle cx="140" cy="220" r="1.6"/>
-            <circle cx="120" cy="420" r="1.6"/>
+
+          {/* Node halos (tiny outer ring) */}
+          <g fill="none" stroke="#FFB000" opacity="0.3">
+            <circle cx="55" cy="90" r="5.5" strokeWidth="0.6"/>
+            <circle cx="18" cy="195" r="5.5" strokeWidth="0.6"/>
+            <circle cx="72" cy="320" r="5.5" strokeWidth="0.6"/>
+            <circle cx="28" cy="460" r="5.5" strokeWidth="0.6"/>
           </g>
-          {/* Sparse small orange particles */}
-          <g fill="#ee8506" opacity="0.4">
-            <circle cx="30" cy="80" r="1.2"/><circle cx="110" cy="160" r="1"/><circle cx="15" cy="350" r="1.2"/>
-            <circle cx="90" cy="460" r="1"/><circle cx="45" cy="560" r="1.2"/><circle cx="130" cy="300" r="0.9"/>
+
+          {/* Sparse orange particles */}
+          <g fill="#EE8506">
+            <circle cx="25" cy="55" r="1.1" opacity="0.45"/>
+            <circle cx="130" cy="110" r="0.9" opacity="0.35"/>
+            <circle cx="10" cy="340" r="1.1" opacity="0.4"/>
+            <circle cx="88" cy="430" r="0.9" opacity="0.35"/>
+            <circle cx="42" cy="565" r="1.1" opacity="0.4"/>
+            <circle cx="155" cy="590" r="0.8" opacity="0.3"/>
+            <circle cx="70" cy="700" r="1" opacity="0.35"/>
+            <circle cx="30" cy="720" r="0.8" opacity="0.3"/>
           </g>
         </svg>
 
-        {/* ── RIGHT circuit lines (cyan / electric-blue) ── */}
-        <svg style={{ position:"absolute", top:0, right:0, width:"26vw", height:"100%", pointerEvents:"none", overflow:"visible" }} viewBox="0 0 260 700" preserveAspectRatio="xMaxYMid meet">
-          <g opacity="0.38" stroke="#0a6fcc" strokeWidth="1" fill="none">
-            {/* Main trunk */}
-            <polyline points="200,30 200,160 240,160 240,300 180,300 180,450 230,450 230,580" />
-            {/* Branches */}
-            <polyline points="200,90 160,90 160,130" />
-            <polyline points="240,230 270,230" />
-            <polyline points="180,370 140,370 140,400" />
-            <polyline points="230,510 270,510" />
-            <polyline points="200,160 120,160 120,200 170,200" />
+        {/* ── RIGHT CIRCUIT GRAPHICS (cyan / electric-blue) ── */}
+        <svg
+          style={{ position:"absolute", top:0, right:0, width:"30vw", height:"100%", pointerEvents:"none" }}
+          viewBox="0 0 300 800" preserveAspectRatio="xMaxYMid meet"
+        >
+          <defs>
+            <linearGradient id="blueFade" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#0FD2F5" stopOpacity="0"/>
+              <stop offset="40%" stopColor="#079FEA" stopOpacity="0.55"/>
+              <stop offset="100%" stopColor="#0760F0" stopOpacity="0.85"/>
+            </linearGradient>
+            <linearGradient id="blueFadeV" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#0FD2F5" stopOpacity="0.7"/>
+              <stop offset="100%" stopColor="#023A9B" stopOpacity="0.25"/>
+            </linearGradient>
+            <filter id="blueGlow">
+              <feGaussianBlur stdDeviation="1.2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* Main vertical trunk */}
+          <polyline points="245,30 245,130 282,130 282,260 228,260 228,400 272,400 272,540 235,540 235,660 280,660 280,780"
+            stroke="url(#blueFadeV)" strokeWidth="1.2" fill="none"/>
+
+          {/* Horizontal branches */}
+          <polyline points="245,90 190,90 190,130 155,130" stroke="#079FEA" strokeWidth="1" fill="none" opacity="0.5"/>
+          <polyline points="282,195 315,195" stroke="#0760F0" strokeWidth="1" fill="none" opacity="0.45"/>
+          <polyline points="228,320 175,320 175,355 205,355" stroke="#0FD2F5" strokeWidth="1" fill="none" opacity="0.5"/>
+          <polyline points="272,460 320,460" stroke="#0760F0" strokeWidth="1" fill="none" opacity="0.4"/>
+          <polyline points="235,590 160,590 160,620 195,620 195,650" stroke="#079FEA" strokeWidth="1" fill="none" opacity="0.45"/>
+          <polyline points="282,130 282,90 310,90" stroke="#0FD2F5" strokeWidth="0.8" fill="none" opacity="0.35"/>
+          <polyline points="228,400 130,400 130,360 170,360" stroke="#0FD2F5" strokeWidth="0.9" fill="none" opacity="0.4"/>
+
+          {/* Diagonals */}
+          <line x1="245" y1="260" x2="270" y2="290" stroke="#0760F0" strokeWidth="0.8" opacity="0.35"/>
+          <line x1="228" y1="540" x2="250" y2="560" stroke="#079FEA" strokeWidth="0.8" opacity="0.3"/>
+
+          {/* Circuit nodes */}
+          <g filter="url(#blueGlow)">
+            <circle cx="245" cy="90" r="3" fill="#0FD2F5" opacity="0.95"/>
+            <circle cx="190" cy="130" r="2.5" fill="#079FEA" opacity="0.8"/>
+            <circle cx="282" cy="195" r="3" fill="#0760F0" opacity="0.85"/>
+            <circle cx="228" cy="320" r="3" fill="#0FD2F5" opacity="0.9"/>
+            <circle cx="175" cy="355" r="2" fill="#079FEA" opacity="0.7"/>
+            <circle cx="272" cy="460" r="3" fill="#0760F0" opacity="0.85"/>
+            <circle cx="235" cy="590" r="3" fill="#0FD2F5" opacity="0.8"/>
+            <circle cx="160" cy="620" r="2" fill="#079FEA" opacity="0.65"/>
+            <circle cx="310" cy="90" r="2" fill="#0FD2F5" opacity="0.6"/>
+            <circle cx="130" cy="400" r="2.2" fill="#0760F0" opacity="0.7"/>
           </g>
-          {/* Cyan dots at nodes */}
-          <g fill="#0fd2f5" opacity="0.6">
-            <circle cx="200" cy="90" r="2.2"/><circle cx="240" cy="230" r="2.2"/>
-            <circle cx="180" cy="370" r="2.2"/><circle cx="230" cy="510" r="2.2"/>
-            <circle cx="160" cy="130" r="1.6"/><circle cx="120" cy="200" r="1.6"/>
-            <circle cx="140" cy="400" r="1.6"/>
+
+          {/* Node halos */}
+          <g fill="none" stroke="#0FD2F5" opacity="0.3">
+            <circle cx="245" cy="90" r="5.5" strokeWidth="0.6"/>
+            <circle cx="282" cy="195" r="5.5" strokeWidth="0.6"/>
+            <circle cx="228" cy="320" r="5.5" strokeWidth="0.6"/>
+            <circle cx="272" cy="460" r="5.5" strokeWidth="0.6"/>
           </g>
-          {/* Sparse small blue particles */}
-          <g fill="#1a8cf0" opacity="0.4">
-            <circle cx="230" cy="70" r="1.2"/><circle cx="150" cy="170" r="1"/><circle cx="250" cy="340" r="1.2"/>
-            <circle cx="170" cy="430" r="1"/><circle cx="215" cy="560" r="1.2"/><circle cx="130" cy="290" r="0.9"/>
+
+          {/* Sparse blue particles */}
+          <g fill="#0FD2F5">
+            <circle cx="275" cy="55" r="1.1" opacity="0.45"/>
+            <circle cx="170" cy="115" r="0.9" opacity="0.35"/>
+            <circle cx="290" cy="340" r="1.1" opacity="0.4"/>
+            <circle cx="212" cy="435" r="0.9" opacity="0.35"/>
+            <circle cx="258" cy="565" r="1.1" opacity="0.4"/>
+            <circle cx="145" cy="595" r="0.8" opacity="0.3"/>
+            <circle cx="230" cy="700" r="1" opacity="0.35"/>
+            <circle cx="270" cy="720" r="0.8" opacity="0.3"/>
           </g>
         </svg>
 
-        {/* ── Subtle floor reflective glow, centre-bottom ── */}
-        <div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", width:"60vw", height:"20vh", background:"radial-gradient(ellipse at 50% 100%, rgba(7,96,240,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
+        {/* Right edge vertical accent */}
+        <div style={{ position:"absolute", top:0, right:0, width:"1.5px", height:"100%", pointerEvents:"none",
+          background:"linear-gradient(to bottom, transparent 0%, rgba(15,210,245,0.2) 25%, rgba(7,96,240,0.25) 65%, transparent 100%)" }} />
 
-        {/* ====== MAIN STACK ====== */}
-        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"clamp(10px,1.8vh,28px)", position:"relative", zIndex:10, width:"100%", padding:"0 clamp(12px,3vw,48px)" }}>
+        {/* ═══ MAIN CONTENT STACK ═══ */}
+        <div style={{
+          display:"flex", flexDirection:"column", alignItems:"center",
+          gap:"clamp(8px,1.5vh,20px)",
+          position:"relative", zIndex:10,
+          width:"100%", padding:"0 clamp(12px,3vw,48px)",
+        }}>
 
-          {/* LOGO */}
+          {/* LOGO (shown after animation) */}
           <div style={{
             transition:"opacity 0.8s ease, transform 0.8s ease",
             opacity: logoVisible ? 1 : 0,
-            transform: logoVisible ? "translateY(0) scale(1)" : "translateY(-20px) scale(0.88)",
+            transform: logoVisible ? "translateY(0) scale(1)" : "translateY(-16px) scale(0.9)",
           }}>
             <Image
               src="/adithyatech-emblem.png"
               alt="AdithyaTech Logo"
-              width={160} height={160}
+              width={130} height={130}
               priority quality={100}
               style={{
-                width:"clamp(56px,9vw,120px)", height:"auto",
-                filter:"drop-shadow(0 0 18px rgba(77,144,254,0.65)) drop-shadow(0 0 36px rgba(255,140,0,0.3))",
+                width:"clamp(50px,7.5vw,110px)", height:"auto",
+                // Tight split glow matching logo's two halves
+                filter:"drop-shadow(-3px 0 8px rgba(238,133,6,0.55)) drop-shadow(3px 0 8px rgba(15,210,245,0.55))",
               }}
             />
           </div>
 
-          {/* 3D BOX – fades out once throwing starts */}
+          {/* 3D BOX */}
           <div style={{
             perspective:"600px", perspectiveOrigin:"50% 50%",
             transition:"opacity 0.5s ease",
@@ -222,9 +321,9 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
             <div style={{
               width:"clamp(70px,11vw,140px)", height:"clamp(70px,11vw,140px)",
               position:"relative", transformStyle:"preserve-3d",
-              animation: phase === "opening" || phase === "throwing" ? "boxFloat 2s ease infinite alternate" : undefined,
+              animation: (phase === "opening" || phase === "throwing") ? "boxFloat 2s ease infinite alternate" : undefined,
             }}>
-              {/* FRONT FACE – bears the official AdithyaTech logo */}
+              {/* FRONT FACE with logo */}
               <div style={{
                 position:"absolute", width:"100%", height:"100%",
                 transform:`translateZ(clamp(35px,5.5vw,70px))`,
@@ -235,18 +334,12 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                 display:"flex", alignItems:"center", justifyContent:"center",
               }}>
                 <div style={{ position:"absolute", inset:4, border:"1px solid rgba(77,144,254,0.12)", borderRadius:2 }} />
-                {/* Official logo – physically embedded on the front face surface */}
                 <div style={{
-                  position:"relative", zIndex:2, display:"flex", alignItems:"center", justifyContent:"center",
-                  width:"72%", height:"72%",
+                  position:"relative", zIndex:2, width:"72%", height:"72%",
+                  display:"flex", alignItems:"center", justifyContent:"center",
                   animation: isBoxPulsing ? "logoPulse 0.45s ease-in-out 2 alternate" : undefined,
                 }}>
-                  <Image
-                    src="/adithyatech-emblem.png"
-                    alt="AdithyaTech"
-                    fill
-                    priority
-                    quality={100}
+                  <Image src="/adithyatech-emblem.png" alt="AdithyaTech" fill priority quality={100}
                     style={{
                       objectFit:"contain",
                       filter: isBoxPulsing
@@ -258,7 +351,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                 </div>
               </div>
 
-              {/* The other 4 faces (back, left, right, bottom) */}
+              {/* Other 4 faces */}
               {[
                 { key:"back",   xf:`rotateY(180deg) translateZ(clamp(35px,5.5vw,70px))` },
                 { key:"left",   xf:`rotateY(-90deg) translateZ(clamp(35px,5.5vw,70px))` },
@@ -276,7 +369,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                 </div>
               ))}
 
-              {/* Lid – rotates open when phase is opening/throwing */}
+              {/* Lid */}
               <div style={{
                 position:"absolute", width:"100%", height:"100%",
                 transform: (phase === "opening" || phase === "throwing")
@@ -310,35 +403,22 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
             </div>
           </div>
 
-          {/* ====== CHARACTER-BY-CHARACTER NAME ASSEMBLY ====== */}
-          {/*
-            Each character is conditionally rendered only when revealedCount > i.
-            When it first appears it plays the "letterFlyIn" keyframe animation,
-            which originates from above (simulating exiting the box) and settles
-            into its final position in the flex row.
-          */}
+          {/* ══ CHARACTER-BY-CHARACTER NAME ══ */}
           <div style={{
-            display:"flex",
-            alignItems:"center",
-            justifyContent:"center",
+            display:"flex", alignItems:"center", justifyContent:"center",
             flexWrap:"nowrap",
-            minHeight:"clamp(36px,7vw,88px)",
+            minHeight:"clamp(36px,7vw,90px)",
             position:"relative",
           }}>
             {CHARS.map((char, i) => {
               const isVisible = revealedCount > i;
-
-              // --- Two-group gradient logic ---
-              // ADITHYA = indices 0–6 → premium metallic gold
-              // TECH.IN = indices 7–13 → cyan to electric blue
               const isGold = i <= 6;
-              const groupSize = 7; // each group has 7 characters
-              const posWithinGroup = isGold ? i : i - 7; // 0..6 within each group
+              const groupSize = 7;
+              const posWithinGroup = isGold ? i : i - 7;
               const gradientPos = `${(posWithinGroup / (groupSize - 1)) * 100}%`;
-
               const gradient = isGold
                 ? "linear-gradient(90deg, #EE8506 0%, #F7B916 50%, #FFE36E 100%)"
-                : "linear-gradient(90deg, #0FD2F5 0%, #1A8CF0 55%, #0760F0 100%)";
+                : "linear-gradient(90deg, #0FD2F5 0%, #079FEA 55%, #0760F0 100%)";
 
               return (
                 <span
@@ -346,11 +426,11 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                   aria-hidden={i > 0 && char === CHARS[i - 1]}
                   style={{
                     display: "inline-block",
-                    fontSize: "clamp(18px,4.2vw,64px)",
+                    fontSize: "clamp(20px,4.5vw,68px)",
                     fontWeight: 900,
-                    letterSpacing: "clamp(0.5px,0.25vw,3px)",
-                    fontFamily: "'Inter','SF Pro Display',sans-serif",
-                    // Group-specific gradient clipped to text shape
+                    letterSpacing: "clamp(1px,0.3vw,4px)",
+                    // Orbitron: futuristic geometric font matching the reference
+                    fontFamily: "'Orbitron','Michroma','Inter',sans-serif",
                     background: gradient,
                     backgroundSize: `${groupSize * 100}% 100%`,
                     backgroundPosition: `${gradientPos} center`,
@@ -358,7 +438,6 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text",
                     color: "transparent",
-                    // No textShadow, no filter, no blur — crisp sharp letters only
                     opacity: isVisible ? 1 : 0,
                     animation: isVisible ? "letterFlyIn 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
                     willChange: "transform, opacity",
@@ -372,190 +451,137 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
             })}
           </div>
 
-          {/* BRAND DIVIDER LINE + DIAMOND SPARKLE */}
+          {/* ══ TAGLINE ══ */}
           <div style={{
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "clamp(220px, 38vw, 540px)",
-            height: "20px",
-            marginTop: "clamp(2px,0.4vh,6px)",
-            marginBottom: "clamp(2px,0.4vh,6px)",
+            display:"flex", alignItems:"center", gap:"clamp(8px,1.4vw,20px)",
+            transition:"opacity 0.8s ease 0.3s, transform 0.8s ease 0.3s",
             opacity: taglineVisible ? 1 : 0,
-            transition: "opacity 0.8s ease 0.1s",
+            transform: taglineVisible ? "translateY(0)" : "translateY(10px)",
+            marginTop:"clamp(2px,0.3vh,6px)",
           }}>
-            {/* Left half — gold gradient line */}
-            <div style={{
-              flex: 1,
-              height: "1.5px",
-              background: "linear-gradient(90deg, transparent 0%, #EE8506 30%, #F7B916 70%, #FFE36E 100%)",
-              boxShadow: "0 0 4px 0px rgba(238,133,6,0.55), 0 0 8px 0px rgba(247,185,22,0.3)",
-              borderRadius: "1px",
-            }} />
+            {/* SMART */}
+            <span style={{
+              fontFamily:"'Orbitron','Michroma','Inter',sans-serif",
+              fontSize:"clamp(7px,0.95vw,12px)", fontWeight:700,
+              letterSpacing:"clamp(2px,0.5vw,6px)",
+              color:"#F79400",
+            }}>SMART</span>
 
-            {/* Centre diamond sparkle */}
-            <div style={{
-              position: "relative",
-              width: "clamp(12px,1.5vw,18px)",
-              height: "clamp(12px,1.5vw,18px)",
-              flexShrink: 0,
-              margin: "0 clamp(3px,0.4vw,6px)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}>
-              {/* Main diamond (rotated square, split gold-left / cyan-right) */}
-              <div style={{
-                width: "clamp(8px,1vw,13px)",
-                height: "clamp(8px,1vw,13px)",
-                transform: "rotate(45deg)",
-                background: "linear-gradient(90deg, #F7B916 0%, #FFE36E 49%, #0FD2F5 51%, #0760F0 100%)",
-                boxShadow: "0 0 6px 1px rgba(247,185,22,0.55), 0 0 10px 2px rgba(15,210,245,0.35)",
-                borderRadius: "1px",
-              }} />
-              {/* Four thin sparkle rays */}
-              {/* Top ray */}
-              <div style={{
-                position: "absolute",
-                top: 0, left: "50%",
-                transform: "translateX(-50%)",
-                width: "1.5px",
-                height: "clamp(4px,0.5vw,7px)",
-                background: "linear-gradient(to top, #FFE36E, transparent)",
-                borderRadius: "1px",
-              }} />
-              {/* Bottom ray */}
-              <div style={{
-                position: "absolute",
-                bottom: 0, left: "50%",
-                transform: "translateX(-50%)",
-                width: "1.5px",
-                height: "clamp(4px,0.5vw,7px)",
-                background: "linear-gradient(to bottom, #0FD2F5, transparent)",
-                borderRadius: "1px",
-              }} />
-              {/* Left ray */}
-              <div style={{
-                position: "absolute",
-                left: 0, top: "50%",
-                transform: "translateY(-50%)",
-                height: "1.5px",
-                width: "clamp(4px,0.5vw,7px)",
-                background: "linear-gradient(to left, #F7B916, transparent)",
-                borderRadius: "1px",
-              }} />
-              {/* Right ray */}
-              <div style={{
-                position: "absolute",
-                right: 0, top: "50%",
-                transform: "translateY(-50%)",
-                height: "1.5px",
-                width: "clamp(4px,0.5vw,7px)",
-                background: "linear-gradient(to right, #0FD2F5, transparent)",
-                borderRadius: "1px",
-              }} />
-            </div>
+            {/* separator dot */}
+            <span style={{
+              display:"block", width:"4px", height:"4px", borderRadius:"50%",
+              background:"linear-gradient(135deg, #F7B916, #0FD2F5)",
+              boxShadow:"0 0 5px rgba(247,185,22,0.6), 0 0 5px rgba(15,210,245,0.6)",
+            }}/>
 
-            {/* Right half — cyan-to-blue gradient line */}
-            <div style={{
-              flex: 1,
-              height: "1.5px",
-              background: "linear-gradient(90deg, #0FD2F5 0%, #1A8CF0 40%, #0760F0 70%, transparent 100%)",
-              boxShadow: "0 0 4px 0px rgba(15,210,245,0.55), 0 0 8px 0px rgba(7,96,240,0.3)",
-              borderRadius: "1px",
-            }} />
+            {/* SECURE */}
+            <span style={{
+              fontFamily:"'Orbitron','Michroma','Inter',sans-serif",
+              fontSize:"clamp(7px,0.95vw,12px)", fontWeight:700,
+              letterSpacing:"clamp(2px,0.5vw,6px)",
+              color:"#079FEA",
+            }}>SECURE</span>
+
+            {/* separator dot */}
+            <span style={{
+              display:"block", width:"4px", height:"4px", borderRadius:"50%",
+              background:"linear-gradient(135deg, #0FD2F5, #e040fb)",
+              boxShadow:"0 0 5px rgba(15,210,245,0.5), 0 0 5px rgba(224,64,251,0.5)",
+            }}/>
+
+            {/* SCALABLE */}
+            <span style={{
+              fontFamily:"'Orbitron','Michroma','Inter',sans-serif",
+              fontSize:"clamp(7px,0.95vw,12px)", fontWeight:700,
+              letterSpacing:"clamp(2px,0.5vw,6px)",
+              color:"#c855e8",
+            }}>SCALABLE</span>
           </div>
 
-          {/* TAGLINE */}
+          {/* ══ ENTER WAREHOUSE BUTTON ══ */}
           <div style={{
-            display:"flex", alignItems:"center", gap:"clamp(6px,1.2vw,18px)",
-            transition:"opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s",
-            opacity: taglineVisible ? 1 : 0,
-            transform: taglineVisible ? "translateY(0)" : "translateY(12px)",
-          }}>
-            {["SMART","SECURE","SCALABLE"].map((word, i) => (
-              <span key={word} style={{ display:"flex", alignItems:"center", gap:"clamp(6px,1.2vw,18px)" }}>
-                <span style={{
-                  fontSize:"clamp(8px,1.1vw,14px)", fontWeight:700,
-                  letterSpacing:"clamp(1.5px,0.4vw,5px)",
-                  color: i===0 ? "#ff8c00" : i===1 ? "#4d90fe" : "#e040fb",
-                  textShadow: i===0 ? "0 0 10px rgba(255,140,0,0.6)" : i===1 ? "0 0 10px rgba(77,144,254,0.6)" : "0 0 10px rgba(224,64,251,0.6)",
-                }}>
-                  {word}
-                </span>
-                {i < 2 && <span style={{ color:"rgba(255,255,255,0.22)", fontSize:"clamp(8px,1.2vw,16px)" }}>•</span>}
-              </span>
-            ))}
-          </div>
-
-          {/* ENTER WAREHOUSE BUTTON */}
-          <div style={{
-            marginTop:"clamp(6px,1.2vh,18px)",
+            marginTop:"clamp(8px,1.4vh,20px)",
             transition:"opacity 0.6s ease, transform 0.6s cubic-bezier(0.34,1.56,0.64,1)",
             opacity: buttonVisible ? 1 : 0,
-            transform: buttonVisible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.9)",
+            transform: buttonVisible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.92)",
             pointerEvents: buttonVisible ? "auto" : "none",
           }}>
             <button
               onClick={handleEnter}
               style={{
                 position:"relative", display:"flex", alignItems:"center",
-                gap:"clamp(8px,1vw,14px)",
-                padding:"clamp(12px,1.4vh,17px) clamp(22px,2.8vw,44px)",
-                background:"linear-gradient(135deg,rgba(10,25,51,0.92) 0%,rgba(5,15,35,0.96) 100%)",
-                border:"1px solid rgba(77,144,254,0.65)",
-                borderRadius:"clamp(28px,5vw,60px)",
-                color:"white", fontSize:"clamp(10px,1.1vw,14px)", fontWeight:900,
-                letterSpacing:"clamp(2px,0.4vw,5px)", cursor:"pointer", whiteSpace:"nowrap",
-                boxShadow:"0 0 28px -5px rgba(77,144,254,0.5), 0 0 55px -10px rgba(77,144,254,0.28)",
-                backdropFilter:"blur(10px)", overflow:"hidden",
-                transition:"transform 0.2s ease, box-shadow 0.3s ease",
+                gap:"clamp(10px,1.2vw,16px)",
+                padding:"clamp(13px,1.5vh,18px) clamp(28px,3.2vw,52px)",
+                background:"linear-gradient(135deg, rgba(3,11,28,0.95) 0%, rgba(2,6,18,0.98) 100%)",
+                border:"1.5px solid rgba(7,96,240,0.7)",
+                borderRadius:"clamp(30px,5vw,64px)",
+                color:"rgba(255,255,255,0.92)",
+                fontSize:"clamp(10px,1.05vw,13px)",
+                fontWeight:700,
+                fontFamily:"'Orbitron','Michroma','Inter',sans-serif",
+                letterSpacing:"clamp(2px,0.45vw,5px)",
+                cursor:"pointer", whiteSpace:"nowrap",
+                // Tight electric-blue border glow only, no giant blur
+                boxShadow:"0 0 12px -2px rgba(7,96,240,0.6), 0 0 30px -8px rgba(15,210,245,0.35), inset 0 0 20px -10px rgba(7,96,240,0.15)",
+                backdropFilter:"blur(8px)",
+                overflow:"hidden",
+                transition:"border-color 0.25s ease, box-shadow 0.25s ease",
               }}
-              onMouseEnter={e=>{(e.currentTarget as HTMLButtonElement).style.transform="scale(1.05)";(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 48px -5px rgba(77,144,254,0.8), 0 0 75px -10px rgba(77,144,254,0.4)";}}
-              onMouseLeave={e=>{(e.currentTarget as HTMLButtonElement).style.transform="scale(1)";(e.currentTarget as HTMLButtonElement).style.boxShadow="0 0 28px -5px rgba(77,144,254,0.5), 0 0 55px -10px rgba(77,144,254,0.28)";}}
-              onMouseDown={e=>(e.currentTarget as HTMLButtonElement).style.transform="scale(0.97)"}
-              onMouseUp={e=>(e.currentTarget as HTMLButtonElement).style.transform="scale(1.04)"}
+              onMouseEnter={e => {
+                const b = e.currentTarget as HTMLButtonElement;
+                b.style.borderColor = "rgba(15,210,245,0.85)";
+                b.style.boxShadow = "0 0 18px -2px rgba(15,210,245,0.7), 0 0 45px -8px rgba(7,96,240,0.45), inset 0 0 20px -8px rgba(15,210,245,0.12)";
+              }}
+              onMouseLeave={e => {
+                const b = e.currentTarget as HTMLButtonElement;
+                b.style.borderColor = "rgba(7,96,240,0.7)";
+                b.style.boxShadow = "0 0 12px -2px rgba(7,96,240,0.6), 0 0 30px -8px rgba(15,210,245,0.35), inset 0 0 20px -10px rgba(7,96,240,0.15)";
+              }}
+              onMouseDown={e => (e.currentTarget as HTMLButtonElement).style.transform = "scale(0.97)"}
+              onMouseUp={e   => (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"}
               aria-label="Enter Warehouse"
             >
-              <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.07) 50%,transparent 100%)", transform:"translateX(-100%)", animation:"shimmer 2.5s ease infinite" }} />
-              <span style={{ position:"relative", zIndex:1, textShadow:"0 0 8px rgba(255,255,255,0.45)" }}>ENTER WAREHOUSE</span>
-              <span style={{ position:"relative", zIndex:1, fontSize:"clamp(13px,1.4vw,18px)", textShadow:"0 0 8px rgba(77,144,254,0.8)" }}>→</span>
+              {/* Shimmer sweep */}
+              <div style={{ position:"absolute", inset:0, background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%)", transform:"translateX(-100%)", animation:"shimmer 2.8s ease infinite" }} />
+              <span style={{ position:"relative", zIndex:1 }}>ENTER WAREHOUSE</span>
+              <span style={{ position:"relative", zIndex:1, fontSize:"clamp(14px,1.5vw,20px)", color:"rgba(15,210,245,0.9)", transition:"transform 0.25s ease" }}>→</span>
             </button>
           </div>
 
           {/* LOADING STATE */}
           <div style={{
-            marginTop:"clamp(6px,1.2vh,18px)",
+            marginTop:"clamp(8px,1.4vh,20px)",
             transition:"opacity 0.5s ease 0.3s, transform 0.5s ease 0.3s",
             opacity: loadingVisible ? 1 : 0,
-            transform: loadingVisible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.9)",
+            transform: loadingVisible ? "translateY(0) scale(1)" : "translateY(18px) scale(0.92)",
             pointerEvents:"none",
             display:"flex", flexDirection:"column", alignItems:"center",
             gap:"clamp(8px,1.2vh,16px)", width:"clamp(140px,22vw,260px)",
           }}>
-            <div style={{ color:"#4d90fe", fontWeight:700, letterSpacing:"clamp(2px,0.45vw,5px)", textTransform:"uppercase", fontSize:"clamp(9px,0.9vw,12px)", animation:"pulseOpacity 1.5s ease-in-out infinite", textShadow:"0 0 10px rgba(77,144,254,0.8)" }}>
+            <div style={{ color:"#079FEA", fontWeight:700, letterSpacing:"clamp(2px,0.45vw,5px)", textTransform:"uppercase", fontSize:"clamp(9px,0.9vw,12px)", fontFamily:"'Orbitron','Inter',sans-serif", animation:"pulseOpacity 1.5s ease-in-out infinite" }}>
               Loading
             </div>
             <div style={{ display:"flex", gap:"clamp(5px,0.7vw,9px)" }}>
               {[...Array(5)].map((_,i) => (
-                <div key={i} style={{ width:"clamp(5px,0.7vw,9px)", height:"clamp(5px,0.7vw,9px)", borderRadius:"50%", background:"#4d90fe", boxShadow:"0 0 10px rgba(77,144,254,1)", animation:"dotBounce 1.2s ease-in-out infinite", animationDelay:`${i*0.15}s` }} />
+                <div key={i} style={{ width:"clamp(5px,0.7vw,9px)", height:"clamp(5px,0.7vw,9px)", borderRadius:"50%", background:"#079FEA", boxShadow:"0 0 8px rgba(7,159,234,0.9)", animation:"dotBounce 1.2s ease-in-out infinite", animationDelay:`${i*0.15}s` }} />
               ))}
             </div>
-            <div style={{ width:"100%", height:"2px", background:"rgba(77,144,254,0.14)", borderRadius:"2px", overflow:"hidden", position:"relative" }}>
-              <div key={progressKey} style={{ position:"absolute", top:0, left:0, height:"100%", background:"linear-gradient(90deg,#4d90fe,#60a5fa)", boxShadow:"0 0 10px rgba(77,144,254,1)", borderRadius:"2px", animation:"progressBar 3s ease-in-out forwards" }} />
+            <div style={{ width:"100%", height:"2px", background:"rgba(7,96,240,0.14)", borderRadius:"2px", overflow:"hidden", position:"relative" }}>
+              <div key={progressKey} style={{ position:"absolute", top:0, left:0, height:"100%", background:"linear-gradient(90deg,#0760F0,#0FD2F5)", boxShadow:"0 0 10px rgba(15,210,245,0.9)", borderRadius:"2px", animation:"progressBar 3s ease-in-out forwards" }} />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ position:"absolute", bottom:"clamp(10px,1.8vh,22px)", color:"rgba(255,255,255,0.18)", fontSize:"clamp(7px,0.65vw,10px)", letterSpacing:"clamp(2px,0.45vw,5px)", fontWeight:700, textTransform:"uppercase", transition:"opacity 1s ease", opacity: logoVisible ? 1 : 0 }}>
+        <div style={{ position:"absolute", bottom:"clamp(10px,1.8vh,22px)", color:"rgba(255,255,255,0.15)", fontSize:"clamp(7px,0.6vw,9px)", letterSpacing:"clamp(2px,0.45vw,5px)", fontWeight:700, textTransform:"uppercase", fontFamily:"'Orbitron','Inter',sans-serif", transition:"opacity 1s ease", opacity: logoVisible ? 1 : 0 }}>
           © 2026 ADITHYATECH • Global Warehouse Network
         </div>
       </div>
 
-      {/* Keyframes */}
+      {/* ══ GOOGLE FONT IMPORT + KEYFRAMES ══ */}
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Michroma&display=swap');
+
         @keyframes letterFlyIn {
           0%   { opacity:0; transform: translateY(clamp(-120px,-18vh,-60px)) scale(0.25) rotateX(80deg) rotateZ(-8deg); }
           60%  { opacity:1; }
@@ -563,41 +589,41 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           100% { opacity:1; transform: translateY(0) scale(1) rotateX(0deg) rotateZ(0deg); }
         }
         @keyframes logoPulse {
-          0%   { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
-          50%  { transform: scale(1.12); filter: drop-shadow(0 0 20px rgba(77,144,254,1)) drop-shadow(0 0 40px rgba(255,180,0,1)) brightness(1.4); }
-          100% { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
+          0%   { transform:scale(1);    filter:drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
+          50%  { transform:scale(1.12); filter:drop-shadow(0 0 20px rgba(77,144,254,1)) drop-shadow(0 0 40px rgba(255,180,0,1)) brightness(1.4); }
+          100% { transform:scale(1);    filter:drop-shadow(0 0 8px rgba(77,144,254,0.7)) drop-shadow(0 0 16px rgba(255,140,0,0.4)); }
         }
         @keyframes boxFloat {
           from { transform: rotateY(-5deg) rotateX(3deg) translateY(0px); }
           to   { transform: rotateY(5deg) rotateX(-3deg) translateY(-8px); }
         }
         @keyframes neonPulse {
-          from { opacity: 0.45; }
-          to   { opacity: 1; }
+          from { opacity:0.45; }
+          to   { opacity:1; }
         }
         @keyframes shimmer {
-          0%   { transform: translateX(-100%); }
-          60%  { transform: translateX(100%); }
-          100% { transform: translateX(100%); }
+          0%   { transform:translateX(-100%); }
+          60%  { transform:translateX(100%); }
+          100% { transform:translateX(100%); }
         }
         @keyframes pulseOpacity {
-          0%, 100% { opacity: 0.6; }
-          50%       { opacity: 1; }
+          0%,100% { opacity:0.6; }
+          50%     { opacity:1; }
         }
         @keyframes dotBounce {
-          0%, 80%, 100% { transform: translateY(0); }
-          40%            { transform: translateY(-8px); }
+          0%,80%,100% { transform:translateY(0); }
+          40%          { transform:translateY(-8px); }
         }
         @keyframes progressBar {
-          0%   { width: 0%; }
-          100% { width: 100%; }
+          0%   { width:0%; }
+          100% { width:100%; }
         }
         @keyframes splashFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
+          from { opacity:0; }
+          to   { opacity:1; }
         }
         @media (prefers-reduced-motion: reduce) {
-          * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+          * { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
         }
       `}</style>
     </>

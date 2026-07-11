@@ -267,7 +267,11 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}>
             {CHARS.map((char, i) => {
               const isVisible = revealedCount > i;
-              const isCurrentlyFlying = revealedCount === i + 1; // just revealed this tick
+              // Each character shows one slice of the full gradient.
+              // backgroundSize is CHARS.length * 100% wide; backgroundPosition
+              // moves the correct slice under each character.
+              const N = CHARS.length; // 14
+              const gradientPos = `${(i / (N - 1)) * 100}%`;
               return (
                 <span
                   key={`${char}-${i}`}
@@ -278,7 +282,14 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
                     fontWeight:900,
                     letterSpacing:"clamp(0.5px,0.25vw,3px)",
                     fontFamily:"'Inter','SF Pro Display',sans-serif",
-                    color: char === "." ? "rgba(255,200,80,0.98)" : "white",
+                    // Premium gradient: #ED8306 → #F8CD1A → #0DE2F7 → #1494E3 → #044EE8
+                    background:"linear-gradient(90deg, #ED8306 0%, #F8CD1A 25%, #0DE2F7 55%, #1494E3 78%, #044EE8 100%)",
+                    backgroundSize:`${N * 100}% 100%`,
+                    backgroundPosition:`${gradientPos} center`,
+                    WebkitBackgroundClip:"text",
+                    WebkitTextFillColor:"transparent",
+                    backgroundClip:"text",
+                    color:"transparent",
                     // Only show when it's this character's turn
                     opacity: isVisible ? 1 : 0,
                     // Fly-in animation runs only when a character is first revealed

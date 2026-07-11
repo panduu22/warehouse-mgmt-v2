@@ -64,14 +64,14 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}
         >
           {/*
-            ── Background image (Clean Retina Upscale) ──────────────────
-            We are serving a clean 2x Lanczos upscaled version (2048x1152) 
-            of the image to prevent pixelation on Retina screens, while 
-            maintaining smooth, natural gradients without artificial sharpening.
+            ── Background image (Subtly Enhanced Retina Upscale) ──────────────────
+            We are serving a 2x Lanczos upscaled version (2048x1152) 
+            with a mild unsharp mask, slight contrast, and saturation boost
+            to improve detail and make the image pop without pixelation.
           */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/AI-wide-clean.jpg"
+            src="/AI-wide-enhanced.jpg"
             alt=""
             style={{
               position:      "absolute",

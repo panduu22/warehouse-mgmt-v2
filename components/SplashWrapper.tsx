@@ -79,6 +79,11 @@ export default function SplashWrapper({
             aspectRatio: "1672 / 941",
 
             flexShrink: 0,
+            
+            // Scale the container down to decrease the size of the logo and name 
+            // while keeping the whole image as it is. It will blend into the black background.
+            transform: "scale(0.82)",
+            transformOrigin: "center center",
           }}
         >
           {/* EXACT ORIGINAL IMAGE — NO CSS MODIFICATION */}

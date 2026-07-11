@@ -103,7 +103,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
       }}>
         {/* Full screen background image */}
         <Image 
-          src="/AI.png"
+          src="/AI-wide.jpg"
           alt="AdithyaTech Landing"
           fill
           priority

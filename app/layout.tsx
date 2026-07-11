@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Providers";
+import SplashWrapper from "@/components/SplashWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,7 +27,9 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased`}
       >
         <Providers>
-          {children}
+          <SplashWrapper>
+            {children}
+          </SplashWrapper>
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

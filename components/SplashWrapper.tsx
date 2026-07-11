@@ -16,7 +16,6 @@ export default function SplashWrapper({
 
   const hasTriggeredFade = useRef(false);
 
-  // Hide splash after successful authentication
   useEffect(() => {
     if (
       status === "authenticated" &&
@@ -34,7 +33,6 @@ export default function SplashWrapper({
     }
   }, [status]);
 
-  // Enter Warehouse button handler
   const handleEnter = () => {
     if (isLoading || status === "loading") {
       return;
@@ -58,41 +56,43 @@ export default function SplashWrapper({
         style={{
           position: "fixed",
           inset: 0,
+          width: "100vw",
+          height: "100dvh",
           zIndex: 9999,
-          backgroundColor: "#000000",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          background: "#000000",
           overflow: "hidden",
           opacity: fadeOut ? 0 : 1,
           transition: "opacity 0.7s ease",
           pointerEvents: fadeOut ? "none" : "auto",
         }}
       >
-        {/* EXACT IMAGE CONTAINER */}
+        {/* EXACT 16:9 IMAGE STAGE */}
         <div
           style={{
-            position: "relative",
+            position: "absolute",
+            left: "50%",
+            top: "50%",
 
-            width: "min(100vw, calc(100dvh * 1672 / 941))",
+            width: "100vw",
+            height: "56.25vw",
 
-            aspectRatio: "1672 / 941",
+            maxWidth: "177.777778dvh",
+            maxHeight: "100dvh",
 
-            flexShrink: 0,
-            
-            // Scale the container down to decrease the size of the logo and name 
-            // while keeping the whole image as it is. It will blend into the black background.
-            transform: "scale(0.82)",
-            transformOrigin: "center center",
+            transform: "translate(-50%, -50%)",
+
+            overflow: "hidden",
           }}
         >
-          {/* EXACT ORIGINAL IMAGE — NO CSS MODIFICATION */}
+          {/* EXACT ORIGINAL IMAGE */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/AI-wide-enhanced.jpg"
-            alt="ADITHYATECH.IN"
+            src="/AI-wide-perfect.png"
+            alt=""
             draggable={false}
             decoding="sync"
+            loading="eager"
+            fetchPriority="high"
             style={{
               position: "absolute",
               inset: 0,
@@ -103,28 +103,24 @@ export default function SplashWrapper({
               display: "block",
 
               objectFit: "contain",
-              objectPosition: "center",
+              objectPosition: "50% 50%",
 
               pointerEvents: "none",
               userSelect: "none",
+
+              WebkitUserDrag: "none",
             }}
           />
 
-          {/* TRANSPARENT ENTER WAREHOUSE HOTSPOT */}
-          <div
+          {/* INVISIBLE ENTER WAREHOUSE HOTSPOT */}
+          <button
+            type="button"
             onClick={handleEnter}
-            role="button"
-            tabIndex={0}
+            disabled={
+              isLoading ||
+              status === "loading"
+            }
             aria-label="Enter Warehouse"
-            onKeyDown={(event) => {
-              if (
-                event.key === "Enter" ||
-                event.key === " "
-              ) {
-                event.preventDefault();
-                handleEnter();
-              }
-            }}
             style={{
               position: "absolute",
 
@@ -136,19 +132,22 @@ export default function SplashWrapper({
 
               transform: "translate(-50%, -50%)",
 
+              padding: 0,
+              margin: 0,
+
+              border: 0,
+              outline: 0,
+
+              background: "transparent",
+
               cursor: isLoading
                 ? "wait"
                 : "pointer",
 
               zIndex: 10,
 
-              background: "transparent",
-              border: "none",
-
-              WebkitTapHighlightColor: "transparent",
-
-              // DEBUG ONLY:
-              // outline: "2px solid red",
+              WebkitTapHighlightColor:
+                "transparent",
             }}
           />
 
@@ -161,9 +160,10 @@ export default function SplashWrapper({
                 left: "50%",
                 top: "75%",
 
-                margin: 0,
+                transform:
+                  "translate(-50%, -50%)",
 
-                transform: "translate(-50%, -50%)",
+                margin: 0,
 
                 color: "#0FD2F5",
 
@@ -183,13 +183,13 @@ export default function SplashWrapper({
                   "atPulse 1.1s ease-in-out infinite",
 
                 textShadow:
-                  "0 0 10px rgba(15, 210, 245, 0.8)",
+                  "0 0 10px rgba(15, 210,245,0.8)",
 
                 whiteSpace: "nowrap",
 
-                zIndex: 11,
-
                 pointerEvents: "none",
+
+                zIndex: 11,
               }}
             >
               Signing in…

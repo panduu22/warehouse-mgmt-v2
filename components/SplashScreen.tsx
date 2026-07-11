@@ -24,8 +24,11 @@ export default function SplashScreen() {
             width: "100vw",
             height: "56.25vw",
 
-            maxWidth: "177.777778dvh",
-            maxHeight: "100dvh",
+            // Using minWidth/minHeight forces the 16:9 container to FILL the screen,
+            // cropping the sides on mobile but preventing black bars, while keeping
+            // the hotspot perfectly aligned!
+            minWidth: "177.777778dvh",
+            minHeight: "100dvh",
 
             transform: "translate(-50%, -50%)",
 

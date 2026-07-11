@@ -25,8 +25,8 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
     const vWidth = window.innerWidth;
     const vHeight = window.innerHeight;
     
-    // Original image aspect ratio for AI.png (1024x1024 = 1)
-    const imageAspect = 1; 
+    // Original image aspect ratio for the wide image (1024x576 = 16:9)
+    const imageAspect = 16 / 9; 
     const viewportAspect = vWidth / vHeight;
 
     let renderedWidth, renderedHeight;
@@ -34,12 +34,10 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
     // object-fit: contain logic
     if (viewportAspect > imageAspect) {
       // Screen is wider than the image's aspect ratio.
-      // Image height will fill the screen, width will be scaled proportionally.
       renderedHeight = vHeight;
       renderedWidth = renderedHeight * imageAspect;
     } else {
       // Screen is taller than the image's aspect ratio.
-      // Image width will fill the screen, height will be scaled proportionally.
       renderedWidth = vWidth;
       renderedHeight = renderedWidth / imageAspect;
     }
@@ -82,12 +80,11 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
   if (!showSplash && !isMounted) return <>{children}</>;
   if (!showSplash) return <div style={{ animation: "splashFadeIn 1s ease forwards" }}>{children}</div>;
 
-  // The coordinates of the ENTER WAREHOUSE button inside the original AI.png image
-  // Estimated as percentages based on the visual layout
+  // The coordinates of the ENTER WAREHOUSE button inside the wide image
   const BUTTON_X_PERCENT = 0.50; // Centered horizontally
-  const BUTTON_Y_PERCENT = 0.725; // ~72.5% down from the top edge
+  const BUTTON_Y_PERCENT = 0.82; // Adjusted for 16:9 vertical crop
   const BUTTON_WIDTH_PERCENT = 0.35; // ~35% of the image width
-  const BUTTON_HEIGHT_PERCENT = 0.08; // ~8% of the image height
+  const BUTTON_HEIGHT_PERCENT = 0.12; // Adjusted height relative to 16:9
 
   return (
     <>
@@ -104,10 +101,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
         transition:"opacity 1s ease",
         pointerEvents: phase === "exit" ? "none" : "auto"
       }}>
-        {/* 
-          Full screen background image with object-fit: contain 
-          This ensures the COMPLETE image is visible without zooming or cropping 
-        */}
+        {/* Full screen background image */}
         <Image 
           src="/AI.png"
           alt="AdithyaTech Landing"
@@ -117,10 +111,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           style={{ objectFit: "contain", objectPosition: "center center" }}
         />
 
-        {/* 
-          Transparent Clickable Hotspot for ENTER WAREHOUSE
-          Calculated relative to the actual rendered image dimensions on screen
-        */}
+        {/* Transparent Clickable Hotspot */}
         {imgBounds.width > 0 && (
           <div 
             onClick={handleEnter}
@@ -133,7 +124,7 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
               transform: "translate(-50%, -50%)",
               cursor: "pointer",
               zIndex: 10,
-              // backgroundColor: "rgba(255, 0, 0, 0.0)", // Keep completely transparent
+              // backgroundColor: "rgba(255, 0, 0, 0.0)", 
               borderRadius: "4vmax",
             }}
             aria-label="Enter Warehouse"
@@ -141,12 +132,12 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           />
         )}
 
-        {/* LOADING STATE - positioned strictly below the hotspot */}
+        {/* LOADING STATE */}
         {isLoading && imgBounds.width > 0 && (
           <div style={{
             position: "absolute",
             left: imgBounds.left + (imgBounds.width * 0.5),
-            top: imgBounds.top + (imgBounds.height * 0.82), // Below the button
+            top: imgBounds.top + (imgBounds.height * 0.93), // Below the button
             transform: "translate(-50%, -50%)",
             color: "#079FEA", fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", 
             fontSize: "clamp(10px, 1.2vmax, 16px)", fontFamily: "'Orbitron','Inter',sans-serif",

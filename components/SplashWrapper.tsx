@@ -7,141 +7,137 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
   const { status } = useSession();
   const [showSplash, setShowSplash] = useState(true);
   const [isLoading, setIsLoading]   = useState(false);
-  const [isExiting, setIsExiting]   = useState(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [fadeOut, setFadeOut]       = useState(false);
+  const hasTriggeredFade            = useRef(false);
 
-  const addTimer = (fn: () => void, ms: number) => {
-    const t = setTimeout(fn, ms);
-    timersRef.current.push(t);
-  };
-
+  // ── Hide splash once authenticated ──────────────────────────────────────
   useEffect(() => {
-    return () => { timersRef.current.forEach(clearTimeout); };
-  }, []);
-
-  // If the user is already authenticated (e.g. after OAuth callback returns),
-  // fade out the splash and reveal the app.
-  useEffect(() => {
-    if (status === "authenticated") {
-      setIsExiting(true);
-      addTimer(() => setShowSplash(false), 800);
+    if (status === "authenticated" && !hasTriggeredFade.current) {
+      hasTriggeredFade.current = true;
+      setFadeOut(true);
+      const t = setTimeout(() => setShowSplash(false), 700);
+      return () => clearTimeout(t);
     }
   }, [status]);
 
-  // If the session has already been checked and user is not logged in, show splash.
-  // If session check is still loading ("loading" status), keep splash visible.
-
+  // ── Click handler ────────────────────────────────────────────────────────
   const handleEnter = () => {
-    if (isLoading) return;
+    if (isLoading || status === "loading") return;
     setIsLoading(true);
-    // Direct Google OAuth — the page will redirect to Google and come back authenticated.
-    signIn("google", { callbackUrl: "/" });
+    // Direct NextAuth Google OAuth — identical to what the /login page does
+    signIn("google", { callbackUrl: "/", prompt: "select_account" });
   };
 
   if (!showSplash) return <>{children}</>;
 
   return (
     <>
-      {/* ── Fullscreen overlay ── */}
+      {/* ── Fullscreen black overlay ─────────────────────────────────────── */}
       <div
         style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 9999,
-          backgroundColor: "#000",
-          display: "flex",
-          alignItems: "center",
+          position:   "fixed",
+          inset:      0,
+          zIndex:     9999,
+          background: "#000",
+          display:    "flex",
+          alignItems:  "center",
           justifyContent: "center",
-          opacity: isExiting ? 0 : 1,
-          transition: "opacity 0.8s ease",
-          pointerEvents: isExiting ? "none" : "auto",
+          opacity:        fadeOut ? 0 : 1,
+          transition:     "opacity 0.7s ease",
+          pointerEvents:  fadeOut ? "none" : "auto",
         }}
       >
         {/*
-          Aspect-ratio constraint box.
-          Image is 1024×576 = 16:9 (ratio = 1.7778).
-          CSS trick — the smaller of the two max constraints wins,
-          so the box perfectly tracks the image proportions on ANY screen size.
+          ── Aspect-ratio constraint box ──────────────────────────────────
+          Source image: 1024 × 576  (16:9 = 1.7778)
+          CSS trick: both max-width and max-height are set to the 16:9 boundary.
+          The SMALLER constraint always wins → the box perfectly tracks the image
+          on any viewport without JS.
         */}
         <div
           style={{
-            position: "relative",
-            /* fill the viewport up to the 16:9 boundary */
-            width: "100%",
-            height: "100%",
+            position:  "relative",
+            width:     "100%",
+            height:    "100%",
             maxWidth:  "calc(100dvh * 1.7778)",
             maxHeight: "calc(100vw  * 0.5625)",
           }}
         >
           {/*
-            Use a plain <img> tag — skips ALL Next.js image processing,
-            so no resampling blur is added by the server.
-            image-rendering: high-quality tells the GPU to use bicubic upscaling.
+            ── Background image ─────────────────────────────────────────
+            Use CSS background-image, NOT <img> or Next/Image.
+            Browsers apply the same high-quality interpolation pipeline used for
+            photos in CSS — typically a Lanczos or Mitchell kernel on Chrome/Safari.
+            Serving the @2x version via image-set() makes it crisp on Retina.
           */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/AI-wide.jpg"
-            alt="AdithyaTech Warehouse"
+          <div
             style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "fill",
-              imageRendering: "high-quality" as any,
-              // Force GPU compositing for crispest upscale on Retina
-              transform: "translateZ(0)",
-              willChange: "transform",
+              position:        "absolute",
+              inset:           0,
+              backgroundImage: `image-set(
+                url('/AI-wide@2x.jpg') 2x,
+                url('/AI-wide.jpg')    1x
+              )`,
+              backgroundSize:     "100% 100%",
+              backgroundPosition: "center",
+              backgroundRepeat:   "no-repeat",
+              // Slight contrast & saturation boost to fight JPEG softness
+              filter:  "contrast(1.04) saturate(1.06)",
+              // Force GPU layer → crispest compositing
+              transform:   "translateZ(0)",
+              willChange:  "transform",
+              pointerEvents: "none", // clicks fall through to the hotspot below
             }}
           />
 
           {/*
-            ── Transparent ENTER WAREHOUSE hotspot ──
-            All coordinates are percentages of the *constrained image box*,
-            which exactly matches the image pixels.
+            ── ENTER WAREHOUSE transparent hotspot ───────────────────────
+            Measured from the 1024×576 source image:
+              Button horizontal centre: ~512 px → 50.0 %
+              Button vertical centre:   ~443 px → 76.9 %
+              Button width:             ~350 px → 34.2 %
+              Button height:            ~55  px →  9.5 %
 
-            In the 1024×576 source image:
-              Button centre X ≈ 512 → 50.0%
-              Button centre Y ≈ 443 → 76.9%
-              Button width   ≈ 350 → 34.2%
-              Button height  ≈  56 →  9.7%
+            We add ±2 % padding on each side so slight misalignment
+            on different screen sizes is forgiven.
           */}
           <div
             onClick={handleEnter}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleEnter(); }}
             style={{
-              position: "absolute",
+              position:  "absolute",
               left:      "50%",
               top:       "77%",
-              width:     "35%",
-              height:    "10%",
+              width:     "38%",
+              height:    "13%",
               transform: "translate(-50%, -50%)",
               cursor:    isLoading ? "wait" : "pointer",
               zIndex:    10,
-              // Debug: set to "rgba(255,0,0,0.4)" to see the hotspot
-              background: "transparent",
-              borderRadius: "999px",
+              // ↓ Uncomment to debug the hotspot boundary:
+              // outline: "2px solid red",
             }}
             aria-label="Enter Warehouse"
-            title="Enter Warehouse"
           />
 
-          {/* "Signing in…" indicator while OAuth redirects */}
+          {/* ── "Signing in…" text beneath the button while OAuth loads ── */}
           {isLoading && (
             <p
               style={{
-                position: "absolute",
-                left: "50%",
-                top:  "88%",
-                margin: 0,
-                transform: "translate(-50%, -50%)",
-                color: "#0FD2F5",
-                fontWeight: 700,
+                position:      "absolute",
+                left:          "50%",
+                top:           "87%",
+                margin:        0,
+                transform:     "translate(-50%, -50%)",
+                color:         "#0FD2F5",
+                fontWeight:    700,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                fontSize: "clamp(9px, 1.1vmax, 14px)",
-                fontFamily: "'Orbitron', 'Inter', sans-serif",
-                animation: "atPulse 1.2s ease-in-out infinite",
-                textShadow: "0 0 12px rgba(15,210,245,0.8)",
+                fontSize:      "clamp(9px, 1.1vmax, 13px)",
+                fontFamily:    "'Orbitron', 'Inter', sans-serif",
+                animation:     "atPulse 1.1s ease-in-out infinite",
+                textShadow:    "0 0 10px rgba(15,210,245,0.8)",
               }}
             >
               Signing in…
@@ -152,8 +148,8 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
 
       <style>{`
         @keyframes atPulse {
-          0%, 100% { opacity: 0.3; }
-          50%       { opacity: 1;   }
+          0%, 100% { opacity: 0.25; }
+          50%       { opacity: 1;    }
         }
       `}</style>
     </>

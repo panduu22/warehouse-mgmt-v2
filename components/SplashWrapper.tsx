@@ -113,21 +113,81 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           position:"fixed", inset:0, zIndex:100,
           width:"100vw", height:"100dvh", overflow:"hidden",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-          background:"radial-gradient(ellipse at 50% 40%, #0b1a33 0%, #050d1a 55%, #000000 100%)",
+          // Deep cinematic black-navy base
+          background:"radial-gradient(ellipse 80% 60% at 50% 50%, #07101f 0%, #040b15 45%, #020508 100%)",
           opacity: phase === "exit" ? 0 : 1,
           transition:"opacity 1s ease",
           pointerEvents: phase === "exit" ? "none" : "auto",
         }}
       >
-        {/* Grid background */}
-        <div style={{
-          position:"absolute", inset:0, opacity:0.1, pointerEvents:"none",
-          backgroundImage:"linear-gradient(rgba(77,144,254,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(77,144,254,0.5) 1px, transparent 1px)",
-          backgroundSize:"clamp(28px,4.5vw,55px) clamp(28px,4.5vw,55px)",
-        }} />
-        {/* Ambient glows */}
-        <div style={{ position:"absolute", top:"-8%", left:"-4%", width:"clamp(180px,28vw,450px)", height:"clamp(180px,28vw,450px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(255,140,0,0.13) 0%, transparent 70%)", pointerEvents:"none" }} />
-        <div style={{ position:"absolute", bottom:"-8%", right:"-4%", width:"clamp(180px,28vw,450px)", height:"clamp(180px,28vw,450px)", borderRadius:"50%", background:"radial-gradient(circle, rgba(77,144,254,0.16) 0%, transparent 70%)", pointerEvents:"none" }} />
+        {/* ── LEFT side: warm black-to-dark-orange atmosphere ── */}
+        {/* Main warm amber radial glow, top-left */}
+        <div style={{ position:"absolute", top:"-10%", left:"-8%", width:"52vw", height:"70vh", borderRadius:"50%", background:"radial-gradient(ellipse at 20% 30%, rgba(210,90,0,0.18) 0%, rgba(150,50,0,0.10) 35%, transparent 70%)", pointerEvents:"none" }} />
+        {/* Secondary warm floor reflection, bottom-left */}
+        <div style={{ position:"absolute", bottom:0, left:0, width:"38vw", height:"35vh", background:"radial-gradient(ellipse at 10% 100%, rgba(180,70,0,0.12) 0%, transparent 70%)", pointerEvents:"none" }} />
+
+        {/* ── RIGHT side: deep navy-to-black atmosphere with electric blue ── */}
+        {/* Main electric-blue radial glow, top-right */}
+        <div style={{ position:"absolute", top:"-5%", right:"-8%", width:"52vw", height:"70vh", borderRadius:"50%", background:"radial-gradient(ellipse at 80% 25%, rgba(0,80,200,0.22) 0%, rgba(0,40,120,0.12) 40%, transparent 70%)", pointerEvents:"none" }} />
+        {/* Secondary blue floor reflection, bottom-right */}
+        <div style={{ position:"absolute", bottom:0, right:0, width:"38vw", height:"35vh", background:"radial-gradient(ellipse at 90% 100%, rgba(7,96,240,0.14) 0%, transparent 70%)", pointerEvents:"none" }} />
+        {/* Electric-blue accent strip along right edge */}
+        <div style={{ position:"absolute", top:0, right:0, width:"2px", height:"100%", background:"linear-gradient(to bottom, transparent 0%, rgba(15,210,245,0.18) 30%, rgba(7,96,240,0.22) 60%, transparent 100%)", pointerEvents:"none" }} />
+
+        {/* ── LEFT circuit lines (dark orange/gold) ── */}
+        <svg style={{ position:"absolute", top:0, left:0, width:"26vw", height:"100%", pointerEvents:"none", overflow:"visible" }} viewBox="0 0 260 700" preserveAspectRatio="xMinYMid meet">
+          <g opacity="0.38" stroke="#c96a00" strokeWidth="1" fill="none">
+            {/* Main trunk line */}
+            <polyline points="60,40 60,180 20,180 20,320 80,320 80,480 30,480 30,600" />
+            {/* Branch lines */}
+            <polyline points="60,100 100,100 100,140" />
+            <polyline points="20,250 -10,250" />
+            <polyline points="80,390 120,390 120,420" />
+            <polyline points="30,520 -20,520" />
+            <polyline points="60,180 140,180 140,220 90,220" />
+          </g>
+          {/* Gold dots at nodes */}
+          <g fill="#f7b916" opacity="0.55">
+            <circle cx="60" cy="100" r="2.2"/><circle cx="20" cy="250" r="2.2"/>
+            <circle cx="80" cy="390" r="2.2"/><circle cx="30" cy="520" r="2.2"/>
+            <circle cx="100" cy="140" r="1.6"/><circle cx="140" cy="220" r="1.6"/>
+            <circle cx="120" cy="420" r="1.6"/>
+          </g>
+          {/* Sparse small orange particles */}
+          <g fill="#ee8506" opacity="0.4">
+            <circle cx="30" cy="80" r="1.2"/><circle cx="110" cy="160" r="1"/><circle cx="15" cy="350" r="1.2"/>
+            <circle cx="90" cy="460" r="1"/><circle cx="45" cy="560" r="1.2"/><circle cx="130" cy="300" r="0.9"/>
+          </g>
+        </svg>
+
+        {/* ── RIGHT circuit lines (cyan / electric-blue) ── */}
+        <svg style={{ position:"absolute", top:0, right:0, width:"26vw", height:"100%", pointerEvents:"none", overflow:"visible" }} viewBox="0 0 260 700" preserveAspectRatio="xMaxYMid meet">
+          <g opacity="0.38" stroke="#0a6fcc" strokeWidth="1" fill="none">
+            {/* Main trunk */}
+            <polyline points="200,30 200,160 240,160 240,300 180,300 180,450 230,450 230,580" />
+            {/* Branches */}
+            <polyline points="200,90 160,90 160,130" />
+            <polyline points="240,230 270,230" />
+            <polyline points="180,370 140,370 140,400" />
+            <polyline points="230,510 270,510" />
+            <polyline points="200,160 120,160 120,200 170,200" />
+          </g>
+          {/* Cyan dots at nodes */}
+          <g fill="#0fd2f5" opacity="0.6">
+            <circle cx="200" cy="90" r="2.2"/><circle cx="240" cy="230" r="2.2"/>
+            <circle cx="180" cy="370" r="2.2"/><circle cx="230" cy="510" r="2.2"/>
+            <circle cx="160" cy="130" r="1.6"/><circle cx="120" cy="200" r="1.6"/>
+            <circle cx="140" cy="400" r="1.6"/>
+          </g>
+          {/* Sparse small blue particles */}
+          <g fill="#1a8cf0" opacity="0.4">
+            <circle cx="230" cy="70" r="1.2"/><circle cx="150" cy="170" r="1"/><circle cx="250" cy="340" r="1.2"/>
+            <circle cx="170" cy="430" r="1"/><circle cx="215" cy="560" r="1.2"/><circle cx="130" cy="290" r="0.9"/>
+          </g>
+        </svg>
+
+        {/* ── Subtle floor reflective glow, centre-bottom ── */}
+        <div style={{ position:"absolute", bottom:0, left:"50%", transform:"translateX(-50%)", width:"60vw", height:"20vh", background:"radial-gradient(ellipse at 50% 100%, rgba(7,96,240,0.08) 0%, transparent 70%)", pointerEvents:"none" }} />
 
         {/* ====== MAIN STACK ====== */}
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"clamp(10px,1.8vh,28px)", position:"relative", zIndex:10, width:"100%", padding:"0 clamp(12px,3vw,48px)" }}>

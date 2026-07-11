@@ -64,16 +64,14 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}
         >
           {/*
-            ── Background image (Forced 4K Sharpness) ──────────────────
-            We are serving a pre-rendered 4K (3840x2160) version of the image
-            with aggressive edge enhancement applied.
-            By providing a single ultra-high-res source, we force the browser
-            to render it sharply on any display, bypassing any srcSet or 
-            caching fallback issues.
+            ── Background image (Clean Retina Upscale) ──────────────────
+            We are serving a clean 2x Lanczos upscaled version (2048x1152) 
+            of the image to prevent pixelation on Retina screens, while 
+            maintaining smooth, natural gradients without artificial sharpening.
           */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/AI-wide-ultra.jpg"
+            src="/AI-wide-clean.jpg"
             alt=""
             style={{
               position:      "absolute",

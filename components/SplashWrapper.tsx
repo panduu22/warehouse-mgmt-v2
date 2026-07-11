@@ -64,29 +64,30 @@ export default function SplashWrapper({ children }: { children: React.ReactNode 
           }}
         >
           {/*
-            ── Background image ─────────────────────────────────────────
-            Use CSS background-image, NOT <img> or Next/Image.
-            Browsers apply the same high-quality interpolation pipeline used for
-            photos in CSS — typically a Lanczos or Mitchell kernel on Chrome/Safari.
-            Serving the @2x version via image-set() makes it crisp on Retina.
+            ── Background image (sharp on all screens) ──────────────────
+            A standard <img srcSet> is the most reliable cross-browser way to
+            serve Retina images.  The browser picks the right density:
+              1x  → 1024 × 576  (1 MB)
+              2x  → 2048 × 1152 (Retina)
+              3x  → 3072 × 1728 (HiDPI / large monitors)
+            Unsharp-mask was applied to all upscaled versions during generation.
+            pointerEvents: none ensures every click falls through to the hotspot.
           */}
-          <div
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/AI-wide@3x.jpg"
+            srcSet="/AI-wide.jpg 1024w, /AI-wide@2x.jpg 2048w, /AI-wide@3x.jpg 3072w"
+            sizes="(min-resolution: 2dppx) 200vw, 100vw"
+            alt=""
             style={{
-              position:        "absolute",
-              inset:           0,
-              backgroundImage: `image-set(
-                url('/AI-wide@2x.jpg') 2x,
-                url('/AI-wide.jpg')    1x
-              )`,
-              backgroundSize:     "100% 100%",
-              backgroundPosition: "center",
-              backgroundRepeat:   "no-repeat",
-              // Slight contrast & saturation boost to fight JPEG softness
-              filter:  "contrast(1.04) saturate(1.06)",
-              // Force GPU layer → crispest compositing
-              transform:   "translateZ(0)",
-              willChange:  "transform",
-              pointerEvents: "none", // clicks fall through to the hotspot below
+              position:      "absolute",
+              inset:         0,
+              width:         "100%",
+              height:        "100%",
+              objectFit:     "fill",
+              display:       "block",
+              pointerEvents: "none",   // ← clicks fall through to hotspot
+              userSelect:    "none",
             }}
           />
 

@@ -51,7 +51,6 @@ export default function SplashScreen() {
               objectPosition: "50% 50%",
               pointerEvents: "none",
               userSelect: "none",
-              WebkitUserDrag: "none",
             }}
           />
 
@@ -75,7 +74,7 @@ export default function SplashScreen() {
               zIndex: 10,
               WebkitTapHighlightColor: "transparent",
             }}
-          />
+          ></Link>
         </div>
       </div>
 

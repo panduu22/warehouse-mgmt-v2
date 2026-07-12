@@ -74,6 +74,7 @@ interface CartItem {
     flavour: string;
     bottlesPerPack: number;
     qtyAdded: number; // total bottles
+    invoiceCost?: number;
 }
 
 interface ConfirmedRestock {
@@ -224,6 +225,7 @@ export default function AddStockPage() {
                     flavour: targetProduct.flavour,
                     bottlesPerPack: bpp,
                     qtyAdded: totalBottles,
+                    invoiceCost: targetProduct.invoiceCost || 0,
                 },
             ];
         });
@@ -674,25 +676,50 @@ export default function AddStockPage() {
 
                                 {/* Cart / receipt totals */}
                                 {(cart.length > 0 || confirmedRestock) && (
-                                    <div className="flex justify-between text-sm print:mt-4">
-                                        <span className="text-muted-foreground font-medium print:font-bold print:text-lg">
-                                            Total Added
-                                        </span>
-                                        <span className="font-bold text-foreground print:text-2xl print:font-black">
-                                            {(() => {
-                                                const items = confirmedRestock
-                                                    ? confirmedRestock.items
-                                                    : cart;
-                                                let p = 0,
-                                                    b = 0;
-                                                items.forEach((i) => {
-                                                    p += Math.floor(i.qtyAdded / i.bottlesPerPack);
-                                                    b += i.qtyAdded % i.bottlesPerPack;
-                                                });
-                                                return `${p} Packs + ${b} Bottles`;
-                                            })()}
-                                        </span>
-                                    </div>
+                                    <>
+                                        <div className="flex justify-between text-sm print:mt-4">
+                                            <span className="text-muted-foreground font-medium print:font-bold print:text-lg">
+                                                Total Added
+                                            </span>
+                                            <span className="font-bold text-foreground print:text-2xl print:font-black">
+                                                {(() => {
+                                                    const items = confirmedRestock
+                                                        ? confirmedRestock.items
+                                                        : cart;
+                                                    let p = 0,
+                                                        b = 0;
+                                                    items.forEach((i) => {
+                                                        p += Math.floor(i.qtyAdded / i.bottlesPerPack);
+                                                        b += i.qtyAdded % i.bottlesPerPack;
+                                                    });
+                                                    return `${p} Packs + ${b} Bottles`;
+                                                })()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-sm mt-1 print:mt-2">
+                                            <span className="text-muted-foreground font-medium print:font-bold print:text-lg">
+                                                Total Price
+                                            </span>
+                                            <span className="font-bold text-foreground print:text-2xl print:font-black">
+                                                {(() => {
+                                                    const items = confirmedRestock
+                                                        ? confirmedRestock.items
+                                                        : cart;
+                                                    let total = 0;
+                                                    items.forEach((i) => {
+                                                        const packs = Math.floor(i.qtyAdded / i.bottlesPerPack);
+                                                        const bottles = i.qtyAdded % i.bottlesPerPack;
+                                                        const invoiceCost = i.invoiceCost || 0;
+                                                        total += (packs * invoiceCost) + (bottles * (invoiceCost / i.bottlesPerPack));
+                                                    });
+                                                    return new Intl.NumberFormat("en-IN", {
+                                                        style: "currency",
+                                                        currency: "INR",
+                                                    }).format(total);
+                                                })()}
+                                            </span>
+                                        </div>
+                                    </>
                                 )}
 
                                 {/* Success banner after confirmation */}

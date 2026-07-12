@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { 
     Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, 
     ShieldAlert, History as HistoryIcon, ChevronLeft, ChevronRight,
-    Gauge
+    Gauge, BarChart3
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import clsx from "clsx";
@@ -17,6 +17,7 @@ export const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: Gauge, section: "main" },
     { name: "Stock Management", href: "/stock", icon: Package, section: "main" },
     { name: "Vehicles", href: "/vehicles", icon: Truck, section: "main" },
+    { name: "Daily Accounts", href: "/daily-accounts", icon: BarChart3, section: "main" },
     { name: "Load Vehicle", href: "/trips/new", icon: ClipboardCheck, section: "operations" },
     { name: "Trips & Verify", href: "/trips", icon: ClipboardCheck, section: "operations" },
     { name: "Invoices", href: "/bills", icon: Receipt, section: "operations" },

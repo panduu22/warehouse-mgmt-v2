@@ -15,47 +15,50 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { userId, warehouseIds } = await req.json();
+        const { emails, warehouseId } = await req.json();
 
-        if (!userId || !warehouseIds || !Array.isArray(warehouseIds)) {
+        if (!emails || !Array.isArray(emails) || !warehouseId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
         await dbConnect();
 
-        const userToUpdate = await User.findById(userId);
-        if (!userToUpdate) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
+        const warehouse = await Warehouse.findById(warehouseId);
+        if (!warehouse) {
+            return NextResponse.json({ error: "Warehouse not found" }, { status: 404 });
         }
 
         const grantedAt = new Date();
         const expiresAt = new Date(grantedAt);
         expiresAt.setDate(expiresAt.getDate() + 365);
 
-        // Create new assignments
-        const newAssignments = warehouseIds.map(id => ({
-            warehouseId: id,
-            grantedAt,
-            expiresAt
-        }));
+        const updatedUsers = [];
 
-        // Replace or merge? 
-        // User said "assign one or more warehouses". 
-        // I'll merge (avoid duplicates)
-        for (const newAs of newAssignments) {
-            const existingIndex = userToUpdate.assignedWarehouses.findIndex(
-                aw => aw.warehouseId.toString() === newAs.warehouseId.toString()
-            );
+        for (let email of emails) {
+            email = email.trim().toLowerCase();
+            if (!email) continue;
 
-            if (existingIndex > -1) {
-                userToUpdate.assignedWarehouses[existingIndex].grantedAt = grantedAt;
-                userToUpdate.assignedWarehouses[existingIndex].expiresAt = expiresAt;
-            } else {
-                userToUpdate.assignedWarehouses.push(newAs as any);
+            let user = await User.findOne({ email });
+            if (!user) {
+                user = new User({
+                    name: email.split("@")[0], // fallback name
+                    email: email,
+                    role: "STAFF"
+                });
             }
-        }
 
-        await userToUpdate.save();
+            // Enforce 1:1 mapping by overwriting the array
+            user.assignedWarehouses = [{
+                warehouseId: warehouseId,
+                grantedAt,
+                expiresAt
+            }] as any;
+
+            user.activeWarehouseId = warehouseId;
+            
+            await user.save();
+            updatedUsers.push(user);
+        }
 
         const cookieStore = await cookies();
         const activeWarehouseId = cookieStore.get("activeWarehouseId")?.value;
@@ -66,12 +69,11 @@ export async function POST(req: Request) {
             userId: (session.user as any).id,
             warehouseId: activeWarehouseId,
             action: "ASSIGN_WAREHOUSE",
-            details: `Assigned ${warehouseIds.length} warehouse(s) to ${userToUpdate.name}.`,
-            targetId: userToUpdate._id.toString(),
-            targetModel: "User"
+            details: `Assigned ${updatedUsers.length} user(s) to ${warehouse.name}.`,
+            targetModel: "Warehouse"
         });
 
-        return NextResponse.json({ success: true, user: userToUpdate });
+        return NextResponse.json({ success: true, updatedCount: updatedUsers.length });
     } catch (error) {
         console.error("Error assigning warehouses:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

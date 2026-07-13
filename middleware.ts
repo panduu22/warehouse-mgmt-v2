@@ -18,7 +18,19 @@ export default withAuth(
     if (!token?.email) return NextResponse.next();
 
     try {
-      // Delegate the DB expiry check to a Node.js API route.
+      const activeWarehouseId = req.cookies.get("activeWarehouseId")?.value;
+      const queryWarehouseId = req.nextUrl.searchParams.get("warehouseId");
+      let bodyWarehouseId = undefined;
+
+      if (req.method === "POST" || req.method === "PATCH" || req.method === "PUT") {
+        try {
+          const cloned = req.clone();
+          const body = await cloned.json();
+          bodyWarehouseId = body?.warehouseId;
+        } catch {}
+      }
+
+      // Delegate the DB expiry check and authorization to a Node.js API route.
       // We use an absolute URL built from the incoming request's origin so this
       // works identically in local dev and on Vercel (no hardcoded hostname needed).
       const checkUrl = new URL("/api/auth/check-expiry", req.url);
@@ -30,14 +42,64 @@ export default withAuth(
           // A shared secret prevents external callers from abusing this endpoint.
           "x-internal-secret": process.env.NEXTAUTH_SECRET ?? "",
         },
-        body: JSON.stringify({ email: token.email }),
+        body: JSON.stringify({
+          email: token.email,
+          cookieWarehouseId: activeWarehouseId,
+          queryWarehouseId,
+          bodyWarehouseId
+        }),
       });
 
+      if (resp.status === 403) {
+        return new NextResponse("You do not have access to this warehouse.", { status: 403 });
+      }
+
       if (resp.ok) {
-        const data: { expired: boolean } = await resp.json();
-        if (data.expired) {
-          return NextResponse.redirect(new URL("/requests", req.url));
+        const data: { expired: boolean; authorized?: boolean; correctWarehouseId?: string } = await resp.json();
+        if (data.authorized === false) {
+          return new NextResponse("You do not have access to this warehouse.", { status: 403 });
         }
+
+        let response = NextResponse.next();
+        if (data.correctWarehouseId) {
+          const requestHeaders = new Headers(req.headers);
+          
+          // Modify request Cookie header so downstream route handlers read the correct warehouse cookie
+          const cookieHeader = req.headers.get("cookie") || "";
+          const updatedCookieHeader = cookieHeader
+            .split(";")
+            .map(c => {
+              const parts = c.split("=");
+              if (parts[0]?.trim() === "activeWarehouseId") {
+                return `activeWarehouseId=${data.correctWarehouseId}`;
+              }
+              return c;
+            })
+            .join(";");
+          
+          const hasActiveWarehouse = cookieHeader.includes("activeWarehouseId");
+          requestHeaders.set("cookie", hasActiveWarehouse 
+            ? updatedCookieHeader 
+            : `${updatedCookieHeader}${updatedCookieHeader ? ";" : ""} activeWarehouseId=${data.correctWarehouseId}`
+          );
+
+          response = NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          });
+          response.cookies.set("activeWarehouseId", data.correctWarehouseId, { path: "/" });
+        }
+        
+        if (data.expired && req.nextUrl.pathname !== "/") {
+          const redirectRes = NextResponse.redirect(new URL("/", req.url));
+          if (data.correctWarehouseId) {
+            redirectRes.cookies.set("activeWarehouseId", data.correctWarehouseId, { path: "/" });
+          }
+          return redirectRes;
+        }
+
+        return response;
       }
     } catch (e) {
       // Never block the user if the check itself fails; log and continue.

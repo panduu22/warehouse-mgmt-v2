@@ -32,14 +32,12 @@ export default async function HomePage() {
       redirect("/dashboard");
     }
 
-    // If they don't have an active warehouse, fetch all warehouses for the request form
-    await dbConnect();
-    const warehouses = await Warehouse.find({}).select("name location").lean();
-
+    // If they don't have an active warehouse, they are unassigned.
+    // Do NOT fetch warehouses. Just show the unassigned state.
     return (
       <LandingClient
         user={user}
-        warehouses={JSON.parse(JSON.stringify(warehouses))}
+        warehouses={[]}
       />
     );
   }

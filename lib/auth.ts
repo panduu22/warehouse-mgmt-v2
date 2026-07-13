@@ -40,11 +40,12 @@ export const authOptions: NextAuthOptions = {
             if (account?.provider === "google") {
                 await dbConnect();
                 try {
-                    const existingUser = await User.findOne({ email: user.email });
+                    const normalizedEmail = user.email ? user.email.trim().toLowerCase() : "";
+                    const existingUser = await User.findOne({ email: normalizedEmail });
                     if (!existingUser) {
                         const newUser = new User({
                             name: user.name,
-                            email: user.email,
+                            email: normalizedEmail,
                             image: user.image,
                             role: "STAFF", // Default role
                         });
@@ -61,7 +62,8 @@ export const authOptions: NextAuthOptions = {
         async session({ session }) {
             if (session.user?.email) {
                 await dbConnect();
-                const dbUser = await User.findOne({ email: session.user.email });
+                const normalizedEmail = session.user.email.trim().toLowerCase();
+                const dbUser = await User.findOne({ email: normalizedEmail });
                 if (dbUser) {
                     let currentWarehouseAccess = null;
                     if (dbUser.activeWarehouseId) {

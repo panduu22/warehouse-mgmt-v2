@@ -2,94 +2,81 @@
 
 import { useState, useEffect } from "react";
 import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
-  User as UserIcon, 
-  Warehouse, 
-  Calendar,
   ShieldCheck,
-  MessageSquare,
-  ChevronRight,
-  Loader2,
-  Users
+  Loader2
 } from "lucide-react";
-import clsx from "clsx";
-import { formatIST } from "@/lib/dateUtils";
 
 export default function AdminRequestsPage() {
-  const [requests, setRequests] = useState<any[]>([]);
-  const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [activeUsers, setActiveUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<string | null>(null);
   
   // Assignment state
-  const [selectedUser, setSelectedUser] = useState<string>("");
-  const [selectedWarehouses, setSelectedWarehouses] = useState<string[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const [emailsInput, setEmailsInput] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
 
+  // Directory selected warehouse state
+  const [selectedDirWarehouseId, setSelectedDirWarehouseId] = useState<string>("");
+
+  // Reassignment state
+  const [reassigningEmail, setReassigningEmail] = useState<string | null>(null);
+
   useEffect(() => {
-    fetchRequests();
-    fetchWarehouses();
+    fetchData();
   }, []);
 
-  const fetchWarehouses = async () => {
-      try {
-          const res = await fetch("/api/warehouses");
-          if (res.ok) {
-              const data = await res.json();
-              setWarehouses(data);
-          }
-      } catch (e) {
-          console.error("Error fetching warehouses", e);
-      }
-  };
-
-  const fetchRequests = async () => {
+  const fetchData = async () => {
     try {
-      const [reqsRes, usersRes] = await Promise.all([
-        fetch("/api/requests"),
-        fetch("/api/admin/users")
+      const [usersRes, warehousesRes] = await Promise.all([
+        fetch("/api/admin/users"),
+        fetch("/api/warehouses")
       ]);
-      
-      if (reqsRes.ok) {
-        const data = await reqsRes.json();
-        setRequests(data);
-      }
       
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         setActiveUsers(usersData);
       }
-    } catch (error) {
-      console.error("Error fetching requests:", error);
+      if (warehousesRes.ok) {
+        const warehousesData = await warehousesRes.json();
+        setWarehouses(warehousesData);
+        if (warehousesData.length > 0) {
+          setSelectedDirWarehouseId(prev => {
+            const exists = warehousesData.some((w: any) => w._id === prev);
+            return exists ? prev : warehousesData[0]._id;
+          });
+        }
+      }
+    } catch (e) {
+      console.error("Error loading access directory data", e);
     } finally {
       setLoading(false);
     }
   };
 
   const handleManualAssign = async () => {
-      if (!selectedUser || selectedWarehouses.length === 0) {
-          alert("Please select a user and at least one warehouse");
+      if (!selectedWarehouseId || !emailsInput.trim()) {
+          alert("Please select a warehouse and enter at least one email");
           return;
       }
 
       setAssigning(true);
       try {
+          const emails = emailsInput.split(/[\n,]+/).map(e => e.trim().toLowerCase()).filter(e => e);
+
           const res = await fetch("/api/admin/users/assign", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                  userId: selectedUser,
-                  warehouseIds: selectedWarehouses
+                  warehouseId: selectedWarehouseId,
+                  emails: emails
               })
           });
 
           if (res.ok) {
-              setSelectedUser("");
-              setSelectedWarehouses([]);
-              fetchRequests();
+              setSelectedWarehouseId("");
+              setEmailsInput("");
+              await fetchData();
               alert("Warehouses assigned successfully!");
           } else {
               const data = await res.json();
@@ -102,82 +89,48 @@ export default function AdminRequestsPage() {
       }
   };
 
-  const handleAction = async (id: string, status: "APPROVED" | "REJECTED") => {
-    setProcessingId(id);
-    const adminNotes = status === "APPROVED" 
-        ? prompt("Enter any notes for the user (optional):", "Access granted by administrator.")
-        : prompt("Why is this request being rejected?", "Request not justified at this time.");
-    
-    if (status === "REJECTED" && adminNotes === null) {
-      setProcessingId(null);
-      return;
-    }
-
+  const handlePerformReassign = async (email: string, newWarehouseId: string) => {
+    if (!newWarehouseId) return;
     try {
-      const res = await fetch(`/api/requests/${id}`, {
-        method: "PATCH",
+      const res = await fetch("/api/admin/users/assign", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status,
-          adminNotes: adminNotes || ""
+          warehouseId: newWarehouseId,
+          emails: [email]
         })
       });
 
       if (res.ok) {
-        fetchRequests();
+        setReassigningEmail(null);
+        await fetchData();
+        alert("Reassigned successfully!");
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to update request");
+        alert(data.error || "Failed to reassign");
       }
-    } finally {
-      setProcessingId(null);
+    } catch (e) {
+      alert("An error occurred during reassignment");
     }
   };
 
-  const handleRenew = async (userId: string, warehouseId: string, userName: string, warehouseName: string) => {
-    if (!confirm(`Are you sure you want to renew ${userName}'s access to ${warehouseName} for another 365 days?`)) return;
-    
-    setProcessingId(`${userId}-${warehouseId}-renew`);
+  const handleRevokeAccess = async (userId: string, warehouseId: string, email: string, warehouseName: string) => {
+    if (!confirm(`Are you sure you want to completely REVOKE ${email}'s access to ${warehouseName}? They will be immediately locked out.`)) return;
+
     try {
-      const res = await fetch("/api/admin/users/assign", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-              userId: userId,
-              warehouseIds: [warehouseId]
-          })
+      const res = await fetch(`/api/admin/users/revoke?userId=${userId}&warehouseId=${warehouseId}`, {
+        method: "DELETE",
       });
 
       if (res.ok) {
-        fetchRequests();
-        alert("Access renewed successfully!");
-      } else {
-        const data = await res.json();
-        alert(data.error || "Failed to renew access");
-      }
-    } catch (error) {
-      alert("An error occurred");
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleRevoke = async (userId: string, warehouseId: string, userName: string, warehouseName: string) => {
-    if (!confirm(`Are you sure you want to completely REVOKE ${userName}'s access to ${warehouseName}? They will be immediately locked out.`)) return;
-    
-    setProcessingId(`${userId}-${warehouseId}`);
-    try {
-      const res = await fetch(`/api/admin/users/revoke?userId=${userId}&warehouseId=${warehouseId}`, { method: "DELETE" });
-      if (res.ok) {
-        fetchRequests();
+        await fetchData();
+        alert("Access revoked successfully!");
       } else {
         const data = await res.json();
         alert(data.error || "Failed to revoke access");
       }
-    } catch (error) {
-      alert("An error occurred");
-    } finally {
-      setProcessingId(null);
+    } catch (e) {
+      alert("An error occurred during revocation");
     }
   };
 
@@ -189,11 +142,26 @@ export default function AdminRequestsPage() {
     );
   }
 
-  const pendingRequests = requests.filter(r => r.status === "PENDING");
-  const pastRequests = requests.filter(r => r.status !== "PENDING");
+  // Group users by warehouse ID
+  const usersByWarehouse: { [warehouseId: string]: any[] } = {};
+  activeUsers.forEach(u => {
+    const assigned = u.assignedWarehouses?.[0];
+    const wId = assigned?.warehouseId?._id?.toString() || assigned?.warehouseId?.toString();
+    if (wId) {
+      if (!usersByWarehouse[wId]) {
+        usersByWarehouse[wId] = [];
+      }
+      usersByWarehouse[wId].push(u);
+    }
+  });
+
+  const selectedWarehouse = warehouses.find(w => w._id === selectedDirWarehouseId);
+  const selectedWarehouseAssignedUsers = selectedWarehouse
+    ? (usersByWarehouse[selectedWarehouse._id.toString()] || [])
+    : [];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-12 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-6xl mx-auto p-6 sm:p-12 space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
@@ -212,48 +180,31 @@ export default function AdminRequestsPage() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground px-1">Staff Member</label>
+                <label className="text-xs font-bold text-muted-foreground px-1">Target Warehouse</label>
                 <select 
-                    value={selectedUser} 
-                    onChange={(e) => setSelectedUser(e.target.value)}
+                    value={selectedWarehouseId} 
+                    onChange={(e) => setSelectedWarehouseId(e.target.value)}
                     className="w-full h-12 bg-muted rounded-[1rem] px-4 border border-border focus:ring-2 focus:ring-primary font-bold text-sm outline-none appearance-none"
                 >
-                    <option value="">Select User...</option>
-                    {activeUsers.map(u => (
-                        <option key={u._id} value={u._id}>{u.name} ({u.email})</option>
+                    <option value="">Select Warehouse...</option>
+                    {warehouses.map(w => (
+                        <option key={w._id} value={w._id}>{w.name}</option>
                     ))}
                 </select>
             </div>
             <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground px-1">Authorized Units</label>
-                <div className="flex flex-wrap gap-2">
-                    {warehouses.map(w => (
-                        <button
-                            key={w._id}
-                            type="button"
-                            onClick={() => {
-                                if (selectedWarehouses.includes(w._id)) {
-                                    setSelectedWarehouses(selectedWarehouses.filter(id => id !== w._id));
-                                } else {
-                                    setSelectedWarehouses([...selectedWarehouses, w._id]);
-                                }
-                            }}
-                            className={clsx(
-                                "text-[10px] font-black uppercase px-3 py-1.5 rounded-full border transition-all",
-                                selectedWarehouses.includes(w._id) 
-                                    ? "bg-primary text-primary-foreground border-primary" 
-                                    : "bg-muted text-muted-foreground border-transparent hover:bg-muted-foreground/10"
-                            )}
-                        >
-                            {w.name}
-                        </button>
-                    ))}
-                </div>
+                <label className="text-xs font-bold text-muted-foreground px-1">Google Email IDs (Comma separated)</label>
+                <textarea
+                    value={emailsInput}
+                    onChange={(e) => setEmailsInput(e.target.value)}
+                    placeholder="user1@gmail.com, user2@gmail.com"
+                    className="w-full h-12 bg-muted rounded-[1rem] px-4 py-3 border border-border focus:ring-2 focus:ring-primary font-bold text-sm outline-none resize-none"
+                />
             </div>
             <div className="flex items-end">
                 <button
                     onClick={handleManualAssign}
-                    disabled={assigning || !selectedUser || selectedWarehouses.length === 0}
+                    disabled={assigning || !selectedWarehouseId || !emailsInput.trim()}
                     className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                     {assigning ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Authorize Access"}
@@ -262,185 +213,124 @@ export default function AdminRequestsPage() {
         </div>
       </div>
 
-      {/* Pending Requests Section */}
+      {/* Warehouse Access Directory Section */}
       <div className="space-y-6">
-        <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-          <Clock className="w-4 h-4" />
-          Pending Approvals
-          {pendingRequests.length > 0 && (
-              <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full">{pendingRequests.length}</span>
-          )}
+        <h2 className="text-xl font-bold text-foreground tracking-tight">
+          WAREHOUSE ACCESS DIRECTORY
         </h2>
         
-        {pendingRequests.length === 0 ? (
-          <div className="bg-card p-12 rounded-2xl border-2 border-dashed border-border text-center space-y-4">
-            <p className="text-muted-foreground font-bold italic">No pending requests at this time.</p>
+        <div className="bg-card rounded-2xl border border-border shadow-erp-card grid grid-cols-1 md:grid-cols-12 overflow-hidden min-h-[350px]">
+          {/* Left Column: Warehouses list */}
+          <div className="md:col-span-4 border-r border-border bg-muted/10 flex flex-col">
+            <div className="p-4 border-b border-border bg-muted/20">
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                Warehouses
+              </span>
+            </div>
+            <div className="divide-y divide-border overflow-y-auto flex-1">
+              {warehouses.map(w => {
+                const assigned = usersByWarehouse[w._id.toString()] || [];
+                const isSelected = selectedDirWarehouseId === w._id;
+                return (
+                  <button
+                    key={w._id}
+                    onClick={() => setSelectedDirWarehouseId(w._id)}
+                    className={`w-full text-left p-4 flex justify-between items-center transition-all hover:bg-muted ${
+                      isSelected 
+                        ? "bg-primary/5 border-l-4 border-primary pl-3 font-bold" 
+                        : "pl-4 text-muted-foreground"
+                    }`}
+                  >
+                    <span className={`text-sm ${isSelected ? "text-primary font-bold" : "text-foreground font-medium"}`}>
+                      {w.name}
+                    </span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                      isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {assigned.length}
+                    </span>
+                  </button>
+                );
+              })}
+              {warehouses.length === 0 && (
+                <p className="text-xs text-muted-foreground italic p-4">No warehouses available</p>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {pendingRequests.map((req) => (
-              <div key={req._id} className="bg-card p-6 rounded-2xl shadow-erp-card border border-border flex flex-col lg:flex-row gap-6 items-center">
-                <div className="flex items-center gap-4 w-full lg:w-1/3">
-                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0 border border-border">
-                    {req.userId?.image ? (
-                      <img src={req.userId.image} alt={req.userId.name} className="w-full h-full object-cover rounded-xl" />
+
+          {/* Right Column: Assigned users */}
+          <div className="md:col-span-8 p-6 flex flex-col">
+            {selectedWarehouse ? (
+              <div className="space-y-6 flex-1 flex flex-col">
+                <div className="flex justify-between items-start border-b border-border pb-4">
+                  <div>
+                    <h3 className="font-black text-xl text-foreground">{selectedWarehouse.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider font-bold">
+                      {selectedWarehouseAssignedUsers.length} {selectedWarehouseAssignedUsers.length === 1 ? "Assigned User" : "Assigned Users"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block mb-4">
+                    Assigned Google Email IDs
+                  </span>
+                  <div className="divide-y divide-border">
+                    {selectedWarehouseAssignedUsers.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-4">No users assigned to this warehouse.</p>
                     ) : (
-                      <UserIcon className="w-6 h-6 text-muted-foreground" />
+                      selectedWarehouseAssignedUsers.map(u => (
+                        <div key={u._id} className="flex justify-between items-center py-3 text-sm font-medium">
+                          <span className="text-foreground truncate max-w-[200px] sm:max-w-md">{u.email}</span>
+                          <div className="flex items-center gap-2">
+                            {reassigningEmail === u.email ? (
+                              <div className="flex items-center gap-1">
+                                <select
+                                  onChange={(e) => handlePerformReassign(u.email, e.target.value)}
+                                  defaultValue=""
+                                  className="h-8 bg-muted rounded-lg px-2 border border-border text-xs outline-none focus:ring-1 focus:ring-primary"
+                                >
+                                  <option value="" disabled>Move to...</option>
+                                  {warehouses.filter(wh => wh._id !== selectedWarehouse._id).map(wh => (
+                                    <option key={wh._id} value={wh._id}>{wh.name}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  onClick={() => setReassigningEmail(null)}
+                                  className="text-xs text-muted-foreground hover:text-foreground font-bold px-1"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => setReassigningEmail(u.email)}
+                                  className="text-xs text-primary hover:underline font-bold"
+                                >
+                                  Reassign
+                                </button>
+                                <span className="text-muted-foreground/30 text-xs">|</span>
+                                <button
+                                  onClick={() => handleRevokeAccess(u._id, selectedWarehouse._id, u.email, selectedWarehouse.name)}
+                                  className="text-xs text-destructive hover:underline font-bold"
+                                >
+                                  Revoke
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-foreground truncate">{req.userId?.name || "Unknown"}</h3>
-                    <p className="text-xs text-muted-foreground font-medium truncate">{req.userId?.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex-1 w-full grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                      <Warehouse className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Unit</p>
-                      <p className="font-bold text-sm">{req.warehouseId?.name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Access Cycle</p>
-                      <p className="font-bold text-sm">365 Days</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 w-full lg:w-auto">
-                  <button
-                    onClick={() => handleAction(req._id, "REJECTED")}
-                    disabled={processingId === req._id}
-                    className="p-3 rounded-xl border border-border hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleAction(req._id, "APPROVED")}
-                    disabled={processingId === req._id}
-                    className="flex-1 lg:flex-none px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black transition-all flex items-center justify-center gap-2"
-                  >
-                    {processingId === req._id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve"}
-                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Active Directory Section */}
-      <div className="space-y-6">
-        <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-          <Users className="w-4 h-4" />
-          Active Directory
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {activeUsers.map(user => (
-                <div key={user._id} className="bg-card p-6 rounded-2xl border border-border shadow-erp-card flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-black text-lg">
-                        {user.name.charAt(0)}
-                    </div>
-                    <div>
-                        <h3 className="font-black text-foreground">{user.name}</h3>
-                        <p className="text-xs font-bold text-muted-foreground">{user.email}</p>
-                    </div>
-                </div>
-                
-                <div className="space-y-2">
-                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider font-sans">Assigned Warehouses</p>
-                    <div className="grid grid-cols-1 gap-1">
-                        {(user.assignedWarehouses || []).map((aw: any, idx: number) => (
-                            <div key={aw.warehouseId?._id || aw.warehouseId || idx} className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-lg group">
-                                <div className="flex items-center gap-3">
-                                    <Warehouse className="w-3.5 h-3.5 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-[12px] font-bold text-foreground">{aw.warehouseId?.name || "Deleted"}</p>
-                                        <p className="text-[10px] text-muted-foreground">Expires: {formatIST(aw.expiresAt, { dateStyle: 'short' })}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                    <button
-                                        onClick={() => handleRenew(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
-                                        disabled={processingId === `${user._id}-${aw.warehouseId?._id}-renew`}
-                                        className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 p-1 transition-all"
-                                    >
-                                        RENEW
-                                    </button>
-                                    <button
-                                        onClick={() => handleRevoke(user._id, aw.warehouseId?._id, user.name, aw.warehouseId?.name)}
-                                        disabled={processingId === `${user._id}-${aw.warehouseId?._id}`}
-                                        className="text-[10px] font-black text-destructive/40 hover:text-destructive p-1 transition-all"
-                                    >
-                                        REVOKE
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                        {(!user.assignedWarehouses || user.assignedWarehouses.length === 0) && (
-                            <p className="text-[11px] font-bold text-muted-foreground italic px-1">No assignments yet.</p>
-                        )}
-                    </div>
-                </div>
-                </div>
-            ))}
-        </div>
-      </div>
-
-      {/* Recent Activity Section */}
-      <div className="space-y-6">
-        <h2 className="text-sm font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-          <ChevronRight className="w-4 h-4" />
-          Recent Activity
-        </h2>
-        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-erp-card">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[600px]">
-              <thead className="bg-muted/50 text-muted-foreground text-[10px] font-black uppercase tracking-widest border-b border-border">
-                <tr>
-                  <th className="p-4">Staff Member</th>
-                  <th className="p-4">Target Unit</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {pastRequests.slice(0, 10).map((req) => (
-                  <tr key={req._id} className="hover:bg-muted/20 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
-                          {req.userId?.name?.charAt(0)}
-                        </div>
-                        <span className="font-bold text-sm">{req.userId?.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm font-medium">{req.warehouseId?.name}</td>
-                    <td className="p-4">
-                      <span className={clsx(
-                        "text-[9px] font-black px-2 py-0.5 rounded-full uppercase border",
-                        req.status === "APPROVED" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"
-                      )}>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-[11px] text-muted-foreground font-medium">
-                      {formatIST(req.updatedAt, { dateStyle: 'short' })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground italic text-sm">
+                Select a warehouse to view assigned users.
+              </div>
+            )}
           </div>
         </div>
       </div>

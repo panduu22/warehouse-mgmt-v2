@@ -6,6 +6,7 @@ export interface IUser extends Document {
     image?: string;
     role: "SUPER_ADMIN" | "WAREHOUSE_ADMIN" | "STAFF";
     activeWarehouseId?: mongoose.Types.ObjectId;
+    warehouseAdminOf?: mongoose.Types.ObjectId;
     assignedWarehouses: {
         warehouseId: mongoose.Types.ObjectId;
         grantedAt?: Date;

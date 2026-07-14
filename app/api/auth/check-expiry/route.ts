@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ expired: false, authorized: true });
 
     // SUPER_ADMIN and WAREHOUSE_ADMIN are authorized for everything (no expiry)
-    if (user.role === "SUPER_ADMIN" || user.role === "WAREHOUSE_ADMIN" || user.role === "ADMIN") {
+    if (user.role === "SUPER_ADMIN" || user.role === "WAREHOUSE_ADMIN") {
       return NextResponse.json({ expired: false, authorized: true });
     }
 

@@ -81,7 +81,7 @@ export const authOptions: NextAuthOptions = {
                     const canonicalRole = dbUser.role; // Keep original role string (SUPER_ADMIN, WAREHOUSE_ADMIN, STAFF)
                     // Determine primary warehouse for non‑super admins
                     let primaryWarehouseId: string | undefined;
-                    if (canonicalRole === "warehouse_admin" && dbUser.warehouseAdminOf) {
+                    if (canonicalRole === "WAREHOUSE_ADMIN" && dbUser.warehouseAdminOf) {
                         primaryWarehouseId = dbUser.warehouseAdminOf.toString();
                     } else if (dbUser.assignedWarehouses && dbUser.assignedWarehouses.length > 0) {
                         primaryWarehouseId = dbUser.assignedWarehouses[0].warehouseId?.toString();

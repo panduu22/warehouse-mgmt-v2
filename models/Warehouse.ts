@@ -5,6 +5,7 @@ export interface IWarehouse extends Document {
     address?: string;
     isMain: boolean;
     createdBy: mongoose.Types.ObjectId;
+    adminId?: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }

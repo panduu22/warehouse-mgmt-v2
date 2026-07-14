@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { 
   Loader2,
   Users,
-  UserPlus
+  UserPlus,
+  Shield
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
@@ -70,9 +71,8 @@ export default function StaffPage() {
       if (usersRes.ok) {
         let usersData = await usersRes.json();
         
-        // For Warehouse Admin, the API already scopes by warehouse.
-        // Extra client-side guard for activeWarehouseId consistency.
-        if (isWarehouseAdmin && activeWarehouseId) {
+        // Extra client-side guard for activeWarehouseId consistency (applies to both Super Admin & Warehouse Admin).
+        if (activeWarehouseId) {
             usersData = usersData.filter((u: any) => 
                 u.assignedWarehouses?.some((w: any) => 
                     w.warehouseId?._id === activeWarehouseId || w.warehouseId === activeWarehouseId
@@ -239,12 +239,17 @@ export default function StaffPage() {
         
         <div className="bg-card rounded-2xl border border-border shadow-erp-card">
           <div className="p-6">
-            <div className="space-y-4">
-                {activeUsers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic text-center py-8">No staff members found.</p>
-                ) : (
-                    <div className="divide-y divide-border">
-                        {activeUsers.map(u => {
+            <div className="space-y-6">
+                {isSuperAdmin && (
+                  <div>
+                    <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                      <Shield className="w-3 h-3" /> Warehouse Admin
+                    </span>
+                    {activeUsers.filter(u => u.role === "WAREHOUSE_ADMIN").length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">No warehouse admin assigned.</p>
+                    ) : (
+                      <div className="divide-y divide-border">
+                        {activeUsers.filter(u => u.role === "WAREHOUSE_ADMIN").map(u => {
                             const assignedW = u.assignedWarehouses?.[0];
                             const wId = assignedW?.warehouseId?._id?.toString() || assignedW?.warehouseId?.toString();
                             const status = getStatus(u.lastLoginAt);
@@ -256,8 +261,8 @@ export default function StaffPage() {
                             return (
                                 <div key={u._id} className="flex justify-between items-center py-4 text-sm font-medium">
                                 <div className="flex items-center gap-4 min-w-0">
-                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                        <Users className="w-5 h-5 text-primary" />
+                                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                                        <Shield className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -278,8 +283,60 @@ export default function StaffPage() {
                                 </div>
                             )
                         })}
-                    </div>
+                      </div>
+                    )}
+                  </div>
                 )}
+
+                {isSuperAdmin && <div className="border-t border-border" />}
+
+                <div>
+                  {isSuperAdmin && (
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                      <Users className="w-3 h-3" /> Staff Directory
+                    </span>
+                  )}
+                  {activeUsers.filter(u => u.role === "STAFF").length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic py-4">No staff members found.</p>
+                  ) : (
+                      <div className="divide-y divide-border">
+                          {activeUsers.filter(u => u.role === "STAFF").map(u => {
+                              const assignedW = u.assignedWarehouses?.[0];
+                              const wId = assignedW?.warehouseId?._id?.toString() || assignedW?.warehouseId?.toString();
+                              const status = getStatus(u.lastLoginAt);
+                              const emailColorClass =
+                                status === "active"   ? "text-emerald-500 font-bold" :
+                                status === "offline"  ? "text-emerald-700 dark:text-emerald-400 font-bold" :
+                                "text-rose-500 font-bold";
+
+                              return (
+                                  <div key={u._id} className="flex justify-between items-center py-4 text-sm font-medium">
+                                  <div className="flex items-center gap-4 min-w-0">
+                                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                          <Users className="w-5 h-5 text-primary" />
+                                      </div>
+                                      <div className="min-w-0">
+                                          <div className="flex items-center gap-2 flex-wrap">
+                                            <StatusIndicator status={status} />
+                                          </div>
+                                          <span className={`truncate block mt-0.5 ${emailColorClass}`}>{u.email}</span>
+                                          <span className="text-xs text-muted-foreground">{u.name}</span>
+                                      </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                      <button
+                                          onClick={() => handleRevokeAccess(u._id, wId, u.email)}
+                                          className="text-xs text-destructive hover:underline font-bold px-3 py-1.5 rounded-lg bg-destructive/10"
+                                      >
+                                          Revoke Access
+                                      </button>
+                                  </div>
+                                  </div>
+                              )
+                          })}
+                      </div>
+                  )}
+                </div>
             </div>
           </div>
         </div>

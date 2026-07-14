@@ -48,9 +48,18 @@ export async function GET() {
 
   await dbConnect();
 
-  // Super Admin gets all staff
+  // Super Admin gets both WAREHOUSE_ADMIN and STAFF for the currently selected warehouse
   if (callerRole === 'SUPER_ADMIN') {
-    const staff = await User.find({ role: 'STAFF' }).select('-password').lean();
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const activeWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+    
+    const filter: any = { role: { $in: ['WAREHOUSE_ADMIN', 'STAFF'] } };
+    if (activeWarehouseId) {
+        filter['assignedWarehouses.warehouseId'] = activeWarehouseId;
+    }
+
+    const staff = await User.find(filter).select('-password').lean();
     const enriched = await enrichWithLoginStatus(staff);
     return NextResponse.json(enriched);
   }

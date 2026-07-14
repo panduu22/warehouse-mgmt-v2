@@ -159,7 +159,7 @@ export function WarehouseSwitcher() {
                                                 <Check className="w-3 h-3 text-primary" />
                                             </div>
                                         )}
-                                        {userRole === "ADMIN" && !w.isMain && (
+                                        {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && !w.isMain && (
                                             <div
                                                 role="button"
                                                 className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors ml-1"
@@ -174,7 +174,7 @@ export function WarehouseSwitcher() {
                         </div>
                     </DropdownMenuGroup>
 
-                    {userRole === "ADMIN" && (
+                    {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && (
                         <>
                             <DropdownMenuSeparator className="my-2 bg-border/50" />
                             <DropdownMenuItem 

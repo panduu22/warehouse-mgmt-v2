@@ -48,8 +48,9 @@ export function TopNavbar() {
             <div className="md:hidden flex items-center gap-3 mr-auto">
                 <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                     <SheetTrigger
+                        suppressHydrationWarning
                         render={
-                            <button className="p-2 -ml-1 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors">
+                            <button suppressHydrationWarning className="p-2 -ml-1 text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors">
                                 <Menu className="w-5 h-5" />
                             </button>
                         }

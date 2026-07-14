@@ -16,9 +16,10 @@ export default async function AdminLayout({
 
     const user = session.user as any;
     
-    if (user.role !== "ADMIN") {
+    if (user.role !== "SUPER_ADMIN" && user.role !== "WAREHOUSE_ADMIN") {
         redirect("/");
     }
+
 
     return (
         <AppShellClient>

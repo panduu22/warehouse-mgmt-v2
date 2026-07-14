@@ -18,29 +18,10 @@ export default async function HomePage() {
     console.error("Session decryption failed:", err);
   }
 
-  // If user is logged in, check if they have access
-  if (session?.user) {
-    const user = session.user as any;
-
-    // Admins don't need a warehouse — send them straight to the admin panel
-    if (user.role === "ADMIN") {
-      redirect("/admin/requests");
+    // If user is logged in, redirect to dashboard for all roles
+    if (session?.user) {
+        redirect('/dashboard');
     }
-
-    // If they have an active warehouse, just redirect to dashboard
-    if (user.activeWarehouseId) {
-      redirect("/dashboard");
-    }
-
-    // If they don't have an active warehouse, they are unassigned.
-    // Do NOT fetch warehouses. Just show the unassigned state.
-    return (
-      <LandingClient
-        user={user}
-        warehouses={[]}
-      />
-    );
-  }
 
   // If unauthenticated, show the Splash Screen (which links to /login)
   return <SplashScreen />;

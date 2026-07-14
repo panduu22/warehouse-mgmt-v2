@@ -2,6 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import dbConnect from "./mongodb";
 import User from "@/models/User";
+import Activity from "@/models/Activity";
+import mongoose from "mongoose";
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -41,7 +43,7 @@ export const authOptions: NextAuthOptions = {
                 await dbConnect();
                 try {
                     const normalizedEmail = user.email ? user.email.trim().toLowerCase() : "";
-                    const existingUser = await User.findOne({ email: normalizedEmail });
+                    let existingUser = await User.findOne({ email: normalizedEmail });
                     if (!existingUser) {
                         const newUser = new User({
                             name: user.name,
@@ -50,6 +52,17 @@ export const authOptions: NextAuthOptions = {
                             role: "STAFF", // Default role
                         });
                         await newUser.save();
+                        existingUser = newUser;
+                    }
+                    // Log login activity for online/offline status tracking
+                    try {
+                        await Activity.create({
+                            userId: new mongoose.Types.ObjectId(existingUser._id.toString()),
+                            action: "USER_LOGIN",
+                            details: `${normalizedEmail} logged in`,
+                        });
+                    } catch {
+                        // Non-blocking — don't fail login if activity logging fails
                     }
                     return true;
                 } catch (error) {
@@ -65,26 +78,25 @@ export const authOptions: NextAuthOptions = {
                 const normalizedEmail = session.user.email.trim().toLowerCase();
                 const dbUser = await User.findOne({ email: normalizedEmail });
                 if (dbUser) {
-                    let currentWarehouseAccess = null;
-                    if (dbUser.activeWarehouseId) {
-                        currentWarehouseAccess = dbUser.assignedWarehouses?.find(
-                            (aw: any) => aw.warehouseId.toString() === dbUser.activeWarehouseId?.toString()
-                        );
+                    const canonicalRole = dbUser.role; // Keep original role string (SUPER_ADMIN, WAREHOUSE_ADMIN, STAFF)
+                    // Determine primary warehouse for non‑super admins
+                    let primaryWarehouseId: string | undefined;
+                    if (canonicalRole === "warehouse_admin" && dbUser.warehouseAdminOf) {
+                        primaryWarehouseId = dbUser.warehouseAdminOf.toString();
+                    } else if (dbUser.assignedWarehouses && dbUser.assignedWarehouses.length > 0) {
+                        primaryWarehouseId = dbUser.assignedWarehouses[0].warehouseId?.toString();
                     }
-
-                    // Attach database fields to session
                     session.user = {
                         ...session.user,
-                        role: dbUser.role,
+                        role: canonicalRole,
                         id: dbUser._id.toString(),
                         activeWarehouseId: dbUser.activeWarehouseId?.toString(),
-                        grantedAt: currentWarehouseAccess?.grantedAt,
-                        expiresAt: currentWarehouseAccess?.expiresAt,
+                        warehouseId: primaryWarehouseId,
                     } as any;
                 }
             }
             return session;
-        }
+        },
     },
     pages: {
         signIn: '/login',

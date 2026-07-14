@@ -20,7 +20,7 @@ export async function GET() {
         await dbConnect();
 
         let query = {};
-        if (sessionUser.role !== "ADMIN") {
+        if (sessionUser.role !== "SUPER_ADMIN" && sessionUser.role !== "ADMIN") {
             // Read assigned warehouses from DB, not the session object.
             // The session callback in auth.ts does not populate assignedWarehouses,
             // so using session.user.assignedWarehouses always returns undefined,
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         // @ts-ignore
-        if (!session || session.user?.role !== "ADMIN") {
+        if (!session || !["SUPER_ADMIN", "ADMIN"].includes(session.user?.role as string)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
@@ -111,7 +111,7 @@ export async function DELETE(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         // @ts-ignore
-        if (!session || session.user?.role !== "ADMIN") {
+        if (!session || !["SUPER_ADMIN", "ADMIN"].includes(session.user?.role as string)) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 

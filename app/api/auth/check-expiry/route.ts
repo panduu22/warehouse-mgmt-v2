@@ -37,10 +37,11 @@ export async function POST(req: Request) {
     const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) return NextResponse.json({ expired: false, authorized: true });
 
-    // Admins are authorized for everything
-    if (user.role === "ADMIN") {
+    // SUPER_ADMIN and WAREHOUSE_ADMIN are authorized for everything (no expiry)
+    if (user.role === "SUPER_ADMIN" || user.role === "WAREHOUSE_ADMIN" || user.role === "ADMIN") {
       return NextResponse.json({ expired: false, authorized: true });
     }
+
 
     const now = new Date();
 

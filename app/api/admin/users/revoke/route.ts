@@ -8,9 +8,10 @@ import AccessRequest from "@/models/AccessRequest";
 export async function DELETE(req: Request) {
     const session = await getServerSession(authOptions);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || !(["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role))) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
 
     try {
         const { searchParams } = new URL(req.url);

@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { 
     Package, Truck, ClipboardCheck, Receipt, LayoutDashboard, LogOut, 
     ShieldAlert, History as HistoryIcon, ChevronLeft, ChevronRight,
-    Gauge, BarChart3
+    Gauge, BarChart3, Users
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import clsx from "clsx";
@@ -135,16 +135,24 @@ export function Sidebar({ isCollapsed, setIsCollapsed, isMobile }: { isCollapsed
                     );
                 })}
 
-                {/* Admin Section */}
-                {userRole === "ADMIN" && (
+                {/* Admin Section — visible to SUPER_ADMIN and WAREHOUSE_ADMIN */}
+                {(userRole === "SUPER_ADMIN" || userRole === "WAREHOUSE_ADMIN") && (
                     <div className="mt-5 pt-5 border-t border-sidebar-border/60">
                         {!isCollapsed && (
                             <p className="text-[10px] font-bold uppercase tracking-widest text-sidebar-foreground/35 px-3.5 mb-2">
-                                Admin
+                                Management
                             </p>
                         )}
                         <div className="space-y-0.5">
-                            {[
+                            {/* Staff — visible to SUPER_ADMIN and WAREHOUSE_ADMIN */}
+                            <NavLink
+                                key="/staff"
+                                item={{ name: "Staff", href: "/staff", icon: Users, section: "admin" }}
+                                isActive={isActive("/staff")}
+                                isCollapsed={isCollapsed}
+                            />
+                            {/* Admin-only items */}
+                            {userRole === "SUPER_ADMIN" && [
                                 { name: "Access Requests", href: "/admin/requests", icon: ShieldAlert },
                                 { name: "Activity Log", href: "/admin/activity", icon: HistoryIcon },
                             ].map(item => (

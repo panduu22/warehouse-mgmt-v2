@@ -9,16 +9,39 @@ import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || (session.user as any).role !== "ADMIN") {
+    const callerRole = (session?.user as any)?.role;
+
+    // Only SUPER_ADMIN and WAREHOUSE_ADMIN can assign users
+    if (!session || !["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes(callerRole)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     try {
-        const { emails, warehouseId } = await req.json();
+        const { emails, warehouseId, role: assignedRole } = await req.json();
 
         if (!emails || !Array.isArray(emails) || !warehouseId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // ─── WAREHOUSE ADMIN guards ────────────────────────────────────────────
+        if (callerRole === "WAREHOUSE_ADMIN") {
+            // Warehouse Admins can ONLY create STAFF — never another WAREHOUSE_ADMIN
+            if (assignedRole && assignedRole !== "STAFF") {
+                return NextResponse.json(
+                    { error: "Warehouse Admins can only create Staff users." },
+                    { status: 403 }
+                );
+            }
+
+            // Warehouse Admins can only assign to their own warehouse
+            const callerUser = await User.findOne({ email: (session.user as any).email });
+            const adminWarehouse = callerUser?.warehouseAdminOf?.toString();
+            if (!adminWarehouse || adminWarehouse !== warehouseId) {
+                return NextResponse.json(
+                    { error: "You can only assign users to your own warehouse." },
+                    { status: 403 }
+                );
+            }
         }
 
         await dbConnect();
@@ -26,6 +49,40 @@ export async function POST(req: Request) {
         const warehouse = await Warehouse.findById(warehouseId);
         if (!warehouse) {
             return NextResponse.json({ error: "Warehouse not found" }, { status: 404 });
+        }
+
+        // Determine the role to assign
+        // SUPER_ADMIN can pick any role; WAREHOUSE_ADMIN always creates STAFF
+        const targetRole: "WAREHOUSE_ADMIN" | "STAFF" =
+            callerRole === "SUPER_ADMIN" && assignedRole === "WAREHOUSE_ADMIN"
+                ? "WAREHOUSE_ADMIN"
+                : "STAFF";
+
+        // ─── WAREHOUSE_ADMIN assignment constraints (SUPER_ADMIN only) ─────────
+        if (targetRole === "WAREHOUSE_ADMIN") {
+            // One warehouse can have only one Warehouse Admin
+            const existingAdmin = await User.findOne({
+                role: "WAREHOUSE_ADMIN",
+                "assignedWarehouses.warehouseId": warehouseId
+            });
+            if (existingAdmin) {
+                return NextResponse.json(
+                    { error: "❌ This warehouse already has a Warehouse Admin assigned." },
+                    { status: 409 }
+                );
+            }
+
+            // Each email being assigned must not already be a Warehouse Admin elsewhere
+            for (let email of emails) {
+                email = email.trim().toLowerCase();
+                const existingUser = await User.findOne({ email, role: "WAREHOUSE_ADMIN" });
+                if (existingUser) {
+                    return NextResponse.json(
+                        { error: `❌ ${email} is already assigned as a Warehouse Admin.` },
+                        { status: 409 }
+                    );
+                }
+            }
         }
 
         const grantedAt = new Date();
@@ -41,21 +98,30 @@ export async function POST(req: Request) {
             let user = await User.findOne({ email });
             if (!user) {
                 user = new User({
-                    name: email.split("@")[0], // fallback name
-                    email: email,
-                    role: "STAFF"
+                    name: email.split("@")[0],
+                    email,
+                    role: targetRole,
                 });
+            } else {
+                user.role = targetRole;
             }
 
             // Enforce 1:1 mapping by overwriting the array
             user.assignedWarehouses = [{
-                warehouseId: warehouseId,
+                warehouseId,
                 grantedAt,
-                expiresAt
+                expiresAt,
             }] as any;
 
             user.activeWarehouseId = warehouseId;
-            
+
+            if (targetRole === "WAREHOUSE_ADMIN") {
+                // Track which warehouse this admin manages
+                user.warehouseAdminOf = warehouseId;
+                // Also update the Warehouse's adminId reference
+                await Warehouse.findByIdAndUpdate(warehouseId, { adminId: user._id });
+            }
+
             await user.save();
             updatedUsers.push(user);
         }
@@ -63,14 +129,13 @@ export async function POST(req: Request) {
         const cookieStore = await cookies();
         const activeWarehouseId = cookieStore.get("activeWarehouseId")?.value;
 
-        // Log it
         await logActivity({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             userId: (session.user as any).id,
             warehouseId: activeWarehouseId,
             action: "ASSIGN_WAREHOUSE",
-            details: `Assigned ${updatedUsers.length} user(s) to ${warehouse.name}.`,
-            targetModel: "Warehouse"
+            details: `Assigned ${updatedUsers.length} user(s) as ${targetRole} to ${warehouse.name}.`,
+            targetModel: "Warehouse",
         });
 
         return NextResponse.json({ success: true, updatedCount: updatedUsers.length });

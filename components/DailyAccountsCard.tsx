@@ -13,6 +13,7 @@ interface DailyAccountsCardProps {
   responseKey: string;
   onTotalChange?: (total: number | null) => void;
   onPrint?: (title: string, from: string, to: string, breakdown: { date: string; amount: number }[], total: number) => void;
+  colorClass?: string;
 }
 
 export const DailyAccountsCard: React.FC<DailyAccountsCardProps> = ({
@@ -21,6 +22,7 @@ export const DailyAccountsCard: React.FC<DailyAccountsCardProps> = ({
   responseKey,
   onTotalChange,
   onPrint,
+  colorClass = 'text-primary',
 }) => {
   const { activeWarehouse } = useWarehouse();
 
@@ -97,7 +99,7 @@ export const DailyAccountsCard: React.FC<DailyAccountsCardProps> = ({
         </div>
       </div>
 
-      <div className={clsx('mt-2 text-3xl font-black', loading ? 'text-muted-foreground' : 'text-primary')}>
+      <div className={clsx('mt-2 text-3xl font-black', loading ? 'text-muted-foreground' : colorClass)}>
         {loading ? 'Loading…' : error ? <span className="text-destructive text-sm font-semibold">{error}</span> : formatted}
       </div>
     </div>

@@ -118,7 +118,7 @@ export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, o
         </div>
       </div>
 
-      <div className={clsx('text-3xl font-black mb-2', loading ? 'text-muted-foreground' : 'text-primary')}>
+      <div className={clsx('text-3xl font-black mb-2', loading ? 'text-muted-foreground' : 'text-warning')}>
         {loading ? 'Loading…' : error ? <span className="text-destructive text-sm font-semibold">{error}</span> : formatted}
       </div>
 

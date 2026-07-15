@@ -138,6 +138,7 @@ export default function DailyAccountsPage() {
               responseKey="totalRestockingPrice"
               onTotalChange={handleRestockChange}
               onPrint={handlePrint}
+              colorClass="text-primary"
             />
             <AmountPaidCard onTotalChange={handlePaidChange} onPrint={handlePrint} />
           </div>
@@ -148,6 +149,7 @@ export default function DailyAccountsPage() {
               responseKey="totalSchemeValue"
               onTotalChange={handleSchemeChange}
               onPrint={handlePrint}
+              colorClass="text-purple-600"
             />
             
             {/* Automatic Balance Card */}

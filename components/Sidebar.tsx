@@ -38,7 +38,7 @@ function NavLink({ item, isActive, isCollapsed }: { item: typeof navItems[0]; is
                 isCollapsed ? "justify-center px-0 mx-1" : "px-3.5",
                 isActive
                     ? "text-primary-foreground"
-                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-white/60 dark:hover:bg-white/5"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}
         >
             {isActive && (

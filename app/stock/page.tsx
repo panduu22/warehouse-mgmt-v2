@@ -50,7 +50,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
     const { q: query } = await searchParams;
     const session = await getServerSession(authOptions);
     const { products: allProducts, warehouseName } = await getProducts();
-    const isAdmin = (session?.user as any)?.role === "ADMIN";
+    const isAdmin = (session?.user as any)?.role === "SUPER_ADMIN" || (session?.user as any)?.role === "WAREHOUSE_ADMIN";
 
     // Filtering
     const products = query ? allProducts.filter((p: any) =>

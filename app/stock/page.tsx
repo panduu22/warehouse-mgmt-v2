@@ -207,7 +207,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                             {/* Card 2: Total Quantity */}
                                             <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">
                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Total Quantity</span>
-                                                <span className="text-base sm:text-lg font-black text-teal-600 mt-1">{totalPacks}P + {totalBottles}B</span>
+                                                <span className="text-base sm:text-lg font-black text-teal-600 mt-1">{totalPacks}C + {totalBottles}B</span>
                                             </div>
                                             {/* Card 3: Inventory Value */}
                                             <div className="bg-card border rounded-2xl p-3.5 shadow-sm flex flex-col justify-center items-center transition-all hover:shadow-erp-hover hover:scale-[1.02]">

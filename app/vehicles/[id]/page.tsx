@@ -201,7 +201,7 @@ export default function VehicleDetailsPage() {
                 "Pack": item.pack,
                 "Flavour": item.flavour,
                 "Sale Price": formatCurrency(item.salePrice),
-                "Packs Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
+                "Cases Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
                 "Bottles Sold": item.soldQty,
                 "Sales Amount": formatCurrency(item.salesAmount)
             }));
@@ -216,7 +216,7 @@ export default function VehicleDetailsPage() {
                     "Pack": item.pack,
                     "Flavour": item.flavour,
                     "Sale Price": formatCurrency(item.salePrice),
-                    "Packs Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
+                    "Cases Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
                     "Bottles Sold": item.soldQty,
                     "Sales Amount": formatCurrency(item.salesAmount)
                 }));
@@ -495,7 +495,7 @@ export default function VehicleDetailsPage() {
                                             <TableHead className="font-bold">Pack</TableHead>
                                             <TableHead className="font-bold">Flavour</TableHead>
                                             <TableHead className="font-bold text-right">Sale Price</TableHead>
-                                            <TableHead className="font-bold text-right">Total Packs</TableHead>
+                                            <TableHead className="font-bold text-right">Total Cases</TableHead>
                                             <TableHead className="font-bold text-right">Total Bottles</TableHead>
                                             <TableHead className="font-bold text-right">Total Sales</TableHead>
                                         </TableRow>
@@ -518,7 +518,7 @@ export default function VehicleDetailsPage() {
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-right">Grand Total:</TableCell>
                                             <TableCell className="text-right">
-                                                {sales[0]?.items.reduce((sum, item) => sum + (item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0), 0)} packs
+                                                {sales[0]?.items.reduce((sum, item) => sum + (item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0), 0)} cases
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {financialSummary.totalProductsSold} bottles
@@ -563,7 +563,7 @@ export default function VehicleDetailsPage() {
                                                     <TableHead className="font-bold">Pack</TableHead>
                                                     <TableHead className="font-bold">Flavour</TableHead>
                                                     <TableHead className="font-bold text-right">Sale Price</TableHead>
-                                                    <TableHead className="font-bold text-right">Sold Qty (Packs)</TableHead>
+                                                    <TableHead className="font-bold text-right">Sold Qty (Cases)</TableHead>
                                                     <TableHead className="font-bold text-right">Sold Qty (Bottles)</TableHead>
                                                     <TableHead className="font-bold text-right">Sales Amount</TableHead>
                                                 </TableRow>
@@ -611,7 +611,7 @@ export default function VehicleDetailsPage() {
                                                                     : 0),
                                                             0
                                                         )}{" "}
-                                                        packs
+                                                        cases
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         {day.items.reduce((sum, item) => sum + item.soldQty, 0)} bottles

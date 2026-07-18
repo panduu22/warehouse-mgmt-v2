@@ -437,7 +437,7 @@ export default function VehiclesPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
-                                Fleet Sales · {timeframeLabel[timeframe]}
+                                Total Sales · {timeframeLabel[timeframe]}
                             </p>
                             <p className="text-2xl font-black text-emerald-600 mt-0.5 truncate">
                                 {formatCurrency(totalFleetSales)}

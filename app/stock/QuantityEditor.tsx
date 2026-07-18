@@ -108,7 +108,7 @@ export function QuantityEditor({
                             : "text-emerald-600 font-black"
                 }
             >
-                {Math.floor(initialQuantity / bottlesPerPack)}P + {initialQuantity % bottlesPerPack}B
+                {Math.floor(initialQuantity / bottlesPerPack)}C + {initialQuantity % bottlesPerPack}B
             </span>
             <button
                 onClick={() => setIsEditing(true)}

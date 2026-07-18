@@ -312,7 +312,7 @@ export default function NewTripPage() {
                                                                 </div>
                                                                 <div className="flex gap-2">
                                                                     <div className="flex-1">
-                                                                        <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block mb-1">Packs</label>
+                                                                        <label className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider block mb-1">Cases</label>
                                                                         <input
                                                                             type="number" min="0"
                                                                             value={addPacks}
@@ -400,7 +400,7 @@ export default function NewTripPage() {
                                         {(() => {
                                             let p = 0, b = 0;
                                             manifest.forEach(item => { p += Math.floor(item.qtyLoaded / item.bottlesPerPack); b += item.qtyLoaded % item.bottlesPerPack; });
-                                            return `${p} Packs + ${b} Btls`;
+                                            return `${p} Cases + ${b} Btls`;
                                         })()}
                                     </span>
                                 </div>

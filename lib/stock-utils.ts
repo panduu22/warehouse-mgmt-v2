@@ -134,13 +134,13 @@ export function formatPacksAndBottles(totalBottles: number, bpp: number, short =
     const { packs, bottles } = toPacksAndBottles(totalBottles, bpp);
 
     if (short) {
-        if (packs > 0 && bottles > 0) return `${packs}P + ${bottles}B`;
-        if (packs > 0) return `${packs}P`;
+        if (packs > 0 && bottles > 0) return `${packs}C + ${bottles}B`;
+        if (packs > 0) return `${packs}C`;
         return `${bottles}B`;
     }
 
-    if (packs > 0 && bottles > 0) return `${packs} Packs + ${bottles} Bottles`;
-    if (packs > 0) return `${packs} ${packs === 1 ? 'Pack' : 'Packs'}`;
+    if (packs > 0 && bottles > 0) return `${packs} Cases + ${bottles} Bottles`;
+    if (packs > 0) return `${packs} ${packs === 1 ? 'Case' : 'Cases'}`;
     return `${bottles} ${bottles === 1 ? 'Bottle' : 'Bottles'}`;
 }
 

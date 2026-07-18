@@ -539,7 +539,7 @@ export default function AddStockPage() {
                                                                             <div className="flex gap-2">
                                                                                 <div className="flex-1">
                                                                                     <label className="text-[10px] text-muted-foreground font-bold uppercase block mb-1">
-                                                                                        Packs
+                                                                                        Cases
                                                                                     </label>
                                                                                     <input
                                                                                         type="number"
@@ -726,7 +726,7 @@ export default function AddStockPage() {
                                                         p += Math.floor(i.qtyAdded / i.bottlesPerPack);
                                                         b += i.qtyAdded % i.bottlesPerPack;
                                                     });
-                                                    return `${p} Packs + ${b} Bottles`;
+                                                    return `${p} Cases + ${b} Bottles`;
                                                 })()}
                                             </span>
                                         </div>
@@ -1006,7 +1006,7 @@ export default function AddStockPage() {
                                         type="number"
                                         min="0"
                                         className="w-full px-4 py-2 rounded-lg border-2 border-ruby-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
-                                        placeholder="Packs"
+                                        placeholder="Cases"
                                     />
                                     <span className="text-gray-400 font-bold">+</span>
                                     <input

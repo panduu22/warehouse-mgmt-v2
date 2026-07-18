@@ -49,9 +49,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Excel file is empty or has no data rows." }, { status: 400 });
         }
 
-        // Fetch all warehouses for cross-warehouse sync
-        const allWarehouses = await Warehouse.find({});
-        const allWarehouseIds = allWarehouses.map((w) => w._id.toString());
+
 
         let created = 0;
         let updated = 0;
@@ -184,45 +182,7 @@ export async function POST(req: Request) {
                     created++;
                 }
 
-                // === ALL OTHER WAREHOUSES: sync pricing/order, keep existing quantity (set 0 if new) ===
-                const otherWarehouseIds = allWarehouseIds.filter((id) => id !== warehouseId);
-                for (const otherId of otherWarehouseIds) {
-                    const existingInOther = await Product.findOne({ name, warehouseId: otherId });
-                    if (existingInOther) {
-                        // Update pricing and order but leave quantity untouched
-                        await Product.updateOne(
-                            { _id: existingInOther._id },
-                            {
-                                $set: {
-                                    invoiceCost,
-                                    mrp,
-                                    salePrice,
-                                    price: salePrice,
-                                    bottlesPerPack,
-                                    displayOrder,
-                                    pack,
-                                    flavour,
-                                },
-                            }
-                        );
-                    } else {
-                        // New product for this warehouse — quantity starts at 0
-                        await Product.create({
-                            name,
-                            sku: skuBase + "-" + otherId.slice(-4),
-                            quantity: 0,
-                            price: salePrice,
-                            invoiceCost,
-                            mrp,
-                            salePrice,
-                            bottlesPerPack,
-                            displayOrder,
-                            pack,
-                            flavour,
-                            warehouseId: otherId,
-                        });
-                    }
-                }
+
             } catch (rowErr: any) {
                 errors.push(`Row ${rowIndex + 2} error: ${rowErr.message}`);
             }

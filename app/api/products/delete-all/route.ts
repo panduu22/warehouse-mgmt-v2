@@ -15,7 +15,7 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const user = session.user as any;
-        if (user.role !== "ADMIN") {
+        if (user.role !== "SUPER_ADMIN" && user.role !== "WAREHOUSE_ADMIN") {
             return NextResponse.json({ error: "Forbidden. Only admins can delete all stock." }, { status: 403 });
         }
 

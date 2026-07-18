@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
             warehouseFilter.warehouseId = new mongoose.Types.ObjectId(warehouseIdStr);
         } else if (warehouseIdStr === "ALL") {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((session.user as any).role !== "ADMIN") {
+            if (!["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role)) {
                 return NextResponse.json({ error: "Unauthorized for all warehouses" }, { status: 403 });
             }
         }

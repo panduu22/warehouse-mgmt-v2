@@ -12,7 +12,7 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     // Ensure admin
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || !(["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role))) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -90,7 +90,7 @@ export async function DELETE(
 ) {
     const session = await getServerSession(authOptions);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!session || (session.user as any).role !== "ADMIN") {
+    if (!session || !(["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role))) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

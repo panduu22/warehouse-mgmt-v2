@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
         // Set Cookies
         // @ts-ignore
-        const isAdmin = session?.user?.role === "ADMIN";
+        const isAdmin = ["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes(session?.user?.role as string);
         const maxAge = isAdmin ? 60 * 60 * 24 * 36500 : 60 * 60 * 24 * 365; // 100 years for admin, 1 year for others
 
         const cookieStore = await cookies();

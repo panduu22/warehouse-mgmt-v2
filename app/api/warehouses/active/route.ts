@@ -58,7 +58,7 @@ export async function GET() {
         // User has no active warehouse in DB.
         // Only admins fall back to "Main Warehouse" — regular users should be
         // redirected to the access request page (handled by app/page.tsx).
-        const isAdmin = (session.user as any).role === "ADMIN";
+        const isAdmin = ["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role);
         if (isAdmin) {
             const mainWarehouse = await Warehouse.findOne({ isMain: true });
             if (mainWarehouse) {

@@ -9,8 +9,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userRole = (session?.user as any)?.role;
 
-    if (!session || userRole !== "ADMIN") {
-        return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
+    if (!session || userRole !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "Unauthorized: Super Admins only" }, { status: 403 });
     }
 
     const { id } = await params;

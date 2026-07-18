@@ -54,7 +54,7 @@ export async function GET() {
         await dbConnect();
         
         let filter = {};
-        if (user.role !== "ADMIN") {
+        if (user.role !== "SUPER_ADMIN" && user.role !== "WAREHOUSE_ADMIN") {
             filter = { userId: user.id || user._id };
         }
 

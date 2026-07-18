@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || (session.user as any).role !== "ADMIN") {
+        if (!session || !([\"SUPER_ADMIN\", \"WAREHOUSE_ADMIN\"].includes((session.user as any).role))) {
             return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
         }
 

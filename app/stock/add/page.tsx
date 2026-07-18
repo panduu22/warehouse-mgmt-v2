@@ -110,6 +110,40 @@ export default function AddStockPage() {
     // ── New Product state ──────────────────────────────────────────────────────
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [newInvoiceCost, setNewInvoiceCost] = useState("");
+    const [newSalePrice, setNewSalePrice] = useState("");
+    const [newProfitMargin, setNewProfitMargin] = useState("");
+
+    const handleInvoiceCostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setNewInvoiceCost(val);
+        const inv = parseFloat(val) || 0;
+        const sale = parseFloat(newSalePrice) || 0;
+        if (newSalePrice) {
+            setNewProfitMargin((sale - inv).toFixed(2));
+        }
+    };
+
+    const handleSalePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setNewSalePrice(val);
+        const sale = parseFloat(val) || 0;
+        const inv = parseFloat(newInvoiceCost) || 0;
+        if (newInvoiceCost) {
+            setNewProfitMargin((sale - inv).toFixed(2));
+        }
+    };
+
+    const handleProfitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setNewProfitMargin(val);
+        const profit = parseFloat(val) || 0;
+        const inv = parseFloat(newInvoiceCost) || 0;
+        if (newInvoiceCost) {
+            setNewSalePrice((inv + profit).toFixed(2));
+        }
+    };
+
 
     // ── Fetch products when on existing tab ───────────────────────────────────
     useEffect(() => {
@@ -844,7 +878,7 @@ export default function AddStockPage() {
                     </div>
                 </div>
             ) : (
-                /* ══ Add New Product form (unchanged) ══ */
+                /* ══ Add New Product form ══ */
                 <div className="bg-card p-8 rounded-2xl shadow-erp-card border border-border min-h-[400px]">
                     {error && (
                         <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6">
@@ -852,6 +886,7 @@ export default function AddStockPage() {
                         </div>
                     )}
                     <form onSubmit={handleCreate} className="space-y-6">
+                        {/* Row 1: Pack Description & Flavour */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-muted/50 p-6 rounded-xl">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted-foreground">
@@ -875,20 +910,8 @@ export default function AddStockPage() {
                             </div>
                         </div>
 
+                        {/* Row 2: Bottles Per Pack & Invoice Cost */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-muted-foreground">
-                                    Invoice Cost (₹)
-                                </label>
-                                <input
-                                    name="invoiceCost"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
-                                    placeholder="0.00"
-                                />
-                            </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted-foreground">
                                     Bottles Per Pack (BPP)
@@ -898,12 +921,30 @@ export default function AddStockPage() {
                                     type="number"
                                     min="1"
                                     defaultValue="24"
+                                    required
                                     className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
                                     placeholder="24"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">
+                                    Invoice Cost (₹)
+                                </label>
+                                <input
+                                    name="invoiceCost"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                    value={newInvoiceCost}
+                                    onChange={handleInvoiceCostChange}
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
 
+                        {/* Row 3: MRP (Base) & Profit / Margin */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-muted-foreground">
@@ -917,9 +958,44 @@ export default function AddStockPage() {
                                     placeholder="0.00"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">
+                                    Profit / Margin (₹)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={newProfitMargin}
+                                    onChange={handleProfitChange}
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-foreground font-bold bg-emerald-50"
+                                    placeholder="Auto-calculated"
+                                />
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        {/* Row 4: Sale Price & Initial Quantity */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-muted-foreground">
+                                        Sale Price (₹)
+                                    </label>
+                                    <span className="text-[10px] text-primary font-bold uppercase">
+                                        Required
+                                    </span>
+                                </div>
+                                <input
+                                    name="salePrice"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    required
+                                    value={newSalePrice}
+                                    onChange={handleSalePriceChange}
+                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground font-bold"
+                                    placeholder="0.00"
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-primary font-bold">
                                     Initial Quantity
@@ -942,25 +1018,10 @@ export default function AddStockPage() {
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-sm font-medium text-muted-foreground">
-                                        Sale Price (₹)
-                                    </label>
-                                    <span className="text-[10px] text-primary font-bold uppercase">
-                                        Required
-                                    </span>
-                                </div>
-                                <input
-                                    name="salePrice"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    required
-                                    className="w-full px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-foreground font-bold"
-                                    placeholder="0.00"
-                                />
-                            </div>
+                        </div>
+
+                        {/* Row 5: Today's Price */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                     <label className="text-sm font-medium text-muted-foreground">

@@ -116,7 +116,12 @@ export default withAuth(
         if (
           pathname === "/" ||
           pathname === "/login" ||
-          pathname.startsWith("/api/auth")
+          pathname.startsWith("/api/auth") ||
+          pathname === "/manifest.json" ||
+          pathname === "/sw.js" ||
+          pathname === "/offline" ||
+          pathname.startsWith("/workbox-") ||
+          pathname.startsWith("/swe-worker-")
         ) {
           return true;
         }
@@ -131,7 +136,6 @@ export default withAuth(
 );
 
 export const config = {
-  // Exclude auth callbacks, static assets, images, and the internal expiry
-  // endpoint so the fetch inside this middleware never triggers itself.
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Exclude auth callbacks, static assets, images, internal endpoints, and PWA assets
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|manifest.json|sw.js|offline|workbox-.*|swe-worker-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

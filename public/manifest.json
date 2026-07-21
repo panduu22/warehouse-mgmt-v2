@@ -1,12 +1,18 @@
 {
-  "name": "AdithyaTech",
+  "name": "AdithyaTech Warehouse ERP",
   "short_name": "AdithyaTech",
-  "description": "AdithyaTech Warehouse Management System",
+  "description": "AdithyaTech Warehouse Management System — stock, trips, invoices, and analytics.",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
-  "background_color": "#FFFFFF",
+  "background_color": "#0F172A",
   "theme_color": "#0F172A",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -25,6 +31,45 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open the warehouse dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Stock Management",
+      "short_name": "Stock",
+      "description": "Manage warehouse stock levels",
+      "url": "/stock",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Load Vehicle",
+      "short_name": "Load",
+      "description": "Load a vehicle for a delivery trip",
+      "url": "/trips/new",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Invoices",
+      "short_name": "Invoices",
+      "description": "View and manage invoices",
+      "url": "/bills",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "AdithyaTech Warehouse Management System"
     }
   ]
 }

@@ -1,4 +1,21 @@
+// next.config.ts
+// Wrapped with @serwist/next to enable PWA service worker generation.
+// All existing Next.js config options are preserved exactly as-is.
+
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
+
+// Configure the Serwist PWA plugin.
+//   swSrc  — source file compiled by webpack into the service worker bundle.
+//   swDest — output path; served by Next.js static file handling as /sw.js.
+//   disable — disabled in development to prevent SW conflicts with hot-reload.
+//   additionalPrecacheEntries — ensure /offline is always cached for the fallback.
+const withSerwist = withSerwistInit({
+  swSrc: "sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+  additionalPrecacheEntries: ["/offline"],
+});
 
 const nextConfig: NextConfig = {
   // Compress responses
@@ -26,4 +43,4 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["localhost", "127.0.0.1"],
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);

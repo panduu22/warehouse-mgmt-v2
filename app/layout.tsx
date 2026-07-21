@@ -55,6 +55,8 @@ export const viewport = {
 };
 
 import { Toaster } from "sonner";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { CapacitorInitializer } from "@/components/CapacitorInitializer";
 
 export default function RootLayout({
   children,
@@ -69,6 +71,8 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster position="top-right" richColors />
+          <InstallPrompt />
+          <CapacitorInitializer />
         </Providers>
       </body>
     </html>

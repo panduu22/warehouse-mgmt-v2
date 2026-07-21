@@ -145,9 +145,8 @@ export function formatPacksAndBottles(totalBottles: number, bpp: number, short =
 }
 
 /**
- * @deprecated Sorting is now handled at the database level via the `displayOrder` field,
- * which is populated from the Excel row index during import. This array is kept for
- * reference only and is no longer used in the main rendering path.
+ * Reference list of product order used for flavour sorting in manual entry forms
+ * (e.g. stock/add and trips/new). Primary product listing uses MongoDB displayOrder.
  */
 export const PRODUCT_SORT_ORDER = [
     "150 ml Tetra - Maaza",

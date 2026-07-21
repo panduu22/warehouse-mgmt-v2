@@ -22,9 +22,6 @@ if (missingVars.length > 0) {
         `Please copy .env.local.example to .env.local and configure these variables.`
     );
 }
-
-console.log("GOOGLE_CLIENT_ID =", process.env.GOOGLE_CLIENT_ID);
-console.log("GOOGLE_CLIENT_SECRET =", process.env.GOOGLE_CLIENT_SECRET ? "Loaded" : "Missing");
 export const authOptions: NextAuthOptions = {
     providers: [
         GoogleProvider({

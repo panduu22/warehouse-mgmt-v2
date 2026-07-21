@@ -44,6 +44,10 @@ next-env.d.ts
 # one-time migration / debug scripts (should not be in repo)
 /scripts/
 /data/
+/assets/
+/icons/
+generate_icon.py
+lighthouse*.json
 fix_*.ts
 fix_*.js
 migrate*.ts
@@ -53,3 +57,4 @@ patch_*.ts
 
 # macOS system files
 **/.DS_Store
+

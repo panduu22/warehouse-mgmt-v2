@@ -46,8 +46,6 @@ export async function PATCH(
             const expiresAt = new Date(grantedAt);
             expiresAt.setDate(expiresAt.getDate() + 365);
 
-            console.log("[AccessApproval] grantedAt (IST):", isoDateIST(grantedAt));
-            console.log("[AccessApproval] expiresAt (IST):", isoDateIST(expiresAt));
             // Update the request record
             accessRequest.approvedAt = grantedAt;
             accessRequest.expiresAt = expiresAt;

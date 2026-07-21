@@ -26,9 +26,17 @@ export default function LoginPage() {
       {/* Login Card */}
       <div className="relative z-10 w-full max-w-md p-8 rounded-3xl backdrop-blur-xl bg-black/40 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
         
-        <div className="mb-10 text-center">
-            <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome Back</h1>
-            <p className="text-white/60 text-sm">Sign in to your Warehouse Manager account</p>
+        <div className="mb-10 text-center flex flex-col items-center">
+            <div className="mb-6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src="/adithyatech-logo.png"
+                    alt="AdithyaTech"
+                    className="h-14 object-contain"
+                />
+            </div>
+            <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Welcome Back</h1>
+            <p className="text-white/60 text-sm">Sign in to your AdithyaTech account</p>
         </div>
 
         <div className="space-y-6">

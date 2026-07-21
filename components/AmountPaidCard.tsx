@@ -3,14 +3,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWarehouse } from '@/components/WarehouseContext';
 import clsx from 'clsx';
-import { Save, Printer } from 'lucide-react';
+import { Save, Printer, Eye } from 'lucide-react';
 
 interface AmountPaidCardProps {
   onTotalChange?: (total: number | null) => void;
   onPrint?: (title: string, from: string, to: string, breakdown: { date: string; amount: number }[], total: number) => void;
+  onViewDetails?: (from: string, to: string, total: number) => void;
 }
 
-export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, onPrint }) => {
+export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, onPrint, onViewDetails }) => {
   const { activeWarehouse } = useWarehouse();
 
   const today = () => new Date().toISOString().split('T')[0];
@@ -84,15 +85,26 @@ export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, o
     <div className="bg-card rounded-2xl shadow-erp-card border border-border p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-foreground uppercase tracking-wide">Total Amount Paid</h2>
-        {onPrint && total !== null && (
-          <button
-            onClick={() => onPrint('Total Amount Paid', from, to, breakdown, total)}
-            className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-            title="Print Total Amount Paid"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {onViewDetails && total !== null && (
+            <button
+              onClick={() => onViewDetails(from, to, total)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+              title="View Amount Paid Details"
+            >
+              <Eye className="w-3.5 h-3.5" /> View Details
+            </button>
+          )}
+          {onPrint && total !== null && (
+            <button
+              onClick={() => onPrint('Total Amount Paid', from, to, breakdown, total)}
+              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              title="Print Total Amount Paid"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 border-b border-border pb-4">

@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWarehouse } from '@/components/WarehouseContext';
 import clsx from 'clsx';
-import { Printer } from 'lucide-react';
+import { Printer, Eye } from 'lucide-react';
 
 interface DailyAccountsCardProps {
   title: string;
@@ -13,6 +13,7 @@ interface DailyAccountsCardProps {
   responseKey: string;
   onTotalChange?: (total: number | null) => void;
   onPrint?: (title: string, from: string, to: string, breakdown: { date: string; amount: number }[], total: number) => void;
+  onViewDetails?: (from: string, to: string, total: number) => void;
   colorClass?: string;
 }
 
@@ -22,6 +23,7 @@ export const DailyAccountsCard: React.FC<DailyAccountsCardProps> = ({
   responseKey,
   onTotalChange,
   onPrint,
+  onViewDetails,
   colorClass = 'text-primary',
 }) => {
   const { activeWarehouse } = useWarehouse();
@@ -65,15 +67,26 @@ export const DailyAccountsCard: React.FC<DailyAccountsCardProps> = ({
     <div className="bg-card rounded-2xl shadow-erp-card border border-border p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-bold text-foreground uppercase tracking-wide">{title}</h2>
-        {onPrint && total !== null && (
-          <button
-            onClick={() => onPrint(title, from, to, breakdown, total)}
-            className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
-            title={`Print ${title}`}
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {onViewDetails && total !== null && (
+            <button
+              onClick={() => onViewDetails(from, to, total)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+              title={`View ${title} Details`}
+            >
+              <Eye className="w-3.5 h-3.5" /> View Details
+            </button>
+          )}
+          {onPrint && total !== null && (
+            <button
+              onClick={() => onPrint(title, from, to, breakdown, total)}
+              className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+              title={`Print ${title}`}
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

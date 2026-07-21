@@ -5,6 +5,9 @@ import { BarChart3 } from 'lucide-react';
 import { DailyAccountsCard } from '@/components/DailyAccountsCard';
 import { AmountPaidCard } from '@/components/AmountPaidCard';
 import { useWarehouse } from '@/components/WarehouseContext';
+import { RestockingDetailsModal } from '@/components/RestockingDetailsModal';
+import { SchemeDetailsModal } from '@/components/SchemeDetailsModal';
+import { PaymentDetailsModal } from '@/components/PaymentDetailsModal';
 import clsx from 'clsx';
 
 type PrintReport = {
@@ -14,6 +17,15 @@ type PrintReport = {
   breakdown: { date: string; amount: number }[];
   total: number;
 };
+
+type ModalState = {
+  open: boolean;
+  from: string;
+  to: string;
+  total: number;
+};
+
+const DEFAULT_MODAL: ModalState = { open: false, from: '', to: '', total: 0 };
 
 export default function DailyAccountsPage() {
   const { activeWarehouse } = useWarehouse();
@@ -25,6 +37,11 @@ export default function DailyAccountsPage() {
 
   // Print state
   const [activePrintReport, setActivePrintReport] = useState<PrintReport | null>(null);
+
+  // Drill-down modal state — populated lazily when user clicks "View Details"
+  const [restockModal, setRestockModal] = useState<ModalState>(DEFAULT_MODAL);
+  const [schemeModal,  setSchemeModal]  = useState<ModalState>(DEFAULT_MODAL);
+  const [paymentModal, setPaymentModal] = useState<ModalState>(DEFAULT_MODAL);
 
   const handlePrint = useCallback((title: string, from: string, to: string, breakdown: { date: string; amount: number }[], total: number) => {
     setActivePrintReport({ title, from, to, breakdown, total });
@@ -41,13 +58,17 @@ export default function DailyAccountsPage() {
   }, [activePrintReport]);
 
   const handleRestockChange = useCallback((v: number | null) => setRestockTotal(v || 0), []);
-  const handleSchemeChange = useCallback((v: number | null) => setSchemeTotal(v || 0), []);
-  const handlePaidChange = useCallback((v: number | null) => setPaidTotal(v || 0), []);
+  const handleSchemeChange  = useCallback((v: number | null) => setSchemeTotal(v || 0), []);
+  const handlePaidChange    = useCallback((v: number | null) => setPaidTotal(v || 0), []);
+
+  // View Details — lazy open, passes exact date range and total from the card
+  const handleRestockViewDetails  = useCallback((from: string, to: string, total: number) => setRestockModal({ open: true, from, to, total }), []);
+  const handleSchemeViewDetails   = useCallback((from: string, to: string, total: number) => setSchemeModal({ open: true, from, to, total }), []);
+  const handlePaymentViewDetails  = useCallback((from: string, to: string, total: number) => setPaymentModal({ open: true, from, to, total }), []);
 
   // Balance = Total Scheme Value + Total Amount Paid - Total Restocking Price
   const balance = schemeTotal + paidTotal - restockTotal;
 
-  // Color rules for balance
   const balanceColor =
     balance > 0
       ? 'text-green-600'
@@ -108,64 +129,102 @@ export default function DailyAccountsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <BarChart3 className="w-5 h-5 text-primary" />
+    <>
+      <div className="max-w-6xl mx-auto pb-12">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Daily Accounts</h1>
+            <p className="text-sm text-muted-foreground">
+              Financial summary for{' '}
+              <span className="font-semibold text-primary">
+                {activeWarehouse?.name || 'your warehouse'}
+              </span>
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Daily Accounts</h1>
-          <p className="text-sm text-muted-foreground">
-            Financial summary for{' '}
-            <span className="font-semibold text-primary">
-              {activeWarehouse?.name || 'your warehouse'}
-            </span>
-          </p>
-        </div>
+
+        {!activeWarehouse ? (
+          <div className="text-center py-20 text-muted-foreground text-sm">
+            Please select a warehouse to view Daily Accounts.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
+              <DailyAccountsCard
+                title="Total Restocking Price"
+                apiPath="/api/analytics/daily-restocking"
+                responseKey="totalRestockingPrice"
+                onTotalChange={handleRestockChange}
+                onPrint={handlePrint}
+                onViewDetails={handleRestockViewDetails}
+                colorClass="text-primary"
+              />
+              <AmountPaidCard
+                onTotalChange={handlePaidChange}
+                onPrint={handlePrint}
+                onViewDetails={handlePaymentViewDetails}
+              />
+            </div>
+            <div className="flex flex-col gap-6">
+              <DailyAccountsCard
+                title="Total Scheme Value"
+                apiPath="/api/analytics/daily-scheme"
+                responseKey="totalSchemeValue"
+                onTotalChange={handleSchemeChange}
+                onPrint={handlePrint}
+                onViewDetails={handleSchemeViewDetails}
+                colorClass="text-purple-600"
+              />
+
+              {/* Automatic Balance Card */}
+              <div className="bg-card rounded-2xl shadow-erp-card border border-border p-6 flex flex-col gap-4">
+                <h2 className="text-base font-bold text-foreground uppercase tracking-wide">Balance</h2>
+                <div className="text-xs font-medium text-muted-foreground">
+                  Total Scheme Value + Total Amount Paid – Total Restocking Price
+                </div>
+                <div className={clsx('mt-2 text-4xl font-black tracking-tight', balanceColor)}>
+                  {formattedBalance}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
       </div>
 
-      {!activeWarehouse ? (
-        <div className="text-center py-20 text-muted-foreground text-sm">
-          Please select a warehouse to view Daily Accounts.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-6">
-            <DailyAccountsCard
-              title="Total Restocking Price"
-              apiPath="/api/analytics/daily-restocking"
-              responseKey="totalRestockingPrice"
-              onTotalChange={handleRestockChange}
-              onPrint={handlePrint}
-              colorClass="text-primary"
-            />
-            <AmountPaidCard onTotalChange={handlePaidChange} onPrint={handlePrint} />
-          </div>
-          <div className="flex flex-col gap-6">
-            <DailyAccountsCard
-              title="Total Scheme Value"
-              apiPath="/api/analytics/daily-scheme"
-              responseKey="totalSchemeValue"
-              onTotalChange={handleSchemeChange}
-              onPrint={handlePrint}
-              colorClass="text-purple-600"
-            />
-            
-            {/* Automatic Balance Card */}
-            <div className="bg-card rounded-2xl shadow-erp-card border border-border p-6 flex flex-col gap-4">
-              <h2 className="text-base font-bold text-foreground uppercase tracking-wide">Balance</h2>
-              <div className="text-xs font-medium text-muted-foreground">
-                Total Scheme Value + Total Amount Paid – Total Restocking Price
-              </div>
-              <div className={clsx('mt-2 text-4xl font-black tracking-tight', balanceColor)}>
-                {formattedBalance}
-              </div>
-            </div>
-
-          </div>
-        </div>
+      {/* Drill-Down Modals — rendered outside the page grid to avoid overflow clipping */}
+      {activeWarehouse && (
+        <>
+          <RestockingDetailsModal
+            open={restockModal.open}
+            onClose={() => setRestockModal(DEFAULT_MODAL)}
+            warehouseId={activeWarehouse.id}
+            from={restockModal.from}
+            to={restockModal.to}
+            cardTotal={restockModal.total}
+          />
+          <SchemeDetailsModal
+            open={schemeModal.open}
+            onClose={() => setSchemeModal(DEFAULT_MODAL)}
+            warehouseId={activeWarehouse.id}
+            from={schemeModal.from}
+            to={schemeModal.to}
+            cardTotal={schemeModal.total}
+          />
+          <PaymentDetailsModal
+            open={paymentModal.open}
+            onClose={() => setPaymentModal(DEFAULT_MODAL)}
+            warehouseId={activeWarehouse.id}
+            from={paymentModal.from}
+            to={paymentModal.to}
+            cardTotal={paymentModal.total}
+          />
+        </>
       )}
-    </div>
+    </>
   );
 }

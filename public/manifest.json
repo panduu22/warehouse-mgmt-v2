@@ -3,34 +3,64 @@
   "short_name": "AdithyaTech",
   "description": "AdithyaTech Warehouse Management System — stock, trips, invoices, and analytics.",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
-  "background_color": "#0F172A",
+  "background_color": "#020617",
   "theme_color": "#0F172A",
   "lang": "en-IN",
   "dir": "ltr",
-  "categories": ["business", "productivity"],
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "../icons/icon-48.webp",
+      "type": "image/png",
+      "sizes": "48x48",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../icons/icon-72.webp",
+      "type": "image/png",
+      "sizes": "72x72",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../icons/icon-96.webp",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../icons/icon-128.webp",
+      "type": "image/png",
+      "sizes": "128x128",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../icons/icon-192.webp",
+      "type": "image/png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
+      "src": "../icons/icon-256.webp",
       "type": "image/png",
-      "purpose": "any"
+      "sizes": "256x256",
+      "purpose": "any maskable"
     },
     {
-      "src": "/icons/maskable-icon-512.png",
-      "sizes": "512x512",
+      "src": "../icons/icon-512.webp",
       "type": "image/png",
-      "purpose": "maskable"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -39,28 +69,48 @@
       "short_name": "Dashboard",
       "description": "Open the warehouse dashboard",
       "url": "/dashboard",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Stock Management",
       "short_name": "Stock",
       "description": "Manage warehouse stock levels",
       "url": "/stock",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Load Vehicle",
       "short_name": "Load",
       "description": "Load a vehicle for a delivery trip",
       "url": "/trips/new",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Invoices",
       "short_name": "Invoices",
       "description": "View and manage invoices",
       "url": "/bills",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "screenshots": [

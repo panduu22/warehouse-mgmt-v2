@@ -40,7 +40,11 @@ export async function POST(req: Request) {
         // WAREHOUSE_ADMIN and STAFF must go through the same warehouse validation
         // as any other role.
         if (user.role === "SUPER_ADMIN") {
-            return NextResponse.json({ expired: false, authorized: true });
+            return NextResponse.json({ 
+                expired: false, 
+                authorized: true,
+                mustChangePassword: user.mustChangePassword === true
+            });
         }
 
         const now = new Date();
@@ -112,10 +116,15 @@ export async function POST(req: Request) {
                 expired: hadExpired,
                 authorized: true,
                 correctWarehouseId: primaryWarehouseId,
+                mustChangePassword: user.mustChangePassword === true,
             });
         }
 
-        return NextResponse.json({ expired: hadExpired, authorized: true });
+        return NextResponse.json({ 
+            expired: hadExpired, 
+            authorized: true,
+            mustChangePassword: user.mustChangePassword === true,
+        });
     } catch (e) {
         console.error("[CheckExpiry] DB error:", e);
         return NextResponse.json({ expired: false, authorized: true });

@@ -55,9 +55,23 @@ export default withAuth(
       }
 
       if (resp.ok) {
-        const data: { expired: boolean; authorized?: boolean; correctWarehouseId?: string } = await resp.json();
+        const data: { expired: boolean; authorized?: boolean; correctWarehouseId?: string; mustChangePassword?: boolean } = await resp.json();
         if (data.authorized === false) {
           return new NextResponse("You do not have access to this warehouse.", { status: 403 });
+        }
+
+        if (data.mustChangePassword && req.nextUrl.pathname !== "/change-password") {
+          if (req.nextUrl.pathname.startsWith("/api/")) {
+            if (req.nextUrl.pathname !== "/api/auth/change-password") {
+              return NextResponse.json({ error: "Password change required." }, { status: 403 });
+            }
+          } else {
+            const redirectRes = NextResponse.redirect(new URL("/change-password", req.url));
+            if (data.correctWarehouseId) {
+              redirectRes.cookies.set("activeWarehouseId", data.correctWarehouseId, { path: "/" });
+            }
+            return redirectRes;
+          }
         }
 
         let response = NextResponse.next();

@@ -13,6 +13,7 @@ export interface IUser extends Document {
         expiresAt?: Date;
     }[];
     password?: string;
+    mustChangePassword: boolean;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -33,6 +34,7 @@ const UserSchema: Schema<IUser> = new Schema(
             expiresAt: { type: Date }
         }],
         password: { type: String },
+        mustChangePassword: { type: Boolean, default: true },
         isActive: { type: Boolean, default: true },
     },
     { timestamps: true }

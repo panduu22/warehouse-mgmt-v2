@@ -50,6 +50,7 @@ export async function POST(req: Request) {
         const salt = bcrypt.genSaltSync(10);
         const hashedPassword = bcrypt.hashSync(newPassword, salt);
         targetUser.password = hashedPassword;
+        targetUser.mustChangePassword = true;
         await targetUser.save();
 
         const cookieStore = await cookies();

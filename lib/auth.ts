@@ -70,6 +70,7 @@ export const authOptions: NextAuthOptions = {
                     name: user.name,
                     email: user.email,
                     role: user.role,
+                    mustChangePassword: user.mustChangePassword,
                 } as any;
             }
         })
@@ -100,6 +101,7 @@ export const authOptions: NextAuthOptions = {
             if (user) {
                 token.id = user.id;
                 token.role = (user as any).role;
+                token.mustChangePassword = (user as any).mustChangePassword;
             }
             return token;
         },
@@ -122,6 +124,7 @@ export const authOptions: NextAuthOptions = {
                         id: dbUser._id.toString(),
                         activeWarehouseId: dbUser.activeWarehouseId?.toString(),
                         warehouseId: primaryWarehouseId,
+                        mustChangePassword: dbUser.mustChangePassword,
                     } as any;
                 }
             }

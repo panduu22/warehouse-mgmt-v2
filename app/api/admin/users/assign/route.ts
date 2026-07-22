@@ -112,8 +112,10 @@ export async function POST(req: Request) {
                 user.role = targetRole;
                 if (customHashedPassword) {
                     user.password = customHashedPassword;
+                    user.mustChangePassword = true;
                 } else if (!user.password) {
                     user.password = defaultHashedPassword;
+                    user.mustChangePassword = true;
                 }
             }
 

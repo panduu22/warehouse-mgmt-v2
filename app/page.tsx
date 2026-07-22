@@ -7,6 +7,8 @@ import SplashScreen from "@/components/SplashScreen";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   // WORKAROUND: Next.js Turbopack bug throws "Performance cannot have a negative time stamp"
   // when a Server Component resolves instantly. This tiny delay ensures a positive time delta.

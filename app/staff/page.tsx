@@ -58,6 +58,7 @@ export default function StaffPage() {
   
   // Assignment state
   const [emailsInput, setEmailsInput] = useState<string>("");
+  const [passwordInput, setPasswordInput] = useState<string>("");
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string>("");
 
@@ -111,11 +112,13 @@ export default function StaffPage() {
           warehouseId: activeWarehouseId,
           emails,
           role: "STAFF",
+          password: passwordInput.trim() || undefined,
         })
       });
 
       if (res.ok) {
         setEmailsInput("");
+        setPasswordInput("");
         await fetchData();
         alert("Staff access granted successfully!");
       } else {
@@ -126,6 +129,32 @@ export default function StaffPage() {
       setAssignError("An error occurred during assignment.");
     } finally {
       setAssigning(false);
+    }
+  };
+
+  const handleResetPassword = async (userId: string, email: string) => {
+    const newPassword = prompt(`Enter new password for ${email} (minimum 6 characters):`);
+    if (newPassword === null) return;
+    if (newPassword.trim().length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/users/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, newPassword: newPassword.trim() })
+      });
+
+      if (res.ok) {
+        alert("Password reset successfully!");
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to reset password.");
+      }
+    } catch (e) {
+      alert("An error occurred while resetting password.");
     }
   };
 
@@ -183,17 +212,31 @@ export default function StaffPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
             {/* Google Email IDs */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground px-1">
-                📧 Google Email IDs (comma separated)
+                📧 Email IDs (comma separated)
               </label>
               <textarea
                 value={emailsInput}
                 onChange={(e) => setEmailsInput(e.target.value)}
                 placeholder={"user1@gmail.com, user2@gmail.com"}
                 className="w-full h-12 bg-muted rounded-[1rem] px-4 py-3 border border-border focus:ring-2 focus:ring-primary font-bold text-sm outline-none resize-none"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-muted-foreground px-1">
+                🔑 Password (optional, default: password123)
+              </label>
+              <input
+                type="password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="password123"
+                className="w-full h-12 bg-muted rounded-[1rem] px-4 border border-border focus:ring-2 focus:ring-primary font-bold text-sm outline-none"
               />
             </div>
 
@@ -274,6 +317,12 @@ export default function StaffPage() {
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     <button
+                                        onClick={() => handleResetPassword(u._id, u.email)}
+                                        className="text-xs text-primary hover:underline font-bold px-3 py-1.5 rounded-lg bg-primary/10"
+                                    >
+                                        Reset Password
+                                    </button>
+                                    <button
                                         onClick={() => handleRevokeAccess(u._id, wId, u.email)}
                                         className="text-xs text-destructive hover:underline font-bold px-3 py-1.5 rounded-lg bg-destructive/10"
                                     >
@@ -324,6 +373,12 @@ export default function StaffPage() {
                                       </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
+                                      <button
+                                          onClick={() => handleResetPassword(u._id, u.email)}
+                                          className="text-xs text-primary hover:underline font-bold px-3 py-1.5 rounded-lg bg-primary/10"
+                                      >
+                                          Reset Password
+                                      </button>
                                       <button
                                           onClick={() => handleRevokeAccess(u._id, wId, u.email)}
                                           className="text-xs text-destructive hover:underline font-bold px-3 py-1.5 rounded-lg bg-destructive/10"

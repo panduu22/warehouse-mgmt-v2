@@ -12,6 +12,8 @@ export interface IUser extends Document {
         grantedAt?: Date;
         expiresAt?: Date;
     }[];
+    password?: string;
+    isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -30,6 +32,8 @@ const UserSchema: Schema<IUser> = new Schema(
             grantedAt: { type: Date },
             expiresAt: { type: Date }
         }],
+        password: { type: String },
+        isActive: { type: Boolean, default: true },
     },
     { timestamps: true }
 );

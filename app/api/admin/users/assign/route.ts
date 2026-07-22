@@ -6,6 +6,7 @@ import User from "@/models/User";
 import Warehouse from "@/models/Warehouse";
 import { logActivity } from "@/lib/activity";
 import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { emails, warehouseId, role: assignedRole } = await req.json();
+        const { emails, warehouseId, role: assignedRole, password } = await req.json();
 
         if (!emails || !Array.isArray(emails) || !warehouseId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -90,6 +91,9 @@ export async function POST(req: Request) {
         expiresAt.setDate(expiresAt.getDate() + 365);
 
         const updatedUsers = [];
+        const salt = bcrypt.genSaltSync(10);
+        const defaultHashedPassword = bcrypt.hashSync("password123", salt);
+        const customHashedPassword = password ? bcrypt.hashSync(password, salt) : null;
 
         for (let email of emails) {
             email = email.trim().toLowerCase();
@@ -101,9 +105,16 @@ export async function POST(req: Request) {
                     name: email.split("@")[0],
                     email,
                     role: targetRole,
+                    password: customHashedPassword || defaultHashedPassword,
+                    isActive: true,
                 });
             } else {
                 user.role = targetRole;
+                if (customHashedPassword) {
+                    user.password = customHashedPassword;
+                } else if (!user.password) {
+                    user.password = defaultHashedPassword;
+                }
             }
 
             // Enforce 1:1 mapping by overwriting the array

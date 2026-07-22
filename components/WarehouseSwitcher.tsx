@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Building2, 
   ChevronDown, 
   Loader2, 
   Plus, 
   Trash2, 
-  LogOut,
   Check,
   ArrowLeftRight,
   ShieldAlert
@@ -24,39 +23,17 @@ import {
   DropdownMenuTrigger,
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { CreateWarehouseDialog } from "./CreateWarehouseDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function WarehouseSwitcher() {
-    const { activeWarehouse, switchWarehouse, loading: ctxLoading } = useWarehouse();
+    const { activeWarehouse, warehouses, capabilities, switchWarehouse, loading: ctxLoading } = useWarehouse();
     const { data: session } = useSession();
     const user = session?.user as any;
     const userRole = user?.role;
     
-    const [warehouses, setWarehouses] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
-
-    useEffect(() => {
-        if (open) {
-            setLoading(true);
-            fetch("/api/warehouses")
-                .then(res => res.json())
-                .then(data => {
-                    if (Array.isArray(data)) {
-                        setWarehouses(data);
-                    }
-                    setLoading(false);
-                })
-                .catch(() => {
-                    toast.error("Failed to load warehouses");
-                    setLoading(false);
-                });
-        }
-    }, [open]);
-
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const handleSwitch = async (id: string, name: string) => {
@@ -82,15 +59,32 @@ export function WarehouseSwitcher() {
                 throw new Error(data.error || "Failed to delete");
             }
             toast.success(`Warehouse "${name}" deleted`);
-            setWarehouses(warehouses.filter(w => w._id !== id));
-            if (activeWarehouse?.id === id) {
-                localStorage.removeItem("activeWarehouse");
-                window.location.reload();
-            }
+            window.location.reload();
         } catch (err: any) {
             toast.error(err.message);
         }
     };
+
+    // If assigned to a single warehouse, render a static, non-clickable label
+    if (capabilities?.isSingleWarehouseUser) {
+        return (
+            <div className="w-[240px] h-12 flex items-center gap-3 px-4 rounded-xl border border-border bg-card/50 backdrop-blur-sm shrink-0 text-left cursor-default select-none">
+                {ctxLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                ) : (
+                    <Building2 className="w-5 h-5 text-primary" />
+                )}
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none mb-1">
+                        Storage Unit
+                    </span>
+                    <span className="text-sm font-bold truncate text-foreground">
+                        {activeWarehouse?.name || "Loading..."}
+                    </span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -123,17 +117,17 @@ export function WarehouseSwitcher() {
                     <DropdownMenuGroup>
                         <DropdownMenuLabel className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center justify-between">
                             Available Units
-                            {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {ctxLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                         </DropdownMenuLabel>
                         
                         <div className="space-y-1 my-1 max-h-[300px] overflow-y-auto pr-1">
-                            {warehouses.length === 0 && !loading ? (
+                            {warehouses.length === 0 && !ctxLoading ? (
                                 <div className="px-3 py-4 text-center text-muted-foreground">
                                     <ShieldAlert className="w-8 h-8 opacity-20 mx-auto mb-2" />
                                     <p className="text-xs font-bold">No units available</p>
                                 </div>
                             ) : (
-                                warehouses.map((w) => (
+                                warehouses.map((w: any) => (
                                     <DropdownMenuItem 
                                         key={w._id}
                                         onClick={() => handleSwitch(w._id, w.name)}
@@ -159,7 +153,7 @@ export function WarehouseSwitcher() {
                                                 <Check className="w-3 h-3 text-primary" />
                                             </div>
                                         )}
-                                        {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && !w.isMain && (
+                                        {capabilities?.canManageWarehouses && !w.isMain && (
                                             <div
                                                 role="button"
                                                 className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors ml-1"
@@ -174,7 +168,7 @@ export function WarehouseSwitcher() {
                         </div>
                     </DropdownMenuGroup>
 
-                    {(userRole === "SUPER_ADMIN" || userRole === "ADMIN") && (
+                    {capabilities?.canCreateWarehouse && (
                         <>
                             <DropdownMenuSeparator className="my-2 bg-border/50" />
                             <DropdownMenuItem 
@@ -189,7 +183,7 @@ export function WarehouseSwitcher() {
                         </>
                     )}
 
-                    {userRole === "STAFF" && (
+                    {userRole === "STAFF" && !capabilities?.isSingleWarehouseUser && (
                         <>
                             <DropdownMenuSeparator className="my-2 bg-border/50" />
                             <Link href="/" className="w-full flex items-center gap-3 p-3 rounded-xl text-muted-foreground hover:text-foreground font-bold text-sm hover:bg-muted transition-all group active:scale-95">
@@ -215,5 +209,3 @@ export function WarehouseSwitcher() {
         </>
     );
 }
-
-

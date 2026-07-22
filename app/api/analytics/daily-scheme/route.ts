@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Trip from "@/models/Trip";
 import mongoose from "mongoose";
+import { requireWarehouseAccess, guardWarehouseParam } from "@/lib/warehouseAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function GET(req: NextRequest) {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
+
         const url = new URL(req.url);
         const warehouseIdStr = url.searchParams.get("warehouseId");
         const from = url.searchParams.get("from");
@@ -32,6 +36,9 @@ export async function GET(req: NextRequest) {
         if (!mongoose.Types.ObjectId.isValid(warehouseIdStr)) {
             return NextResponse.json({ error: "Invalid warehouseId" }, { status: 400 });
         }
+
+        const guard = guardWarehouseParam(warehouseIdStr, isSuperAdmin, assignedWarehouseIds);
+        if (guard) return guard;
 
         await dbConnect();
 

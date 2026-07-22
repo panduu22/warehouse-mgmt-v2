@@ -4,14 +4,18 @@ import * as fs from "fs";
 import * as path from "path";
 import { formatIST } from "./dateUtils";
 
-export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
+import { ObjectId } from "mongodb";
+
+export async function generateExcelWorkbook(warehouseIdFilter?: string): Promise<XLSX.WorkBook> {
     try {
         const conn = await dbConnect();
         const db = conn.connection.db;
         if (!db) throw new Error("DB not initialized");
 
+        const filterQuery = warehouseIdFilter ? { warehouseId: new ObjectId(warehouseIdFilter) } : {};
+
         // 1. Fetch Warehouses and map for quick lookup
-        const warehouses = await db.collection("Warehouse").find().toArray();
+        const warehouses = await db.collection("Warehouse").find(filterQuery).toArray();
         const warehouseMap = new Map(warehouses.map(w => [w._id.toString(), w.name]));
 
         // 2. Fetch Users and map
@@ -19,7 +23,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         const userMap = new Map(users.map(u => [u._id.toString(), u.name || u.email]));
 
         // 3. Fetch Products
-        const products = await db.collection("Product").find().toArray();
+        const products = await db.collection("Product").find(filterQuery).toArray();
         const productMap = new Map(products.map(p => [p._id.toString(), p]));
         const productRows = products.map(p => ({
             "Product ID": p._id.toString(),
@@ -37,7 +41,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         }));
 
         // 4. Fetch Vehicles
-        const vehicles = await db.collection("Vehicle").find().toArray();
+        const vehicles = await db.collection("Vehicle").find(filterQuery).toArray();
         const vehicleMap = new Map(vehicles.map(v => [v._id.toString(), v]));
         const vehicleRows = vehicles.map(v => ({
             "Vehicle ID": v._id.toString(),
@@ -50,7 +54,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         }));
 
         // 5. Fetch Trips
-        const trips = await db.collection("Trip").find().toArray();
+        const trips = await db.collection("Trip").find(filterQuery).toArray();
         const tripRows = trips.map(t => {
             const vehicle = vehicleMap.get(t.vehicleId?.toString());
             
@@ -77,7 +81,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         });
 
         // 6. Fetch Bills
-        const bills = await db.collection("Bill").find().toArray();
+        const bills = await db.collection("Bill").find(filterQuery).toArray();
         const billRows = bills.map(b => {
             const trip = trips.find(t => t._id.toString() === b.tripId?.toString());
             const vehicle = trip ? vehicleMap.get(trip.vehicleId?.toString()) : null;
@@ -95,7 +99,7 @@ export async function generateExcelWorkbook(): Promise<XLSX.WorkBook> {
         });
 
         // 7. Fetch Daily Pricing
-        const dailyPricing = await db.collection("DailyPricing").find().toArray();
+        const dailyPricing = await db.collection("DailyPricing").find(filterQuery).toArray();
         const dailyPricingRows = dailyPricing.map(dp => {
             const prod = productMap.get(dp.productId?.toString());
             return {

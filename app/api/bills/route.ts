@@ -18,10 +18,15 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
 import { logActivity } from "@/lib/activity";
+import { requireWarehouseAccess, resolveWarehouseId } from "@/lib/warehouseAccess";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // ── RBAC ──────────────────────────────────────────────────────────────
+    const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+    if (denied) return denied;
 
     try {
         const { tripId, date } = await req.json();
@@ -29,13 +34,12 @@ export async function POST(req: Request) {
         // Get active warehouse context and connect to DB in parallel
         const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
         
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
-            warehouseId = main._id.toString();
-        }
+        const warehouseId = await resolveWarehouseId(
+            cookieStore.get("activeWarehouseId")?.value,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+        if (!warehouseId) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
 
         // Check if bill exists
         const existingBill = await Bill.findOne({ tripId, warehouseId });
@@ -204,14 +208,20 @@ export async function POST(req: Request) {
 
 export async function GET() {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        // ── RBAC ──────────────────────────────────────────────────────────────
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
+
         const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
         
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-        
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (main) warehouseId = main._id.toString();
-        }
+        const warehouseId = await resolveWarehouseId(
+            cookieStore.get("activeWarehouseId")?.value,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
         
         const filter = warehouseId ? { warehouseId } : {};
 

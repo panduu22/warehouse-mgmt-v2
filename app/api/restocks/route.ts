@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import mongoose from "mongoose";
 import { logActivity } from "@/lib/activity";
+import { requireWarehouseAccess, resolveWarehouseId } from "@/lib/warehouseAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // ── RBAC ──────────────────────────────────────────────────────────────
+    const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+    if (denied) return denied;
 
     let items: any[];
     try {
@@ -35,13 +40,12 @@ export async function POST(req: NextRequest) {
 
     // ── Resolve warehouse context ──────────────────────────────────────────
     const cookieStore = await cookies();
-    let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-
-    if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-        const main = await Warehouse.findOne({ isMain: true });
-        if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
-        warehouseId = main._id.toString();
-    }
+    const warehouseId = await resolveWarehouseId(
+        cookieStore.get("activeWarehouseId")?.value,
+        isSuperAdmin,
+        assignedWarehouseIds
+    );
+    if (!warehouseId) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
 
     const warehouseOid = new mongoose.Types.ObjectId(warehouseId);
     const warehouse = await Warehouse.findById(warehouseOid);
@@ -150,14 +154,20 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
     try {
-        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        const session = await getServerSession(authOptions);
+        if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        // ── RBAC ──────────────────────────────────────────────────────────────
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
 
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (main) warehouseId = main._id.toString();
-        }
+        const [, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+
+        const warehouseId = await resolveWarehouseId(
+            cookieStore.get("activeWarehouseId")?.value,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
 
         const filter = warehouseId ? { warehouseId } : {};
         const restocks = await Restock.find(filter).sort({ createdAt: -1 }).lean();

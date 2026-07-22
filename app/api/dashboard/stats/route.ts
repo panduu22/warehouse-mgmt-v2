@@ -8,11 +8,16 @@ import Restock from "@/models/Restock";
 import Product from "@/models/Product";
 import VehiclePayment from "@/models/VehiclePayment";
 import mongoose from "mongoose";
+import { requireWarehouseAccess, guardWarehouseParam } from "@/lib/warehouseAccess";
 
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        // ── RBAC ──────────────────────────────────────────────────────────────
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
 
         await dbConnect();
         const url = new URL(req.url);
@@ -23,15 +28,23 @@ export async function GET(req: NextRequest) {
         const compareStartDateStr = url.searchParams.get("compareStartDate");
         const compareEndDateStr = url.searchParams.get("compareEndDate");
 
-        // Admin check for "ALL" warehouses
+        // ── Warehouse filter with RBAC ────────────────────────────────────────────
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let warehouseFilter: any = {};
         if (warehouseIdStr && warehouseIdStr !== "ALL") {
+            // Validate the requested warehouse against RBAC
+            const guard = guardWarehouseParam(warehouseIdStr, isSuperAdmin, assignedWarehouseIds);
+            if (guard) return guard;
             warehouseFilter.warehouseId = new mongoose.Types.ObjectId(warehouseIdStr);
         } else if (warehouseIdStr === "ALL") {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (!["SUPER_ADMIN", "WAREHOUSE_ADMIN"].includes((session.user as any).role)) {
+            // Only SUPER_ADMIN can query ALL warehouses
+            if (!isSuperAdmin) {
                 return NextResponse.json({ error: "Unauthorized for all warehouses" }, { status: 403 });
+            }
+        } else if (!isSuperAdmin) {
+            // No warehouseId param — restrict to assigned warehouse
+            if (assignedWarehouseIds.length > 0) {
+                warehouseFilter.warehouseId = new mongoose.Types.ObjectId(assignedWarehouseIds[0]);
             }
         }
 

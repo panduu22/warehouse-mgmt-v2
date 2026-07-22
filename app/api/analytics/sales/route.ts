@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
 import Warehouse from "@/models/Warehouse";
+import { requireWarehouseAccess, resolveWarehouseId } from "@/lib/warehouseAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -33,19 +34,24 @@ export async function GET(req: Request) {
         const weekOffset = parseInt(url.searchParams.get("weekOffset") || "0", 10);
         const selectedDate = url.searchParams.get("date"); // ISO date string YYYY-MM-DD
 
-        // Get warehouse filter
-        const cookieStore = await cookies();
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        // Get warehouse filter with RBAC
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
 
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
-            if (main) warehouseId = main._id.toString();
-            else warehouseId = undefined;
-        }
+        const cookieStore = await cookies();
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
 
         const matchStage: any = {};
         if (warehouseId) {
             matchStage.warehouseId = new mongoose.Types.ObjectId(warehouseId);
+        } else {
+            return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
         }
 
         // Determine date range and grouping based on timeframe

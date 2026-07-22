@@ -8,6 +8,18 @@ const WarehouseContext = createContext<any>(null);
 
 export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     const [activeWarehouse, setActiveWarehouse] = useState<{ id: string, name: string } | null>(null);
+    const [warehouses, setWarehouses] = useState<any[]>([]);
+    const [capabilities, setCapabilities] = useState<{
+        canSwitchWarehouse: boolean;
+        canCreateWarehouse: boolean;
+        canManageWarehouses: boolean;
+        isSingleWarehouseUser: boolean;
+    }>({
+        canSwitchWarehouse: false,
+        canCreateWarehouse: false,
+        canManageWarehouses: false,
+        isSingleWarehouseUser: false,
+    });
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -22,18 +34,24 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-        // 2. Fetch ground truth from API/Cookies
-        fetch("/api/warehouses/active")
-            .then(res => res.json())
-            .then(data => {
-                if (data.activeWarehouseId) {
-                    const active = { id: data.activeWarehouseId, name: data.activeWarehouseName };
-                    setActiveWarehouse(active);
-                    localStorage.setItem("activeWarehouse", JSON.stringify(active));
-                }
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
+        // 2. Fetch ground truth active warehouse and list of allowed warehouses/capabilities
+        Promise.all([
+            fetch("/api/warehouses/active").then(res => res.json()),
+            fetch("/api/warehouses").then(res => res.json())
+        ])
+        .then(([activeData, warehousesData]) => {
+            if (activeData.activeWarehouseId) {
+                const active = { id: activeData.activeWarehouseId, name: activeData.activeWarehouseName };
+                setActiveWarehouse(active);
+                localStorage.setItem("activeWarehouse", JSON.stringify(active));
+            }
+            if (warehousesData && warehousesData.warehouses) {
+                setWarehouses(warehousesData.warehouses);
+                setCapabilities(warehousesData.capabilities);
+            }
+            setLoading(false);
+        })
+        .catch(() => setLoading(false));
     }, []);
 
     const switchWarehouse = async (warehouseId: string) => {
@@ -50,6 +68,15 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
                 const active = { id: data.activeWarehouseId, name: data.activeWarehouseName };
                 setActiveWarehouse(active);
                 localStorage.setItem("activeWarehouse", JSON.stringify(active));
+                
+                // Refetch warehouses/capabilities to refresh state
+                const whRes = await fetch("/api/warehouses");
+                if (whRes.ok) {
+                    const whData = await whRes.json();
+                    setWarehouses(whData.warehouses);
+                    setCapabilities(whData.capabilities);
+                }
+
                 router.refresh(); // Reload server components to reflect warehouse change
                 return true;
             }
@@ -63,7 +90,7 @@ export function WarehouseProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <WarehouseContext.Provider value={{ activeWarehouse, switchWarehouse, loading }}>
+        <WarehouseContext.Provider value={{ activeWarehouse, warehouses, capabilities, switchWarehouse, loading }}>
             {children}
         </WarehouseContext.Provider>
     );

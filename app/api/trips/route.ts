@@ -4,46 +4,66 @@ import Trip from "@/models/Trip";
 export const dynamic = "force-dynamic";
 import Product from "@/models/Product";
 import Vehicle from "@/models/Vehicle";
-import mongoose from "mongoose";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
-import Warehouse from "@/models/Warehouse";
 import { logActivity } from "@/lib/activity";
+import {
+    requireWarehouseAccess,
+    resolveWarehouseId,
+} from "@/lib/warehouseAccess";
 
 export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ── RBAC ──────────────────────────────────────────────────────────────
+    const { denied, isSuperAdmin, assignedWarehouseIds } =
+        await requireWarehouseAccess(session);
+    if (denied) return denied;
 
     try {
         const { vehicleId, items } = await req.json();
 
-        // Get active warehouse context and connect to DB in parallel
-        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
-        
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
+        const [, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
 
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
-            warehouseId = main._id.toString();
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+        if (!warehouseId) {
+            return NextResponse.json(
+                { error: "No warehouse context found" },
+                { status: 400 }
+            );
         }
 
         if (!vehicleId || !items || items.length === 0) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 });
         }
 
-        // Verify loading possibility and deduct stock
-        // Using transaction would be better but replica set required. 
-        // I'll stick to manual checks/updates for MVP.
-
         for (const item of items) {
-            const product = await Product.findOne({ _id: item.productId, warehouseId });
+            const product = await Product.findOne({
+                _id: item.productId,
+                warehouseId,
+            });
             if (!product) {
-                return NextResponse.json({ error: `Product not found in active warehouse: ${item.productId}` }, { status: 404 });
+                return NextResponse.json(
+                    {
+                        error: `Product not found in active warehouse: ${item.productId}`,
+                    },
+                    { status: 404 }
+                );
             }
             if (product.quantity < item.qtyLoaded) {
-                return NextResponse.json({ error: `Insufficient stock for ${product.name}` }, { status: 400 });
+                return NextResponse.json(
+                    { error: `Insufficient stock for ${product.name}` },
+                    { status: 400 }
+                );
             }
         }
 
@@ -62,7 +82,7 @@ export async function POST(req: Request) {
             vehicleId,
             loadedItems: items,
             status: "LOADED",
-            warehouseId
+            warehouseId,
         });
 
         await logActivity({
@@ -77,31 +97,50 @@ export async function POST(req: Request) {
         return NextResponse.json(trip, { status: 201 });
     } catch (error) {
         console.error("Trip create error:", error);
-        return NextResponse.json({ error: "Failed to create trip" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to create trip" },
+            { status: 500 }
+        );
     }
 }
 
 export async function GET() {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ── RBAC ──────────────────────────────────────────────────────────────
+    const { denied, isSuperAdmin, assignedWarehouseIds } =
+        await requireWarehouseAccess(session);
+    if (denied) return denied;
+
     try {
-        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
-        
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-        
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (main) warehouseId = main._id.toString();
-        }
-        
+        const [, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+
         const filter = warehouseId ? { warehouseId } : {};
 
         const trips = await Trip.find(filter)
-            .populate("vehicleId", "number driverName status") // Only needed fields
-            .populate("loadedItems.productId", "name pack flavour price salePrice bottlesPerPack") // Needed for verification page calculations
+            .populate("vehicleId", "number driverName status")
+            .populate(
+                "loadedItems.productId",
+                "name pack flavour price salePrice bottlesPerPack"
+            )
             .sort({ createdAt: -1 })
             .lean();
-            
+
         return NextResponse.json(trips);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to fetch trips" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to fetch trips" },
+            { status: 500 }
+        );
     }
 }

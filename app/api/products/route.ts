@@ -6,9 +6,11 @@ import { getServerSession } from "next-auth";
 export const dynamic = "force-dynamic";
 import { authOptions } from "@/lib/auth";
 import { cookies } from "next/headers";
-import Warehouse from "@/models/Warehouse";
-import mongoose from "mongoose";
 import { logActivity } from "@/lib/activity";
+import {
+    requireWarehouseAccess,
+    resolveWarehouseId,
+} from "@/lib/warehouseAccess";
 
 export async function POST(req: Request) {
     try {
@@ -16,29 +18,39 @@ export async function POST(req: Request) {
         if (!session) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        // ── RBAC ────────────────────────────────────────────────────────────
+        const { denied, isSuperAdmin, assignedWarehouseIds } =
+            await requireWarehouseAccess(session);
+        if (denied) return denied;
+
         const user = session.user as any;
 
         const body = await req.json();
         const salePrice = Number(body.salePrice) || 0;
-        const price = Number(body.price) || salePrice; // Default Today's Price to Sale Price
+        const price = Number(body.price) || salePrice;
 
         const data = {
             ...body,
             name: `${body.pack || ""} ${body.flavour || ""}`.trim(),
             price,
             salePrice,
-            // warehouseId: Handled below
         };
 
-        // Get active warehouse context
-        const cookieStore = await cookies();
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
         await dbConnect();
+        const cookieStore = await cookies();
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
 
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true });
-            if (!main) return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
-            warehouseId = main._id.toString();
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+        if (!warehouseId) {
+            return NextResponse.json(
+                { error: "No warehouse context found" },
+                { status: 400 }
+            );
         }
 
         // Auto-generate SKU if not provided
@@ -47,14 +59,16 @@ export async function POST(req: Request) {
             const base = (data.name || "").substring(0, 3).toUpperCase();
             const flav = (data.flavour || "").substring(0, 3).toUpperCase();
             const pck = (data.pack || "").substring(0, 3).toUpperCase();
-            const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+            const random = Math.floor(Math.random() * 10000)
+                .toString()
+                .padStart(4, "0");
             sku = `${base}-${flav}-${pck}-${random}`.replace(/-+/g, "-");
         }
 
         const product = await Product.create({
             ...data,
-            sku, // Use the potentially auto-generated SKU
-            warehouseId
+            sku,
+            warehouseId,
         });
 
         await logActivity({
@@ -68,26 +82,44 @@ export async function POST(req: Request) {
 
         return NextResponse.json(product, { status: 201 });
     } catch (error) {
-        return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to create product" },
+            { status: 500 }
+        );
     }
 }
 
 export async function GET() {
     try {
-        const [_, cookieStore] = await Promise.all([dbConnect(), cookies()]);
-        
-        let warehouseId = cookieStore.get("activeWarehouseId")?.value;
-
-        if (!warehouseId || !mongoose.Types.ObjectId.isValid(warehouseId)) {
-            const main = await Warehouse.findOne({ isMain: true }).lean();
-            if (main) warehouseId = main._id.toString();
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // ── RBAC ────────────────────────────────────────────────────────────
+        const { denied, isSuperAdmin, assignedWarehouseIds } =
+            await requireWarehouseAccess(session);
+        if (denied) return denied;
+
+        const [, cookieStore] = await Promise.all([dbConnect(), cookies()]);
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+
         const filter = warehouseId ? { warehouseId } : {};
-        const products = await Product.find(filter).sort({ createdAt: -1 }).lean();
+        const products = await Product.find(filter)
+            .sort({ createdAt: -1 })
+            .lean();
 
         return NextResponse.json(products);
     } catch (error) {
-        return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
+        return NextResponse.json(
+            { error: "Failed to fetch products" },
+            { status: 500 }
+        );
     }
 }

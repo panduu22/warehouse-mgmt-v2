@@ -3,6 +3,8 @@ import { generateExcelWorkbook } from "@/lib/excelSync";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import * as XLSX from "xlsx";
+import { cookies } from "next/headers";
+import { requireWarehouseAccess, resolveWarehouseId } from "@/lib/warehouseAccess";
 
 export async function GET() {
     const session = await getServerSession(authOptions);
@@ -10,9 +12,25 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+    if (denied) return denied;
+
     try {
-        // Generate workbook in memory
-        const wb = await generateExcelWorkbook();
+        const cookieStore = await cookies();
+        const cookieWarehouseId = cookieStore.get("activeWarehouseId")?.value;
+
+        const warehouseId = await resolveWarehouseId(
+            cookieWarehouseId,
+            isSuperAdmin,
+            assignedWarehouseIds
+        );
+
+        if (!warehouseId) {
+            return NextResponse.json({ error: "No warehouse context found" }, { status: 400 });
+        }
+
+        // Generate workbook in memory restricted to current warehouse
+        const wb = await generateExcelWorkbook(warehouseId);
         
         // Write to buffer
         const fileBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });

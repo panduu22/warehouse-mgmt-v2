@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import DailyPayment from "@/models/DailyPayment";
 import mongoose from "mongoose";
 import Warehouse from "@/models/Warehouse";
+import { requireWarehouseAccess, guardWarehouseParam } from "@/lib/warehouseAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ export async function GET(req: NextRequest) {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
+
         const url = new URL(req.url);
         const warehouseIdStr = url.searchParams.get("warehouseId");
         const from = url.searchParams.get("from");
@@ -30,6 +34,9 @@ export async function GET(req: NextRequest) {
         if (!mongoose.Types.ObjectId.isValid(warehouseIdStr)) {
             return NextResponse.json({ error: "Invalid warehouseId" }, { status: 400 });
         }
+
+        const guard = guardWarehouseParam(warehouseIdStr, isSuperAdmin, assignedWarehouseIds);
+        if (guard) return guard;
 
         await dbConnect();
 
@@ -75,6 +82,9 @@ export async function POST(req: NextRequest) {
         const session = await getServerSession(authOptions);
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+        const { denied, isSuperAdmin, assignedWarehouseIds } = await requireWarehouseAccess(session);
+        if (denied) return denied;
+
         const body = await req.json();
         const { warehouseId, date, amount } = body;
 
@@ -84,6 +94,9 @@ export async function POST(req: NextRequest) {
         if (amount < 0) {
             return NextResponse.json({ error: "Amount cannot be negative" }, { status: 400 });
         }
+
+        const guard = guardWarehouseParam(warehouseId, isSuperAdmin, assignedWarehouseIds);
+        if (guard) return guard;
 
         await dbConnect();
 

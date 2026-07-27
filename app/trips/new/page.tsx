@@ -307,6 +307,12 @@ export default function NewTripPage() {
                                                         {selectedFlavour === flav && targetProduct && (
                                                             <div className="p-3 bg-card border-t border-emerald-100/50 flex flex-col gap-3">
                                                                 <div className="text-xs text-muted-foreground font-medium flex justify-between items-center">
+                                                                    <span>MRP:</span>
+                                                                    <span className="font-bold text-emerald-500">
+                                                                        {targetProduct.mrp != null ? `₹${targetProduct.mrp}` : "N/A"}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground font-medium flex justify-between items-center">
                                                                     <span>Stock:</span>
                                                                     <span className="font-bold text-foreground">{formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</span>
                                                                 </div>

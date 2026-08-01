@@ -297,21 +297,18 @@ export default function NewTripPage() {
                                                                 setAddBottles("0");
                                                             }}
                                                             className={clsx(
-                                                                "px-3 py-2.5 w-full text-sm font-bold text-left flex justify-between items-center transition-colors",
+                                                                "px-3 py-2.5 w-full text-sm font-bold text-left flex justify-between items-center gap-2 transition-colors",
                                                                 selectedFlavour === flav ? "text-emerald-900 bg-emerald-100/50" : "text-muted-foreground"
                                                             )}
                                                         >
-                                                            {flav}
+                                                            <span className="flex-1 truncate">{flav}</span>
+                                                            <span className={clsx("text-[11px] font-semibold shrink-0", selectedFlavour === flav ? "text-emerald-600" : "text-muted-foreground/70")}>
+                                                                {(() => { const p = products.find(x => x.pack === group.pack && x.flavour === flav); return p?.mrp != null ? `MRP: ₹${p.mrp}` : "MRP: N/A"; })()}
+                                                            </span>
                                                         </button>
 
                                                         {selectedFlavour === flav && targetProduct && (
                                                             <div className="p-3 bg-card border-t border-emerald-100/50 flex flex-col gap-3">
-                                                                <div className="text-xs text-muted-foreground font-medium flex justify-between items-center">
-                                                                    <span>MRP:</span>
-                                                                    <span className="font-bold text-emerald-500">
-                                                                        {targetProduct.mrp != null ? `₹${targetProduct.mrp}` : "N/A"}
-                                                                    </span>
-                                                                </div>
                                                                 <div className="text-xs text-muted-foreground font-medium flex justify-between items-center">
                                                                     <span>Stock:</span>
                                                                     <span className="font-bold text-foreground">{formatPacksAndBottles(targetProduct.quantity, targetProduct.bottlesPerPack)}</span>

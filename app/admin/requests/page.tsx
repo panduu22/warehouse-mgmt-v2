@@ -77,11 +77,14 @@ export default function AdminRequestsPage() {
       }
       if (warehousesRes.ok) {
         const warehousesData = await warehousesRes.json();
-        setWarehouses(warehousesData);
-        if (warehousesData.length > 0) {
+        const list = Array.isArray(warehousesData)
+          ? warehousesData
+          : (warehousesData.warehouses ?? []);
+        setWarehouses(list);
+        if (list.length > 0) {
           setSelectedDirWarehouseId(prev => {
-            const exists = warehousesData.some((w: any) => w._id === prev);
-            return exists ? prev : warehousesData[0]._id;
+            const exists = list.some((w: any) => w._id === prev);
+            return exists ? prev : list[0]._id;
           });
         }
       }

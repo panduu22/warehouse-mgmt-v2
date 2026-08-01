@@ -27,7 +27,7 @@ export default withAuth(
           const cloned = req.clone();
           const body = await cloned.json();
           bodyWarehouseId = body?.warehouseId;
-        } catch {}
+        } catch { }
       }
 
       // Delegate the DB expiry check and authorization to a Node.js API route.
@@ -74,10 +74,11 @@ export default withAuth(
           }
         }
 
+
         let response = NextResponse.next();
         if (data.correctWarehouseId) {
           const requestHeaders = new Headers(req.headers);
-          
+
           // Modify request Cookie header so downstream route handlers read the correct warehouse cookie
           const cookieHeader = req.headers.get("cookie") || "";
           const updatedCookieHeader = cookieHeader
@@ -90,10 +91,10 @@ export default withAuth(
               return c;
             })
             .join(";");
-          
+
           const hasActiveWarehouse = cookieHeader.includes("activeWarehouseId");
-          requestHeaders.set("cookie", hasActiveWarehouse 
-            ? updatedCookieHeader 
+          requestHeaders.set("cookie", hasActiveWarehouse
+            ? updatedCookieHeader
             : `${updatedCookieHeader}${updatedCookieHeader ? ";" : ""} activeWarehouseId=${data.correctWarehouseId}`
           );
 
@@ -104,7 +105,7 @@ export default withAuth(
           });
           response.cookies.set("activeWarehouseId", data.correctWarehouseId, { path: "/" });
         }
-        
+
         if (data.expired && req.nextUrl.pathname !== "/") {
           const redirectRes = NextResponse.redirect(new URL("/", req.url));
           if (data.correctWarehouseId) {

@@ -14,6 +14,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const user = session.user as any;
+        if (user.role !== "SUPER_ADMIN" && user.role !== "WAREHOUSE_ADMIN") {
+            return NextResponse.json({ error: "Forbidden. Only admins can edit products." }, { status: 403 });
+        }
 
         const { id } = await params;
         const { quantity, quantityToAdd, invoiceCost, price, mrp, salePrice, bottlesPerPack, pack, flavour } = await req.json();
@@ -84,6 +87,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         const user = session.user as any;
+        if (user.role !== "SUPER_ADMIN" && user.role !== "WAREHOUSE_ADMIN") {
+            return NextResponse.json({ error: "Forbidden. Only admins can delete products." }, { status: 403 });
+        }
 
         const { id } = await params;
         await dbConnect();

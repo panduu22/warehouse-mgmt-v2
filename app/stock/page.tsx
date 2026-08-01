@@ -100,10 +100,12 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     {isAdmin && <StockExcelImport />}
                     {isAdmin && <DeleteAllStockButton />}
-                    <Link href="/stock/add" className={cn(buttonVariants({ variant: "default" }), "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 gap-2")}>
-                        <Plus className="w-5 h-5" />
-                        Add Stock
-                    </Link>
+                    {isAdmin && (
+                        <Link href="/stock/add" className={cn(buttonVariants({ variant: "default" }), "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 gap-2")}>
+                            <Plus className="w-5 h-5" />
+                            Add Stock
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -150,29 +152,29 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                     return (
                                         <TableRow key={product._id} className="hover:bg-muted/50 transition-colors group">
                                             <TableCell className="font-medium text-foreground w-44">
-                                                <StringEditor productId={product._id} initialValue={product.pack || ""} field="pack" />
+                                                <StringEditor productId={product._id} initialValue={product.pack || ""} field="pack" readOnly={!isAdmin} />
                                             </TableCell>
                                             <TableCell className="font-medium text-foreground w-44">
-                                                <StringEditor productId={product._id} initialValue={product.flavour || ""} field="flavour" />
+                                                <StringEditor productId={product._id} initialValue={product.flavour || ""} field="flavour" readOnly={!isAdmin} />
                                             </TableCell>
                                             <TableCell className="w-24">
-                                                <BottlesPerPackEditor productId={product._id} initialBpp={product.bottlesPerPack} />
+                                                <BottlesPerPackEditor productId={product._id} initialBpp={product.bottlesPerPack} readOnly={!isAdmin} />
                                             </TableCell>
                                             <TableCell className="text-muted-foreground font-medium w-32">
-                                                <PriceEditor productId={product._id} initialPrice={product.invoiceCost || 0} field="invoiceCost" />
+                                                <PriceEditor productId={product._id} initialPrice={product.invoiceCost || 0} field="invoiceCost" readOnly={!isAdmin} />
                                             </TableCell>
                                             <TableCell className="text-right text-muted-foreground/70 italic hidden md:table-cell">
                                                 {formatCurrency(invoiceAmount)}
                                             </TableCell>
                                             <TableCell className="text-muted-foreground font-medium w-32">
-                                                <PriceEditor productId={product._id} initialPrice={product.mrp || 0} field="mrp" />
+                                                <PriceEditor productId={product._id} initialPrice={product.mrp || 0} field="mrp" readOnly={!isAdmin} />
                                             </TableCell>
 
                                             <TableCell className={`font-bold hidden lg:table-cell ${profit >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
                                                 {formatCurrency(profit)}
                                             </TableCell>
                                             <TableCell className="text-foreground font-bold w-32">
-                                                <PriceEditor productId={product._id} initialPrice={product.salePrice || 0} field="salePrice" />
+                                                <PriceEditor productId={product._id} initialPrice={product.salePrice || 0} field="salePrice" readOnly={!isAdmin} />
                                             </TableCell>
                                             <TableCell className="text-right text-primary font-extrabold hidden md:table-cell">
                                                 {formatCurrency(salesAmount)}
@@ -181,12 +183,13 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                                                 <QuantityEditor 
                                                     productId={product._id} 
                                                     initialQuantity={product.quantity} 
-                                                    bottlesPerPack={product.bottlesPerPack} 
+                                                    bottlesPerPack={product.bottlesPerPack}
+                                                    readOnly={!isAdmin}
                                                 />
                                             </TableCell>
                                             <TableCell className="text-right w-16">
                                                 <div className="flex justify-end gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                                    <DeleteProductButton productId={product._id} />
+                                                    <DeleteProductButton productId={product._id} readOnly={!isAdmin} />
                                                 </div>
                                             </TableCell>
                                         </TableRow>

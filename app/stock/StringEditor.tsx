@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Check, X, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function StringEditor({ productId, initialValue, field }: { productId: string, initialValue: string, field: string }) {
+export function StringEditor({ productId, initialValue, field, readOnly = false }: { productId: string, initialValue: string, field: string, readOnly?: boolean }) {
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(initialValue || "");
     const [loading, setLoading] = useState(false);
@@ -63,12 +63,14 @@ export function StringEditor({ productId, initialValue, field }: { productId: st
             <span className="text-gray-900 font-medium">
                 {value || <span className="text-gray-400 italic">Empty</span>}
             </span>
-            <button
-                onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded transition-all opacity-0 group-hover:opacity-100"
-            >
-                <Edit2 className="w-3.5 h-3.5" />
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Edit2 className="w-3.5 h-3.5" />
+                </button>
+            )}
         </div>
     );
 }

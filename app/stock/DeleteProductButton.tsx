@@ -4,9 +4,11 @@ import { Trash2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function DeleteProductButton({ productId }: { productId: string }) {
+export default function DeleteProductButton({ productId, readOnly = false }: { productId: string; readOnly?: boolean }) {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+
+    if (readOnly) return null;
 
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this product? This action cannot be undone.")) {

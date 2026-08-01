@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Check, X, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function BottlesPerPackEditor({ productId, initialBpp }: { productId: string, initialBpp: number }) {
+export function BottlesPerPackEditor({ productId, initialBpp, readOnly = false }: { productId: string, initialBpp: number, readOnly?: boolean }) {
     const [isEditing, setIsEditing] = useState(false);
     const [bpp, setBpp] = useState(initialBpp);
     const [loading, setLoading] = useState(false);
@@ -69,12 +69,14 @@ export function BottlesPerPackEditor({ productId, initialBpp }: { productId: str
             <span className="text-foreground font-black text-sm">
                 {bpp}
             </span>
-            <button
-                onClick={() => setIsEditing(true)}
-                className="p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded transition-all opacity-0 group-hover:opacity-100"
-            >
-                <Edit2 className="w-3 h-3" />
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 text-muted-foreground hover:text-primary hover:bg-muted rounded transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Edit2 className="w-3 h-3" />
+                </button>
+            )}
         </div>
     );
 }

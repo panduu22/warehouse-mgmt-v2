@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Check, X, Edit2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export function PriceEditor({ productId, initialPrice, field = "price" }: { productId: string, initialPrice: number, field?: string }) {
+export function PriceEditor({ productId, initialPrice, field = "price", readOnly = false }: { productId: string, initialPrice: number, field?: string, readOnly?: boolean }) {
     const [isEditing, setIsEditing] = useState(false);
     const [price, setPrice] = useState(initialPrice);
     const [loading, setLoading] = useState(false);
@@ -75,12 +75,14 @@ export function PriceEditor({ productId, initialPrice, field = "price" }: { prod
             <span className="text-gray-600 font-medium">
                 {formatCurrency(price)}
             </span>
-            <button
-                onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded transition-all"
-            >
-                <Edit2 className="w-3.5 h-3.5" />
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 text-gray-400 hover:text-ruby-600 hover:bg-ruby-50 rounded transition-all"
+                >
+                    <Edit2 className="w-3.5 h-3.5" />
+                </button>
+            )}
         </div>
     );
 }

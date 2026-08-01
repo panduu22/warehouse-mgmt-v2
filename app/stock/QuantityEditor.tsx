@@ -8,11 +8,13 @@ import { toBottles, formatPacksAndBottles } from "@/lib/stock-utils";
 export function QuantityEditor({ 
     productId, 
     initialQuantity, 
-    bottlesPerPack 
+    bottlesPerPack,
+    readOnly = false,
 }: { 
     productId: string; 
     initialQuantity: number;
     bottlesPerPack: number;
+    readOnly?: boolean;
 }) {
     const [isEditing, setIsEditing] = useState(false);
     const [packs, setPacks] = useState(String(Math.floor(initialQuantity / bottlesPerPack)));
@@ -110,12 +112,14 @@ export function QuantityEditor({
             >
                 {Math.floor(initialQuantity / bottlesPerPack)}C + {initialQuantity % bottlesPerPack}B
             </span>
-            <button
-                onClick={() => setIsEditing(true)}
-                className="p-1 text-gray-300 hover:text-ruby-600 hover:bg-ruby-50 rounded opacity-0 group-hover:opacity-100 transition-all"
-            >
-                <Edit2 className="w-3.5 h-3.5" />
-            </button>
+            {!readOnly && (
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="p-1 text-gray-300 hover:text-ruby-600 hover:bg-ruby-50 rounded opacity-0 group-hover:opacity-100 transition-all"
+                >
+                    <Edit2 className="w-3.5 h-3.5" />
+                </button>
+            )}
         </div>
     );
 }

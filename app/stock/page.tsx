@@ -50,7 +50,9 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
     const { q: query } = await searchParams;
     const session = await getServerSession(authOptions);
     const { products: allProducts, warehouseName } = await getProducts();
-    const isAdmin = (session?.user as any)?.role === "SUPER_ADMIN" || (session?.user as any)?.role === "WAREHOUSE_ADMIN";
+    const userRole = (session?.user as any)?.role;
+    const isAdmin = userRole === "SUPER_ADMIN" || userRole === "WAREHOUSE_ADMIN";
+    const canAddStock = userRole === "SUPER_ADMIN" || userRole === "WAREHOUSE_ADMIN" || userRole === "STAFF";
 
     // Filtering
     const products = query ? allProducts.filter((p: any) =>
@@ -100,7 +102,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     {isAdmin && <StockExcelImport />}
                     {isAdmin && <DeleteAllStockButton />}
-                    {isAdmin && (
+                    {canAddStock && (
                         <Link href="/stock/add" className={cn(buttonVariants({ variant: "default" }), "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 gap-2")}>
                             <Plus className="w-5 h-5" />
                             Add Stock

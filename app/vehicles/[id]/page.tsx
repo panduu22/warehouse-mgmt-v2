@@ -350,40 +350,44 @@ export default function VehicleDetailsPage() {
 
             {/* ── Period Summary Banner ───────────────────────────────────── */}
             {!loading && sales.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-                        <div className="p-2.5 bg-emerald-500/10 rounded-xl">
-                            <TrendingUp className="w-5 h-5 text-emerald-500" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 shadow-sm min-w-0">
+                        <div className="p-2 sm:p-2.5 bg-emerald-500/10 rounded-xl shrink-0">
+                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
                                 {rangeLabel} Sales
                             </p>
-                            <p className="text-xl font-black text-emerald-500">{formatCurrency(periodTotalSales)}</p>
+                            <p className="text-base sm:text-xl font-black text-emerald-500 tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
+                                {formatCurrency(periodTotalSales)}
+                            </p>
                         </div>
                     </div>
-                    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3 shadow-sm">
-                        <div className="p-2.5 bg-blue-500/10 rounded-xl">
-                            <Package className="w-5 h-5 text-blue-500" />
+                    <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 shadow-sm min-w-0">
+                        <div className="p-2 sm:p-2.5 bg-blue-500/10 rounded-xl shrink-0">
+                            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
                                 Total Bottles
                             </p>
-                            <p className="text-xl font-black text-foreground">
+                            <p className="text-base sm:text-xl font-black text-foreground tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
                                 {periodTotalBottles.toLocaleString("en-IN")}
                             </p>
                         </div>
                     </div>
-                    <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3 shadow-sm col-span-2 sm:col-span-1">
-                        <div className="p-2.5 bg-amber-500/10 rounded-xl">
-                            <Calendar className="w-5 h-5 text-amber-500" />
+                    <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 shadow-sm col-span-2 sm:col-span-1 min-w-0">
+                        <div className="p-2 sm:p-2.5 bg-amber-500/10 rounded-xl shrink-0">
+                            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
                                 Active Days
                             </p>
-                            <p className="text-xl font-black text-foreground">{sales.length}</p>
+                            <p className="text-base sm:text-xl font-black text-foreground tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
+                                {sales.length}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -414,67 +418,87 @@ export default function VehicleDetailsPage() {
                 // ── Consolidated View ──────────────────────────────────────────
                 <div className="space-y-8">
                     {/* Financial Summary Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <IndianRupee className="w-3 h-3 text-emerald-500" /> Gross Sales
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <IndianRupee className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">Gross Sales</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalGrossSales)}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalGrossSales)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <TrendingUp className="w-3 h-3 text-rose-500" /> Discounts
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <TrendingUp className="w-3 h-3 text-rose-500 shrink-0" /> <span className="truncate">Discounts</span>
                             </p>
-                            <p className="text-lg font-black text-rose-500">{formatCurrency(financialSummary.totalDiscounts)}</p>
+                            <p className="text-sm sm:text-lg font-black text-rose-500 tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalDiscounts)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-emerald-600 tracking-widest mb-1 flex items-center gap-1.5">
-                                <Activity className="w-3 h-3 text-emerald-500" /> Net Sales
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-emerald-600 tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Activity className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">Net Sales</span>
                             </p>
-                            <p className="text-lg font-black text-emerald-600">{formatCurrency(financialSummary.totalNetSales)}</p>
+                            <p className="text-sm sm:text-lg font-black text-emerald-600 tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalNetSales)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <Info className="w-3 h-3 text-amber-500" /> Expenses
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Info className="w-3 h-3 text-amber-500 shrink-0" /> <span className="truncate">Expenses</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalExpenses)}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalExpenses)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <Receipt className="w-3 h-3 text-blue-500" /> Bills Gen
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Receipt className="w-3 h-3 text-blue-500 shrink-0" /> <span className="truncate">Bills Gen</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{financialSummary.totalBills}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {financialSummary.totalBills}
+                            </p>
                         </Card>
                         
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <IndianRupee className="w-3 h-3 text-indigo-500" /> UPI Total
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <IndianRupee className="w-3 h-3 text-indigo-500 shrink-0" /> <span className="truncate">UPI Total</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalUPI)}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalUPI)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <IndianRupee className="w-3 h-3 text-emerald-600" /> Cash Total
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <IndianRupee className="w-3 h-3 text-emerald-600 shrink-0" /> <span className="truncate">Cash Total</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{formatCurrency(financialSummary.totalCash)}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalCash)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-primary/5 hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-primary tracking-widest mb-1 flex items-center gap-1.5">
-                                <Download className="w-3 h-3 text-primary" /> Received
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-primary/5 hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-primary tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Download className="w-3 h-3 text-primary shrink-0" /> <span className="truncate">Received</span>
                             </p>
-                            <p className="text-lg font-black text-primary">{formatCurrency(financialSummary.totalReceived)}</p>
+                            <p className="text-sm sm:text-lg font-black text-primary tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalReceived)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-rose-500/5 hover:border-rose-500/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-rose-600 tracking-widest mb-1 flex items-center gap-1.5">
-                                <Activity className="w-3 h-3 text-rose-500" /> Outstanding
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-rose-500/5 hover:border-rose-500/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-rose-600 tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Activity className="w-3 h-3 text-rose-500 shrink-0" /> <span className="truncate">Outstanding</span>
                             </p>
-                            <p className="text-lg font-black text-rose-600">{formatCurrency(financialSummary.totalOutstanding)}</p>
+                            <p className="text-sm sm:text-lg font-black text-rose-600 tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {formatCurrency(financialSummary.totalOutstanding)}
+                            </p>
                         </Card>
-                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-4 bg-card hover:border-primary/30 transition-colors">
-                            <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest mb-1 flex items-center gap-1.5">
-                                <Calendar className="w-3 h-3 text-blue-500" /> Active Days
+                        <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
+                                <Calendar className="w-3 h-3 text-blue-500 shrink-0" /> <span className="truncate">Active Days</span>
                             </p>
-                            <p className="text-lg font-black text-foreground">{financialSummary.activeDays}</p>
+                            <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
+                                {financialSummary.activeDays}
+                            </p>
                         </Card>
                     </div>
                     

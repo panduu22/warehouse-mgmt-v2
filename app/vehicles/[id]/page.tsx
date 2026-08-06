@@ -20,7 +20,12 @@ interface SaleItem {
     bottlesPerPack: number;
     salePrice: number;
     soldQty: number;
-    salesAmount: number;
+    normalQty: number;
+    schemeQty: number;
+    salesAmount: number; // Gross
+    normalSalesAmount: number;
+    schemeDiscountAmount: number;
+    netSalesAmount: number;
 }
 
 interface DaySales {
@@ -118,6 +123,22 @@ export default function VehicleDetailsPage() {
     const [isConsolidated, setIsConsolidated] = useState(false);
     const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null);
 
+    // Scheme toggle state — default OFF (false). Persisted in localStorage.
+    const [schemeMode, setSchemeMode] = useState<boolean>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("vehicle_details_scheme_mode");
+            return saved === "true";
+        }
+        return false;
+    });
+
+    const handleSchemeToggle = (newMode: boolean) => {
+        setSchemeMode(newMode);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("vehicle_details_scheme_mode", String(newMode));
+        }
+    };
+
     // Whether a filter is currently active
     const isFiltered = !!(fromDate || toDate);
 
@@ -197,14 +218,18 @@ export default function VehicleDetailsPage() {
             XLSX.utils.book_append_sheet(wb, wsSummary, "Financial Summary");
 
             // 2. Product Summary Sheet
-            const productData = sales[0].items.map((item) => ({
-                "Pack": item.pack,
-                "Flavour": item.flavour,
-                "Sale Price": formatCurrency(item.salePrice),
-                "Cases Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
-                "Bottles Sold": item.soldQty,
-                "Sales Amount": formatCurrency(item.salesAmount)
-            }));
+            const productData = sales[0].items.map((item) => {
+                const qtyToUse = schemeMode ? item.soldQty : item.normalQty;
+                const amtToUse = schemeMode ? item.salesAmount : item.normalSalesAmount;
+                return {
+                    "Pack": item.pack,
+                    "Flavour": item.flavour,
+                    "Sale Price": formatCurrency(item.salePrice),
+                    "Cases Sold": item.bottlesPerPack ? Math.floor(qtyToUse / item.bottlesPerPack) : 0,
+                    "Bottles Sold": qtyToUse,
+                    "Sales Amount": formatCurrency(amtToUse)
+                };
+            });
             const wsProducts = XLSX.utils.json_to_sheet(productData);
             wsProducts["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
             XLSX.utils.book_append_sheet(wb, wsProducts, "Product Summary");
@@ -212,14 +237,18 @@ export default function VehicleDetailsPage() {
         } else {
             // Unfiltered / Single-Day Export (Day-wise sheets)
             for (const day of sales) {
-                const dayData = day.items.map((item) => ({
-                    "Pack": item.pack,
-                    "Flavour": item.flavour,
-                    "Sale Price": formatCurrency(item.salePrice),
-                    "Cases Sold": item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0,
-                    "Bottles Sold": item.soldQty,
-                    "Sales Amount": formatCurrency(item.salesAmount)
-                }));
+                const dayData = day.items.map((item) => {
+                    const qtyToUse = schemeMode ? item.soldQty : item.normalQty;
+                    const amtToUse = schemeMode ? item.salesAmount : item.normalSalesAmount;
+                    return {
+                        "Pack": item.pack,
+                        "Flavour": item.flavour,
+                        "Sale Price": formatCurrency(item.salePrice),
+                        "Cases Sold": item.bottlesPerPack ? Math.floor(qtyToUse / item.bottlesPerPack) : 0,
+                        "Bottles Sold": qtyToUse,
+                        "Sales Amount": formatCurrency(amtToUse)
+                    };
+                });
                 const wsDay = XLSX.utils.json_to_sheet(dayData);
                 wsDay["!cols"] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
                 
@@ -235,13 +264,17 @@ export default function VehicleDetailsPage() {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Overall totals for the selected period
+    // Overall totals for the selected period dynamically calculated based on Scheme ON / OFF toggle
     const periodTotalSales = sales.reduce(
-        (sum, day) => sum + day.items.reduce((s, item) => s + item.salesAmount, 0),
+        (sum, day) => sum + day.items.reduce((s, item) => {
+            return s + (schemeMode ? item.salesAmount : item.normalSalesAmount);
+        }, 0),
         0
     );
     const periodTotalBottles = sales.reduce(
-        (sum, day) => sum + day.items.reduce((s, item) => s + item.soldQty, 0),
+        (sum, day) => sum + day.items.reduce((s, item) => {
+            return s + (schemeMode ? item.soldQty : item.normalQty);
+        }, 0),
         0
     );
 
@@ -357,7 +390,7 @@ export default function VehicleDetailsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
-                                {rangeLabel} Sales
+                                {rangeLabel} {schemeMode ? "Gross Sales" : "Normal Sales"}
                             </p>
                             <p className="text-base sm:text-xl font-black text-emerald-500 tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
                                 {formatCurrency(periodTotalSales)}
@@ -370,7 +403,7 @@ export default function VehicleDetailsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
-                                Total Bottles
+                                {schemeMode ? "Total Bottles" : "Normal Bottles"}
                             </p>
                             <p className="text-base sm:text-xl font-black text-foreground tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
                                 {periodTotalBottles.toLocaleString("en-IN")}
@@ -421,10 +454,10 @@ export default function VehicleDetailsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
                             <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
-                                <IndianRupee className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">Gross Sales</span>
+                                <IndianRupee className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">{schemeMode ? "Gross Sales" : "Normal Sales"}</span>
                             </p>
                             <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
-                                {formatCurrency(financialSummary.totalGrossSales)}
+                                {formatCurrency(schemeMode ? financialSummary.totalGrossSales : (financialSummary.totalGrossSales - financialSummary.totalDiscounts))}
                             </p>
                         </Card>
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
@@ -432,7 +465,7 @@ export default function VehicleDetailsPage() {
                                 <TrendingUp className="w-3 h-3 text-rose-500 shrink-0" /> <span className="truncate">Discounts</span>
                             </p>
                             <p className="text-sm sm:text-lg font-black text-rose-500 tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
-                                {formatCurrency(financialSummary.totalDiscounts)}
+                                {formatCurrency(schemeMode ? financialSummary.totalDiscounts : 0)}
                             </p>
                         </Card>
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors min-w-0">
@@ -504,11 +537,38 @@ export default function VehicleDetailsPage() {
                     
                     {/* Consolidated Product Summary Table */}
                     <Card className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
-                        <CardHeader className="bg-muted/30 border-b pb-4">
+                        <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between flex-wrap gap-3">
                             <CardTitle className="text-xl flex items-center gap-2">
                                 <Package className="w-5 h-5 text-primary" />
                                 Product Summary
                             </CardTitle>
+
+                            {/* Scheme ON / OFF Toggle Switch */}
+                            <div className="flex items-center gap-2.5 bg-background px-3.5 py-1.5 rounded-full border border-border shadow-sm">
+                                <span className="text-xs font-black text-foreground uppercase tracking-wider">
+                                    Scheme
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleSchemeToggle(!schemeMode)}
+                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                        schemeMode ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+                                    }`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                            schemeMode ? "translate-x-5" : "translate-x-0"
+                                        }`}
+                                    />
+                                </button>
+                                <span
+                                    className={`text-xs font-black uppercase tracking-wider ${
+                                        schemeMode ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                                    }`}
+                                >
+                                    {schemeMode ? "ON" : "OFF"}
+                                </span>
+                            </div>
                         </CardHeader>
 
                         <CardContent className="p-0">
@@ -519,36 +579,54 @@ export default function VehicleDetailsPage() {
                                             <TableHead className="font-bold">Pack</TableHead>
                                             <TableHead className="font-bold">Flavour</TableHead>
                                             <TableHead className="font-bold text-right">Sale Price</TableHead>
-                                            <TableHead className="font-bold text-right">Total Cases</TableHead>
-                                            <TableHead className="font-bold text-right">Total Bottles</TableHead>
-                                            <TableHead className="font-bold text-right">Total Sales</TableHead>
+                                            <TableHead className="font-bold text-right">{schemeMode ? "Total Cases" : "Normal Cases"}</TableHead>
+                                            <TableHead className="font-bold text-right">{schemeMode ? "Total Bottles" : "Normal Bottles"}</TableHead>
+                                            {schemeMode && <TableHead className="font-bold text-right text-rose-500">Scheme Disc.</TableHead>}
+                                            <TableHead className="font-bold text-right">{schemeMode ? "Net Sales" : "Normal Sales"}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sales[0]?.items.map((item, idx) => (
-                                            <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
-                                                <TableCell className="font-medium text-foreground">{item.pack}</TableCell>
-                                                <TableCell className="font-medium text-foreground">{item.flavour}</TableCell>
-                                                <TableCell className="text-right text-muted-foreground font-medium">{formatCurrency(item.salePrice)}</TableCell>
-                                                <TableCell className="text-right text-foreground font-bold">
-                                                    {item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0}
-                                                </TableCell>
-                                                <TableCell className="text-right text-foreground font-bold">{item.soldQty}</TableCell>
-                                                <TableCell className="text-right text-primary font-bold">{formatCurrency(item.salesAmount)}</TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {sales[0]?.items.map((item, idx) => {
+                                            const qtyToDisplay = schemeMode ? item.soldQty : item.normalQty;
+                                            const casesToDisplay = item.bottlesPerPack ? Math.floor(qtyToDisplay / item.bottlesPerPack) : 0;
+                                            const amountToDisplay = schemeMode ? item.netSalesAmount : item.normalSalesAmount;
+
+                                            return (
+                                                <TableRow key={idx} className="hover:bg-muted/50 transition-colors">
+                                                    <TableCell className="font-medium text-foreground">{item.pack}</TableCell>
+                                                    <TableCell className="font-medium text-foreground">{item.flavour}</TableCell>
+                                                    <TableCell className="text-right text-muted-foreground font-medium">{formatCurrency(item.salePrice)}</TableCell>
+                                                    <TableCell className="text-right text-foreground font-bold">{casesToDisplay}</TableCell>
+                                                    <TableCell className="text-right text-foreground font-bold">{qtyToDisplay}</TableCell>
+                                                    {schemeMode && (
+                                                        <TableCell className="text-right text-rose-500 font-medium">
+                                                            {item.schemeDiscountAmount > 0 ? `-${formatCurrency(item.schemeDiscountAmount)}` : "—"}
+                                                        </TableCell>
+                                                    )}
+                                                    <TableCell className="text-right text-primary font-bold">{formatCurrency(amountToDisplay)}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                     <TableFooter className="bg-muted border-t-2 border-border font-bold text-foreground">
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-right">Grand Total:</TableCell>
                                             <TableCell className="text-right">
-                                                {sales[0]?.items.reduce((sum, item) => sum + (item.bottlesPerPack ? Math.floor(item.soldQty / item.bottlesPerPack) : 0), 0)} cases
+                                                {sales[0]?.items.reduce((sum, item) => {
+                                                    const q = schemeMode ? item.soldQty : item.normalQty;
+                                                    return sum + (item.bottlesPerPack ? Math.floor(q / item.bottlesPerPack) : 0);
+                                                }, 0)} cases
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {financialSummary.totalProductsSold} bottles
+                                                {sales[0]?.items.reduce((sum, item) => sum + (schemeMode ? item.soldQty : item.normalQty), 0)} bottles
                                             </TableCell>
+                                            {schemeMode && (
+                                                <TableCell className="text-right text-rose-500 font-black">
+                                                    -{formatCurrency(financialSummary.totalDiscounts)}
+                                                </TableCell>
+                                            )}
                                             <TableCell className="text-right text-primary text-lg">
-                                                {formatCurrency(financialSummary.totalGrossSales)}
+                                                {formatCurrency(schemeMode ? financialSummary.totalNetSales : (financialSummary.totalGrossSales - financialSummary.totalDiscounts))}
                                             </TableCell>
                                         </TableRow>
                                     </TableFooter>
@@ -561,7 +639,13 @@ export default function VehicleDetailsPage() {
                 // ── Day-Wise Grouped Layout (Default) ──────────────────────────
                 <div className="space-y-8">
                     {sales.map((day) => {
-                        const totalSalesAmount = day.items.reduce((sum, item) => sum + item.salesAmount, 0);
+                        const dayGrossSales = day.items.reduce((sum, item) => sum + item.salesAmount, 0);
+                        const dayDiscounts = day.items.reduce((sum, item) => sum + item.schemeDiscountAmount, 0);
+                        const dayNetSales = dayGrossSales - dayDiscounts;
+                        const dayNormalSales = day.items.reduce((sum, item) => sum + item.normalSalesAmount, 0);
+                        
+                        const displayTotal = schemeMode ? dayGrossSales : dayNormalSales;
+
                         return (
                             <Card key={day.date} className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
                                 <CardHeader className="bg-muted/30 border-b pb-4 flex flex-row items-center justify-between flex-wrap gap-3">
@@ -574,8 +658,38 @@ export default function VehicleDetailsPage() {
                                             day: "numeric",
                                         })}
                                     </CardTitle>
-                                    <div className="text-lg font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full">
-                                        Total: {formatCurrency(totalSalesAmount)}
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        {/* Scheme ON / OFF Toggle Switch */}
+                                        <div className="flex items-center gap-2.5 bg-background px-3.5 py-1.5 rounded-full border border-border shadow-sm">
+                                            <span className="text-xs font-black text-foreground uppercase tracking-wider">
+                                                Scheme
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSchemeToggle(!schemeMode)}
+                                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                                    schemeMode ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600"
+                                                }`}
+                                            >
+                                                <span
+                                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                        schemeMode ? "translate-x-5" : "translate-x-0"
+                                                    }`}
+                                                />
+                                            </button>
+                                            <span
+                                                className={`text-xs font-black uppercase tracking-wider ${
+                                                    schemeMode ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
+                                                }`}
+                                            >
+                                                {schemeMode ? "ON" : "OFF"}
+                                            </span>
+                                        </div>
+
+                                        <div className="text-base sm:text-lg font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full">
+                                            {schemeMode ? "Gross Total: " : "Normal Total: "}
+                                            {formatCurrency(displayTotal)}
+                                        </div>
                                     </div>
                                 </CardHeader>
 
@@ -587,39 +701,49 @@ export default function VehicleDetailsPage() {
                                                     <TableHead className="font-bold">Pack</TableHead>
                                                     <TableHead className="font-bold">Flavour</TableHead>
                                                     <TableHead className="font-bold text-right">Sale Price</TableHead>
-                                                    <TableHead className="font-bold text-right">Sold Qty (Cases)</TableHead>
-                                                    <TableHead className="font-bold text-right">Sold Qty (Bottles)</TableHead>
-                                                    <TableHead className="font-bold text-right">Sales Amount</TableHead>
+                                                    <TableHead className="font-bold text-right">{schemeMode ? "Sold Qty (Cases)" : "Normal Cases"}</TableHead>
+                                                    <TableHead className="font-bold text-right">{schemeMode ? "Sold Qty (Bottles)" : "Normal Bottles"}</TableHead>
+                                                    {schemeMode && <TableHead className="font-bold text-right text-rose-500">Scheme Disc.</TableHead>}
+                                                    <TableHead className="font-bold text-right">{schemeMode ? "Net Sales" : "Normal Sales"}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {day.items.map((item, idx) => (
-                                                    <TableRow
-                                                        key={idx}
-                                                        className="hover:bg-muted/50 transition-colors"
-                                                    >
-                                                        <TableCell className="font-medium text-foreground">
-                                                            {item.pack}
-                                                        </TableCell>
-                                                        <TableCell className="font-medium text-foreground">
-                                                            {item.flavour}
-                                                        </TableCell>
-                                                        <TableCell className="text-right text-muted-foreground font-medium">
-                                                            {formatCurrency(item.salePrice)}
-                                                        </TableCell>
-                                                        <TableCell className="text-right text-foreground font-bold">
-                                                            {item.bottlesPerPack
-                                                                ? Math.floor(item.soldQty / item.bottlesPerPack)
-                                                                : 0}
-                                                        </TableCell>
-                                                        <TableCell className="text-right text-foreground font-bold">
-                                                            {item.soldQty}
-                                                        </TableCell>
-                                                        <TableCell className="text-right text-primary font-bold">
-                                                            {formatCurrency(item.salesAmount)}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
+                                                {day.items.map((item, idx) => {
+                                                    const qtyToDisplay = schemeMode ? item.soldQty : item.normalQty;
+                                                    const casesToDisplay = item.bottlesPerPack ? Math.floor(qtyToDisplay / item.bottlesPerPack) : 0;
+                                                    const amountToDisplay = schemeMode ? item.netSalesAmount : item.normalSalesAmount;
+
+                                                    return (
+                                                        <TableRow
+                                                            key={idx}
+                                                            className="hover:bg-muted/50 transition-colors"
+                                                        >
+                                                            <TableCell className="font-medium text-foreground">
+                                                                {item.pack}
+                                                            </TableCell>
+                                                            <TableCell className="font-medium text-foreground">
+                                                                {item.flavour}
+                                                            </TableCell>
+                                                            <TableCell className="text-right text-muted-foreground font-medium">
+                                                                {formatCurrency(item.salePrice)}
+                                                            </TableCell>
+                                                            <TableCell className="text-right text-foreground font-bold">
+                                                                {casesToDisplay}
+                                                            </TableCell>
+                                                            <TableCell className="text-right text-foreground font-bold">
+                                                                {qtyToDisplay}
+                                                            </TableCell>
+                                                            {schemeMode && (
+                                                                <TableCell className="text-right text-rose-500 font-medium">
+                                                                    {item.schemeDiscountAmount > 0 ? `-${formatCurrency(item.schemeDiscountAmount)}` : "—"}
+                                                                </TableCell>
+                                                            )}
+                                                            <TableCell className="text-right text-primary font-bold">
+                                                                {formatCurrency(amountToDisplay)}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
                                             </TableBody>
                                             <TableFooter className="bg-muted border-t-2 border-border font-bold text-foreground">
                                                 <TableRow>
@@ -628,20 +752,24 @@ export default function VehicleDetailsPage() {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         {day.items.reduce(
-                                                            (sum, item) =>
-                                                                sum +
-                                                                (item.bottlesPerPack
-                                                                    ? Math.floor(item.soldQty / item.bottlesPerPack)
-                                                                    : 0),
+                                                            (sum, item) => {
+                                                                const q = schemeMode ? item.soldQty : item.normalQty;
+                                                                return sum + (item.bottlesPerPack ? Math.floor(q / item.bottlesPerPack) : 0);
+                                                            },
                                                             0
                                                         )}{" "}
                                                         cases
                                                     </TableCell>
                                                     <TableCell className="text-right">
-                                                        {day.items.reduce((sum, item) => sum + item.soldQty, 0)} bottles
+                                                        {day.items.reduce((sum, item) => sum + (schemeMode ? item.soldQty : item.normalQty), 0)} bottles
                                                     </TableCell>
+                                                    {schemeMode && (
+                                                        <TableCell className="text-right text-rose-500 font-black">
+                                                            -{formatCurrency(dayDiscounts)}
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-right text-primary text-lg">
-                                                        {formatCurrency(totalSalesAmount)}
+                                                        {formatCurrency(schemeMode ? dayNetSales : dayNormalSales)}
                                                     </TableCell>
                                                 </TableRow>
                                             </TableFooter>
@@ -656,3 +784,4 @@ export default function VehicleDetailsPage() {
         </div>
     );
 }
+

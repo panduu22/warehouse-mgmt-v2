@@ -124,33 +124,58 @@ export async function GET(
 
                     if (soldQty > 0) {
                         const bpp = product.bottlesPerPack || 1;
-                        const soldPacks = Math.floor(soldQty / bpp);
-                        const salesAmount = soldPacks * (product.salePrice || 0);
-                        let discountAmount = 0;
+                        const packPrice = product.salePrice || product.price || 0;
+                        const bottlePrice = packPrice / bpp;
 
-                        // Legacy discount support
-                        if ((item as any).discountPerPack) {
-                             discountAmount += soldPacks * (item as any).discountPerPack;
-                        }
+                        let lineSchemeBottles = 0;
+                        let lineSchemeTotal = 0;
+                        let lineDiscount = 0;
 
-                        // Schemes logic
-                        if ((item as any).schemes && Array.isArray((item as any).schemes)) {
+                        if ((item as any).schemes && Array.isArray((item as any).schemes) && (item as any).schemes.length > 0) {
                             for (const scheme of (item as any).schemes) {
-                                if (scheme.discountPerPack) {
-                                    const appliedPacks = scheme.packs || 0;
-                                    discountAmount += appliedPacks * scheme.discountPerPack;
-                                }
+                                const sBottles = ((scheme.packs || 0) * bpp) + (scheme.bottles || 0);
+                                lineSchemeBottles += sBottles;
+                                const discountPerPack = scheme.discountPerPack || 0;
+                                const sPrice = packPrice - discountPerPack;
+                                const sBottlePrice = sPrice / bpp;
+                                const slabTotal = ((scheme.packs || 0) * sPrice) + ((scheme.bottles || 0) * sBottlePrice);
+                                const slabDiscount = (sBottles / bpp) * discountPerPack;
+                                lineSchemeTotal += slabTotal;
+                                lineDiscount += slabDiscount;
                             }
+                        } else if ((item as any).qtyScheme && (item as any).qtyScheme > 0) {
+                            const sBottles = (item as any).qtyScheme;
+                            lineSchemeBottles += sBottles;
+                            const discountPerPack = (item as any).discountPerPack || 0;
+                            const sPrice = packPrice - discountPerPack;
+                            const sBottlePrice = sPrice / bpp;
+                            const sPacks = Math.floor(sBottles / bpp);
+                            const sRem = sBottles % bpp;
+                            lineSchemeTotal += (sPacks * sPrice) + (sRem * sBottlePrice);
+                            lineDiscount += (sBottles / bpp) * discountPerPack;
                         }
 
-                        financialSummary.totalGrossSales += salesAmount;
-                        financialSummary.totalDiscounts += discountAmount;
+                        const normalBottles = soldQty - lineSchemeBottles;
+                        const nPacks = Math.floor(normalBottles / bpp);
+                        const nRem = normalBottles % bpp;
+                        const normalTotal = (nPacks * packPrice) + (nRem * bottlePrice);
+
+                        const lineNetTotal = normalTotal + lineSchemeTotal;
+                        const lineGrossValue = lineNetTotal + lineDiscount;
+
+                        financialSummary.totalGrossSales += lineGrossValue;
+                        financialSummary.totalDiscounts += lineDiscount;
                         financialSummary.totalProductsSold += soldQty;
 
                         const pId = product._id.toString();
                         if (consolidatedItemsMap[pId]) {
                             consolidatedItemsMap[pId].soldQty += soldQty;
-                            consolidatedItemsMap[pId].salesAmount += salesAmount;
+                            consolidatedItemsMap[pId].normalQty += normalBottles;
+                            consolidatedItemsMap[pId].schemeQty += lineSchemeBottles;
+                            consolidatedItemsMap[pId].salesAmount += lineGrossValue;
+                            consolidatedItemsMap[pId].normalSalesAmount += normalTotal;
+                            consolidatedItemsMap[pId].schemeDiscountAmount += lineDiscount;
+                            consolidatedItemsMap[pId].netSalesAmount += lineNetTotal;
                         } else {
                             consolidatedItemsMap[pId] = {
                                 productId: pId,
@@ -158,9 +183,14 @@ export async function GET(
                                 flavour: product.flavour,
                                 pack: product.pack,
                                 bottlesPerPack: bpp,
-                                salePrice: product.salePrice || 0,
+                                salePrice: packPrice,
                                 soldQty,
-                                salesAmount,
+                                normalQty: normalBottles,
+                                schemeQty: lineSchemeBottles,
+                                salesAmount: lineGrossValue,
+                                normalSalesAmount: normalTotal,
+                                schemeDiscountAmount: lineDiscount,
+                                netSalesAmount: lineNetTotal,
                             };
                         }
                     }
@@ -203,8 +233,44 @@ export async function GET(
 
                 if (soldQty > 0) {
                     const bpp = product.bottlesPerPack || 1;
-                    const soldPacks = Math.floor(soldQty / bpp);
-                    const salesAmount = soldPacks * (product.salePrice || 0);
+                    const packPrice = product.salePrice || product.price || 0;
+                    const bottlePrice = packPrice / bpp;
+
+                    let lineSchemeBottles = 0;
+                    let lineSchemeTotal = 0;
+                    let lineDiscount = 0;
+
+                    if ((item as any).schemes && Array.isArray((item as any).schemes) && (item as any).schemes.length > 0) {
+                        for (const scheme of (item as any).schemes) {
+                            const sBottles = ((scheme.packs || 0) * bpp) + (scheme.bottles || 0);
+                            lineSchemeBottles += sBottles;
+                            const discountPerPack = scheme.discountPerPack || 0;
+                            const sPrice = packPrice - discountPerPack;
+                            const sBottlePrice = sPrice / bpp;
+                            const slabTotal = ((scheme.packs || 0) * sPrice) + ((scheme.bottles || 0) * sBottlePrice);
+                            const slabDiscount = (sBottles / bpp) * discountPerPack;
+                            lineSchemeTotal += slabTotal;
+                            lineDiscount += slabDiscount;
+                        }
+                    } else if ((item as any).qtyScheme && (item as any).qtyScheme > 0) {
+                        const sBottles = (item as any).qtyScheme;
+                        lineSchemeBottles += sBottles;
+                        const discountPerPack = (item as any).discountPerPack || 0;
+                        const sPrice = packPrice - discountPerPack;
+                        const sBottlePrice = sPrice / bpp;
+                        const sPacks = Math.floor(sBottles / bpp);
+                        const sRem = sBottles % bpp;
+                        lineSchemeTotal += (sPacks * sPrice) + (sRem * sBottlePrice);
+                        lineDiscount += (sBottles / bpp) * discountPerPack;
+                    }
+
+                    const normalBottles = soldQty - lineSchemeBottles;
+                    const nPacks = Math.floor(normalBottles / bpp);
+                    const nRem = normalBottles % bpp;
+                    const normalTotal = (nPacks * packPrice) + (nRem * bottlePrice);
+
+                    const lineNetTotal = normalTotal + lineSchemeTotal;
+                    const lineGrossValue = lineNetTotal + lineDiscount;
 
                     const existing = salesByDate[dateStr].find(
                         (p: any) => p.productId.toString() === product._id.toString()
@@ -212,7 +278,12 @@ export async function GET(
 
                     if (existing) {
                         existing.soldQty += soldQty;
-                        existing.salesAmount += salesAmount;
+                        existing.normalQty += normalBottles;
+                        existing.schemeQty += lineSchemeBottles;
+                        existing.salesAmount += lineGrossValue;
+                        existing.normalSalesAmount += normalTotal;
+                        existing.schemeDiscountAmount += lineDiscount;
+                        existing.netSalesAmount += lineNetTotal;
                     } else {
                         salesByDate[dateStr].push({
                             productId: product._id,
@@ -220,9 +291,14 @@ export async function GET(
                             flavour: product.flavour,
                             pack: product.pack,
                             bottlesPerPack: bpp,
-                            salePrice: product.salePrice || 0,
+                            salePrice: packPrice,
                             soldQty,
-                            salesAmount,
+                            normalQty: normalBottles,
+                            schemeQty: lineSchemeBottles,
+                            salesAmount: lineGrossValue,
+                            normalSalesAmount: normalTotal,
+                            schemeDiscountAmount: lineDiscount,
+                            netSalesAmount: lineNetTotal,
                         });
                     }
                 }

@@ -264,17 +264,19 @@ export default function VehicleDetailsPage() {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Overall totals for the selected period dynamically calculated based on Scheme ON / OFF toggle
-    const periodTotalSales = sales.reduce(
-        (sum, day) => sum + day.items.reduce((s, item) => {
-            return s + (schemeMode ? item.salesAmount : item.normalSalesAmount);
-        }, 0),
+    // Overall totals for the selected period — always Final Sales (Gross - Discount)
+    // These headline numbers are NOT controlled by the Scheme toggle
+    const periodGrossSales = sales.reduce(
+        (sum, day) => sum + day.items.reduce((s, item) => s + item.salesAmount, 0),
         0
     );
+    const periodTotalDiscounts = sales.reduce(
+        (sum, day) => sum + day.items.reduce((s, item) => s + item.schemeDiscountAmount, 0),
+        0
+    );
+    const periodFinalSales = periodGrossSales - periodTotalDiscounts;
     const periodTotalBottles = sales.reduce(
-        (sum, day) => sum + day.items.reduce((s, item) => {
-            return s + (schemeMode ? item.soldQty : item.normalQty);
-        }, 0),
+        (sum, day) => sum + day.items.reduce((s, item) => s + item.soldQty, 0),
         0
     );
 
@@ -390,10 +392,10 @@ export default function VehicleDetailsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
-                                {rangeLabel} {schemeMode ? "Gross Sales" : "Normal Sales"}
+                                {rangeLabel} Final Sales
                             </p>
                             <p className="text-base sm:text-xl font-black text-emerald-500 tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
-                                {formatCurrency(periodTotalSales)}
+                                {formatCurrency(periodFinalSales)}
                             </p>
                         </div>
                     </div>
@@ -403,7 +405,7 @@ export default function VehicleDetailsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
-                                {schemeMode ? "Total Bottles" : "Normal Bottles"}
+                                Total Bottles
                             </p>
                             <p className="text-base sm:text-xl font-black text-foreground tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
                                 {periodTotalBottles.toLocaleString("en-IN")}
@@ -454,10 +456,10 @@ export default function VehicleDetailsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
                             <p className="text-[9px] sm:text-[10px] uppercase font-black text-muted-foreground tracking-wider mb-1 flex items-center gap-1 shrink-0 truncate">
-                                <IndianRupee className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">{schemeMode ? "Gross Sales" : "Normal Sales"}</span>
+                                <IndianRupee className="w-3 h-3 text-emerald-500 shrink-0" /> <span className="truncate">Gross Sales</span>
                             </p>
                             <p className="text-sm sm:text-lg font-black text-foreground tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
-                                {formatCurrency(schemeMode ? financialSummary.totalGrossSales : (financialSummary.totalGrossSales - financialSummary.totalDiscounts))}
+                                {formatCurrency(financialSummary.totalGrossSales)}
                             </p>
                         </Card>
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-card hover:border-primary/30 transition-colors min-w-0">
@@ -465,7 +467,7 @@ export default function VehicleDetailsPage() {
                                 <TrendingUp className="w-3 h-3 text-rose-500 shrink-0" /> <span className="truncate">Discounts</span>
                             </p>
                             <p className="text-sm sm:text-lg font-black text-rose-500 tracking-tight leading-tight text-[clamp(0.8rem,3.4vw,1.125rem)] whitespace-nowrap overflow-hidden">
-                                {formatCurrency(schemeMode ? financialSummary.totalDiscounts : 0)}
+                                {formatCurrency(financialSummary.totalDiscounts)}
                             </p>
                         </Card>
                         <Card className="border shadow-sm hover:shadow-erp-hover rounded-2xl p-2.5 sm:p-4 bg-emerald-500/5 hover:border-emerald-500/30 transition-colors min-w-0">
@@ -642,9 +644,8 @@ export default function VehicleDetailsPage() {
                         const dayGrossSales = day.items.reduce((sum, item) => sum + item.salesAmount, 0);
                         const dayDiscounts = day.items.reduce((sum, item) => sum + item.schemeDiscountAmount, 0);
                         const dayNetSales = dayGrossSales - dayDiscounts;
-                        const dayNormalSales = day.items.reduce((sum, item) => sum + item.normalSalesAmount, 0);
-                        
-                        const displayTotal = schemeMode ? dayGrossSales : dayNormalSales;
+                        // Final Total is always Gross - Discount (matches Invoice Net Total)
+                        const dayFinalTotal = dayNetSales;
 
                         return (
                             <Card key={day.date} className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
@@ -687,8 +688,7 @@ export default function VehicleDetailsPage() {
                                         </div>
 
                                         <div className="text-base sm:text-lg font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full">
-                                            {schemeMode ? "Gross Total: " : "Normal Total: "}
-                                            {formatCurrency(displayTotal)}
+                                            Final Total: {formatCurrency(dayFinalTotal)}
                                         </div>
                                     </div>
                                 </CardHeader>
@@ -769,7 +769,7 @@ export default function VehicleDetailsPage() {
                                                         </TableCell>
                                                     )}
                                                     <TableCell className="text-right text-primary text-lg">
-                                                        {formatCurrency(schemeMode ? dayNetSales : dayNormalSales)}
+                                                        {formatCurrency(dayNetSales)}
                                                     </TableCell>
                                                 </TableRow>
                                             </TableFooter>

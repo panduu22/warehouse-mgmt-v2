@@ -11,6 +11,14 @@ import Warehouse from "@/models/Warehouse";
 
 export const dynamic = "force-dynamic";
 
+function parseLocalDate(dateStr: string, isEnd = false): Date {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    if (isEnd) {
+        return new Date(y, m - 1, d, 23, 59, 59, 999);
+    }
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
 export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -20,6 +28,8 @@ export async function GET(req: Request) {
 
         const url = new URL(req.url);
         const dateParam = url.searchParams.get("date"); // YYYY-MM-DD for daily balance
+        const fromParam = url.searchParams.get("from");
+        const toParam   = url.searchParams.get("to");
 
         // Warehouse context
         const cookieStore = await cookies();
@@ -32,22 +42,39 @@ export async function GET(req: Request) {
 
         const warehouseFilter = warehouseId ? { warehouseId: new mongoose.Types.ObjectId(warehouseId) } : {};
 
-        // Date range for "daily balance"
-        const dayStr = dateParam || new Date().toISOString().split("T")[0];
-        const dayStart = new Date(`${dayStr}T00:00:00.000Z`);
-        const dayEnd   = new Date(`${dayStr}T23:59:59.999Z`);
+        // Date range for queries
+        let dayStart: Date;
+        let dayEnd: Date;
+
+        if (fromParam && toParam) {
+            dayStart = parseLocalDate(fromParam, false);
+            dayEnd   = parseLocalDate(toParam, true);
+        } else {
+            const dayStr = dateParam || new Date().toISOString().split("T")[0];
+            dayStart = new Date(`${dayStr}T00:00:00.000Z`);
+            dayEnd   = new Date(`${dayStr}T23:59:59.999Z`);
+        }
 
         // Fetch all vehicles in warehouse
         const vehicles = await Vehicle.find(warehouseId ? { warehouseId } : {}).lean();
 
-        // Aggregate: all verified trips with balance > 0 for this warehouse
+        // Query filters based on whether date range is active
+        const tripDateFilter = (fromParam && toParam) ? {
+            $or: [
+                { endTime: { $gte: dayStart, $lte: dayEnd } },
+                { createdAt: { $gte: dayStart, $lte: dayEnd } }
+            ]
+        } : {};
+
+        // Aggregate: verified trips with balance > 0 for this warehouse
         const tripsWithBalance = await Trip.find({
             ...warehouseFilter,
             status: "VERIFIED",
-            balanceAmount: { $gt: 0 }
+            balanceAmount: { $gt: 0 },
+            ...tripDateFilter
         }).select("vehicleId balanceAmount grandTotal endTime createdAt").lean();
 
-        // Aggregate: daily trips (verified on the selected day)
+        // Aggregate: daily/period trips (verified in date range)
         const dailyTrips = await Trip.find({
             ...warehouseFilter,
             status: "VERIFIED",
@@ -57,8 +84,15 @@ export async function GET(req: Request) {
             ]
         }).select("vehicleId balanceAmount grandTotal").lean();
 
-        // Aggregate: all VehiclePayments collected for this warehouse
-        const allPayments = await VehiclePayment.find(warehouseFilter).select("vehicleId amount").lean();
+        // Aggregate: VehiclePayments collected for this warehouse
+        const paymentDateFilter = (fromParam && toParam) ? {
+            collectedAt: { $gte: dayStart, $lte: dayEnd }
+        } : {};
+
+        const allPayments = await VehiclePayment.find({
+            ...warehouseFilter,
+            ...paymentDateFilter
+        }).select("vehicleId amount").lean();
 
         // Build per-vehicle balance maps
         const outstandingByVehicle: Record<string, number> = {};
@@ -103,7 +137,7 @@ export async function GET(req: Request) {
             };
         });
 
-        return NextResponse.json({ data: result, date: dayStr });
+        return NextResponse.json({ data: result, date: dayStart.toISOString().split("T")[0] });
     } catch (error) {
         console.error("Vehicle Balance Error:", error);
         return NextResponse.json({ error: "Failed to fetch vehicle balances" }, { status: 500 });

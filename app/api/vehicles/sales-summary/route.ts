@@ -17,6 +17,14 @@ function toLocalDateKey(date: Date): string {
     return `${y}-${m}-${d}`;
 }
 
+function parseLocalDate(dateStr: string, isEnd = false): Date {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    if (isEnd) {
+        return new Date(y, m - 1, d, 23, 59, 59, 999);
+    }
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
 export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -27,7 +35,9 @@ export async function GET(req: Request) {
         await dbConnect();
 
         const url = new URL(req.url);
-        const timeframe = url.searchParams.get("timeframe") || "weekly"; // "weekly" | "monthly" | "all"
+        const timeframe = url.searchParams.get("timeframe") || "weekly"; // "weekly" | "monthly" | "all" | "custom"
+        const fromParam = url.searchParams.get("from");
+        const toParam = url.searchParams.get("to");
 
         // Warehouse context
         const cookieStore = await cookies();
@@ -41,8 +51,12 @@ export async function GET(req: Request) {
         // Date range based on timeframe (using local time so it matches IST calendar)
         const now = new Date();
         let startDate: Date | null = null;
+        let endDate: Date | null = null;
 
-        if (timeframe === "weekly") {
+        if (timeframe === "custom" || (fromParam && toParam)) {
+            if (fromParam) startDate = parseLocalDate(fromParam, false);
+            if (toParam) endDate = parseLocalDate(toParam, true);
+        } else if (timeframe === "weekly") {
             // Monday of current week
             const day = now.getDay();
             const diff = now.getDate() - day + (day === 0 ? -6 : 1);
@@ -62,10 +76,21 @@ export async function GET(req: Request) {
         // Build trip filter
         const tripFilter: any = { status: "VERIFIED" };
         if (warehouseId) tripFilter.warehouseId = warehouseId;
-        if (startDate) {
+
+        if (startDate && endDate) {
+            tripFilter.$or = [
+                { startTime: { $gte: startDate, $lte: endDate } },
+                { createdAt: { $gte: startDate, $lte: endDate } },
+            ];
+        } else if (startDate) {
             tripFilter.$or = [
                 { startTime: { $gte: startDate } },
                 { createdAt: { $gte: startDate } },
+            ];
+        } else if (endDate) {
+            tripFilter.$or = [
+                { startTime: { $lte: endDate } },
+                { createdAt: { $lte: endDate } },
             ];
         }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Truck, User, Trash2, Loader2, TrendingUp, Package, BarChart2, Wallet, AlertCircle, X, Clock, CheckCircle2 } from "lucide-react";
+import { Plus, Truck, User, Trash2, Loader2, TrendingUp, Package, BarChart2, Wallet, AlertCircle, X, Clock, CheckCircle2, Calendar } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -20,7 +20,12 @@ interface Vehicle {
     totalOutstandingBalance?: number;
 }
 
-type Timeframe = "weekly" | "monthly" | "all";
+type Timeframe = "weekly" | "monthly" | "all" | "custom";
+
+interface DateRange {
+    from: string;
+    to: string;
+}
 
 interface CollectBalancePayload {
     vehicleId: string;
@@ -278,6 +283,127 @@ function PaymentHistoryModal({
     );
 }
 
+// ── Custom Date Range Modal ─────────────────────────────────────────────────────
+
+function formatCustomDateRange(fromStr: string, toStr: string): string {
+    if (!fromStr || !toStr) return "Custom";
+    const fromDate = new Date(fromStr + "T00:00:00");
+    const toDate = new Date(toStr + "T00:00:00");
+
+    const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
+    const fromFormatted = fromDate.toLocaleDateString("en-GB", opts);
+    const toFormatted = toDate.toLocaleDateString("en-GB", opts);
+    return `${fromFormatted} – ${toFormatted}`;
+}
+
+function CustomDateRangeModal({
+    initialRange,
+    onClose,
+    onApply,
+}: {
+    initialRange: DateRange | null;
+    onClose: () => void;
+    onApply: (range: DateRange) => void;
+}) {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const [from, setFrom] = useState(initialRange?.from || todayStr);
+    const [to, setTo] = useState(initialRange?.to || todayStr);
+    const [error, setError] = useState("");
+
+    const handleApply = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!from || !to) {
+            setError("Please select both From and To dates");
+            return;
+        }
+        if (new Date(from) > new Date(to)) {
+            setError("From Date cannot be after To Date");
+            return;
+        }
+        setError("");
+        onApply({ from, to });
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-card rounded-2xl shadow-erp-card border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-gradient-to-r from-primary/10 to-transparent">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
+                            <Calendar className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-black text-foreground">Custom Date Range</h2>
+                            <p className="text-xs text-muted-foreground mt-0.5">Select date range for analytics</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleApply} className="p-6 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* From Date */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">
+                                From Date
+                            </label>
+                            <input
+                                type="date"
+                                value={from}
+                                onChange={(e) => { setFrom(e.target.value); setError(""); }}
+                                className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                required
+                            />
+                        </div>
+
+                        {/* To Date */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">
+                                To Date
+                            </label>
+                            <input
+                                type="date"
+                                value={to}
+                                onChange={(e) => { setTo(e.target.value); setError(""); }}
+                                className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
+                            <p className="text-rose-600 font-bold text-xs">{error}</p>
+                        </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 px-4 py-3 rounded-xl border border-border text-foreground font-bold text-xs uppercase tracking-wider hover:bg-muted transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+                        >
+                            Apply
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export default function VehiclesPage() {
@@ -287,6 +413,8 @@ export default function VehiclesPage() {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
     const [timeframe, setTimeframe] = useState<Timeframe>("weekly");
+    const [customRange, setCustomRange] = useState<DateRange | null>(null);
+    const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
     const [adding, setAdding] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [collectPayload, setCollectPayload] = useState<CollectBalancePayload | null>(null);
@@ -296,12 +424,19 @@ export default function VehiclesPage() {
     const [number, setNumber] = useState("");
     const [driver, setDriver] = useState("");
 
-    const fetchVehicles = useCallback(async (tf: Timeframe) => {
+    const fetchVehicles = useCallback(async (tf: Timeframe, range: DateRange | null = customRange) => {
         setLoading(true);
         try {
+            let salesUrl = `/api/vehicles/sales-summary?timeframe=${tf}`;
+            let balanceUrl = `/api/vehicles/balance`;
+            if (tf === "custom" && range) {
+                salesUrl += `&from=${range.from}&to=${range.to}`;
+                balanceUrl += `?from=${range.from}&to=${range.to}`;
+            }
+
             const [salesRes, balanceRes] = await Promise.all([
-                fetch(`/api/vehicles/sales-summary?timeframe=${tf}`),
-                fetch(`/api/vehicles/balance`),
+                fetch(salesUrl),
+                fetch(balanceUrl),
             ]);
             const salesData = salesRes.ok ? await salesRes.json() : { data: [] };
             const balanceData = balanceRes.ok ? await balanceRes.json() : { data: [] };
@@ -325,11 +460,11 @@ export default function VehiclesPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeWarehouse?.id]);
+    }, [activeWarehouse?.id, customRange]);
 
     useEffect(() => {
-        fetchVehicles(timeframe);
-    }, [timeframe, fetchVehicles, activeWarehouse?.id]);
+        fetchVehicles(timeframe, customRange);
+    }, [timeframe, customRange, fetchVehicles, activeWarehouse?.id]);
 
     async function handleAdd(e: React.FormEvent) {
         e.preventDefault();
@@ -346,7 +481,7 @@ export default function VehiclesPage() {
             }
             setNumber("");
             setDriver("");
-            fetchVehicles(timeframe);
+            fetchVehicles(timeframe, customRange);
         } catch (e: any) {
             console.error(e);
             alert(e.message || "Failed to add vehicle");
@@ -364,7 +499,7 @@ export default function VehiclesPage() {
                 const json = await res.json();
                 throw new Error(json.error || "Failed to delete vehicle");
             }
-            fetchVehicles(timeframe);
+            fetchVehicles(timeframe, customRange);
         } catch (e: any) {
             alert(e.message || "Failed to delete vehicle");
         } finally {
@@ -382,6 +517,7 @@ export default function VehiclesPage() {
         weekly: "This Week",
         monthly: "This Month",
         all: "All Time",
+        custom: customRange ? formatCustomDateRange(customRange.from, customRange.to) : "Custom Range",
     };
 
     return (
@@ -391,7 +527,7 @@ export default function VehiclesPage() {
                 <CollectBalanceModal
                     payload={collectPayload}
                     onClose={() => setCollectPayload(null)}
-                    onSuccess={() => fetchVehicles(timeframe)}
+                    onSuccess={() => fetchVehicles(timeframe, customRange)}
                 />
             )}
             {historyVehicle && (
@@ -399,6 +535,16 @@ export default function VehiclesPage() {
                     vehicleId={historyVehicle.id}
                     vehicleNumber={historyVehicle.number}
                     onClose={() => setHistoryVehicle(null)}
+                />
+            )}
+            {isCustomModalOpen && (
+                <CustomDateRangeModal
+                    initialRange={customRange}
+                    onClose={() => setIsCustomModalOpen(false)}
+                    onApply={(range) => {
+                        setCustomRange(range);
+                        setTimeframe("custom");
+                    }}
                 />
             )}
 
@@ -410,21 +556,42 @@ export default function VehiclesPage() {
                 </h1>
 
                 {/* Timeframe Filter */}
-                <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50">
-                    {(["weekly", "monthly", "all"] as Timeframe[]).map((tf) => (
-                        <button
-                            key={tf}
-                            onClick={() => setTimeframe(tf)}
-                            className={clsx(
-                                "px-4 py-2 text-xs font-bold rounded-lg transition-all",
-                                timeframe === tf
-                                    ? "bg-background text-foreground shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            {tf === "weekly" ? "This Week" : tf === "monthly" ? "This Month" : "All Time"}
-                        </button>
-                    ))}
+                <div className="flex flex-wrap sm:flex-nowrap gap-1 bg-muted/50 p-1 rounded-xl border border-border/50 w-full sm:w-auto">
+                    {(["weekly", "monthly", "all", "custom"] as Timeframe[]).map((tf) => {
+                        const isActive = timeframe === tf;
+                        const label =
+                            tf === "weekly"
+                                ? "This Week"
+                                : tf === "monthly"
+                                ? "This Month"
+                                : tf === "all"
+                                ? "All Time"
+                                : customRange
+                                ? formatCustomDateRange(customRange.from, customRange.to)
+                                : "Custom";
+
+                        return (
+                            <button
+                                key={tf}
+                                onClick={() => {
+                                    if (tf === "custom") {
+                                        setIsCustomModalOpen(true);
+                                    } else {
+                                        setTimeframe(tf);
+                                    }
+                                }}
+                                className={clsx(
+                                    "flex-1 sm:flex-initial px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap",
+                                    isActive
+                                        ? "bg-background text-primary shadow-sm border border-border/40 font-black"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                {tf === "custom" && <Calendar className="w-3.5 h-3.5 shrink-0" />}
+                                <span>{label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

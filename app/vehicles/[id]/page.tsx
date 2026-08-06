@@ -264,8 +264,7 @@ export default function VehicleDetailsPage() {
         XLSX.writeFile(wb, fileName);
     };
 
-    // Overall totals for the selected period — always Final Sales (Gross - Discount)
-    // These headline numbers are NOT controlled by the Scheme toggle
+    // Overall totals for the selected period
     const periodGrossSales = sales.reduce(
         (sum, day) => sum + day.items.reduce((s, item) => s + item.salesAmount, 0),
         0
@@ -274,7 +273,9 @@ export default function VehicleDetailsPage() {
         (sum, day) => sum + day.items.reduce((s, item) => s + item.schemeDiscountAmount, 0),
         0
     );
-    const periodFinalSales = periodGrossSales - periodTotalDiscounts;
+    const periodNetSales = periodGrossSales - periodTotalDiscounts;
+    // Headline total: OFF = Net Sales, ON = Gross Sales
+    const periodDisplaySales = schemeMode ? periodGrossSales : periodNetSales;
     const periodTotalBottles = sales.reduce(
         (sum, day) => sum + day.items.reduce((s, item) => s + item.soldQty, 0),
         0
@@ -392,10 +393,10 @@ export default function VehicleDetailsPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-wider truncate">
-                                {rangeLabel} Final Sales
+                                {rangeLabel} {schemeMode ? "Gross Sales" : "Net Sales"}
                             </p>
                             <p className="text-base sm:text-xl font-black text-emerald-500 tracking-tight leading-tight max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(0.875rem,3.8vw,1.25rem)]">
-                                {formatCurrency(periodFinalSales)}
+                                {formatCurrency(periodDisplaySales)}
                             </p>
                         </div>
                     </div>
@@ -644,8 +645,8 @@ export default function VehicleDetailsPage() {
                         const dayGrossSales = day.items.reduce((sum, item) => sum + item.salesAmount, 0);
                         const dayDiscounts = day.items.reduce((sum, item) => sum + item.schemeDiscountAmount, 0);
                         const dayNetSales = dayGrossSales - dayDiscounts;
-                        // Final Total is always Gross - Discount (matches Invoice Net Total)
-                        const dayFinalTotal = dayNetSales;
+                        // Badge total: OFF = Net Sales, ON = Gross Sales
+                        const dayDisplayTotal = schemeMode ? dayGrossSales : dayNetSales;
 
                         return (
                             <Card key={day.date} className="border shadow-erp-card rounded-2xl overflow-hidden bg-card">
@@ -688,7 +689,7 @@ export default function VehicleDetailsPage() {
                                         </div>
 
                                         <div className="text-base sm:text-lg font-bold text-primary bg-primary/10 px-4 py-1.5 rounded-full">
-                                            Final Total: {formatCurrency(dayFinalTotal)}
+                                            {schemeMode ? "Gross Total: " : "Net Total: "}{formatCurrency(dayDisplayTotal)}
                                         </div>
                                     </div>
                                 </CardHeader>

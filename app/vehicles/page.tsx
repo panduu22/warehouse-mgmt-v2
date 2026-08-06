@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Plus, Truck, User, Trash2, Loader2, TrendingUp, Package, BarChart2, Wallet, AlertCircle, X, Clock, CheckCircle2, Calendar } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -20,12 +20,7 @@ interface Vehicle {
     totalOutstandingBalance?: number;
 }
 
-type Timeframe = "weekly" | "monthly" | "all" | "custom";
-
-interface DateRange {
-    from: string;
-    to: string;
-}
+// (Timeframe and DateRange types removed — replaced by inline date pickers)
 
 interface CollectBalancePayload {
     vehicleId: string;
@@ -283,123 +278,40 @@ function PaymentHistoryModal({
     );
 }
 
-// ── Custom Date Range Modal ─────────────────────────────────────────────────────
+// ── Inline Date Picker ──────────────────────────────────────────────────────────
 
-function formatCustomDateRange(fromStr: string, toStr: string): string {
-    if (!fromStr || !toStr) return "Custom";
-    const fromDate = new Date(fromStr + "T00:00:00");
-    const toDate = new Date(toStr + "T00:00:00");
-
-    const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
-    const fromFormatted = fromDate.toLocaleDateString("en-GB", opts);
-    const toFormatted = toDate.toLocaleDateString("en-GB", opts);
-    return `${fromFormatted} – ${toFormatted}`;
-}
-
-function CustomDateRangeModal({
-    initialRange,
-    onClose,
-    onApply,
+function InlineDatePicker({
+    label,
+    value,
+    onChange,
+    max,
+    min,
 }: {
-    initialRange: DateRange | null;
-    onClose: () => void;
-    onApply: (range: DateRange) => void;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    max?: string;
+    min?: string;
 }) {
-    const todayStr = new Date().toISOString().split("T")[0];
-    const [from, setFrom] = useState(initialRange?.from || todayStr);
-    const [to, setTo] = useState(initialRange?.to || todayStr);
-    const [error, setError] = useState("");
-
-    const handleApply = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!from || !to) {
-            setError("Please select both From and To dates");
-            return;
-        }
-        if (new Date(from) > new Date(to)) {
-            setError("From Date cannot be after To Date");
-            return;
-        }
-        setError("");
-        onApply({ from, to });
-        onClose();
-    };
-
+    const ref = useRef<HTMLInputElement>(null);
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-card rounded-2xl shadow-erp-card border border-border w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                {/* Header */}
-                <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-gradient-to-r from-primary/10 to-transparent">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-primary/10 text-primary rounded-xl border border-primary/20">
-                            <Calendar className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-black text-foreground">Custom Date Range</h2>
-                            <p className="text-xs text-muted-foreground mt-0.5">Select date range for analytics</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-muted rounded-xl transition-colors text-muted-foreground">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form onSubmit={handleApply} className="p-6 space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* From Date */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">
-                                From Date
-                            </label>
-                            <input
-                                type="date"
-                                value={from}
-                                onChange={(e) => { setFrom(e.target.value); setError(""); }}
-                                className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                required
-                            />
-                        </div>
-
-                        {/* To Date */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block px-1">
-                                To Date
-                            </label>
-                            <input
-                                type="date"
-                                value={to}
-                                onChange={(e) => { setTo(e.target.value); setError(""); }}
-                                className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-foreground font-semibold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all"
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl px-4 py-3">
-                            <p className="text-rose-600 font-bold text-xs">{error}</p>
-                        </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-2">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-4 py-3 rounded-xl border border-border text-foreground font-bold text-xs uppercase tracking-wider hover:bg-muted transition-all"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
-                        >
-                            Apply
-                        </button>
-                    </div>
-                </form>
-            </div>
+        <div
+            className="flex items-center gap-2 bg-white dark:bg-muted px-3 py-2 rounded-xl border border-gray-200 dark:border-border shadow-sm hover:border-primary/40 transition-colors cursor-pointer"
+            onClick={() => ref.current?.showPicker?.()}
+        >
+            <Calendar className="w-4 h-4 text-gray-400 dark:text-muted-foreground flex-shrink-0" />
+            <span className="text-xs font-semibold text-gray-500 dark:text-muted-foreground hidden sm:inline whitespace-nowrap">
+                {label}
+            </span>
+            <input
+                ref={ref}
+                type="date"
+                value={value}
+                min={min}
+                max={max}
+                onChange={(e) => onChange(e.target.value)}
+                className="text-sm font-bold text-gray-900 dark:text-foreground bg-transparent border-none focus:ring-0 p-0 cursor-pointer w-[130px]"
+            />
         </div>
     );
 }
@@ -412,26 +324,42 @@ export default function VehiclesPage() {
 
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
-    const [timeframe, setTimeframe] = useState<Timeframe>("weekly");
-    const [customRange, setCustomRange] = useState<DateRange | null>(null);
-    const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
     const [adding, setAdding] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [collectPayload, setCollectPayload] = useState<CollectBalancePayload | null>(null);
     const [historyVehicle, setHistoryVehicle] = useState<{ id: string; number: string } | null>(null);
 
+    // Date range state — empty string means "no filter" (show all)
+    const todayStr = new Date().toISOString().split("T")[0];
+    const [fromDate, setFromDate] = useState<string>("");
+    const [toDate, setToDate] = useState<string>("");
+
     // Form State
     const [number, setNumber] = useState("");
     const [driver, setDriver] = useState("");
 
-    const fetchVehicles = useCallback(async (tf: Timeframe, range: DateRange | null = customRange) => {
+    const isFiltered = !!(fromDate || toDate);
+
+    const fetchVehicles = useCallback(async (from: string, to: string) => {
         setLoading(true);
         try {
-            let salesUrl = `/api/vehicles/sales-summary?timeframe=${tf}`;
+            const q = new URLSearchParams();
+            // Always use custom timeframe when dates are provided
+            if (from || to) {
+                q.set("timeframe", "custom");
+                if (from) q.set("from", from);
+                if (to) q.set("to", to);
+            } else {
+                q.set("timeframe", "all");
+            }
+
+            let salesUrl = `/api/vehicles/sales-summary?${q.toString()}`;
             let balanceUrl = `/api/vehicles/balance`;
-            if (tf === "custom" && range) {
-                salesUrl += `&from=${range.from}&to=${range.to}`;
-                balanceUrl += `?from=${range.from}&to=${range.to}`;
+            if (from || to) {
+                const bq = new URLSearchParams();
+                if (from) bq.set("from", from);
+                if (to) bq.set("to", to);
+                balanceUrl += `?${bq.toString()}`;
             }
 
             const [salesRes, balanceRes] = await Promise.all([
@@ -460,11 +388,25 @@ export default function VehiclesPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeWarehouse?.id, customRange]);
+    }, [activeWarehouse?.id]);
 
     useEffect(() => {
-        fetchVehicles(timeframe, customRange);
-    }, [timeframe, customRange, fetchVehicles, activeWarehouse?.id]);
+        fetchVehicles(fromDate, toDate);
+    }, [fromDate, toDate, fetchVehicles, activeWarehouse?.id]);
+
+    // Guard: keep toDate ≥ fromDate
+    const handleFromChange = (v: string) => {
+        setFromDate(v);
+        if (toDate && v && v > toDate) setToDate(v);
+    };
+    const handleToChange = (v: string) => {
+        setToDate(v);
+        if (fromDate && v && v < fromDate) setFromDate(v);
+    };
+    const handleClearDates = () => {
+        setFromDate("");
+        setToDate("");
+    };
 
     async function handleAdd(e: React.FormEvent) {
         e.preventDefault();
@@ -481,7 +423,7 @@ export default function VehiclesPage() {
             }
             setNumber("");
             setDriver("");
-            fetchVehicles(timeframe, customRange);
+            fetchVehicles(fromDate, toDate);
         } catch (e: any) {
             console.error(e);
             alert(e.message || "Failed to add vehicle");
@@ -499,7 +441,7 @@ export default function VehiclesPage() {
                 const json = await res.json();
                 throw new Error(json.error || "Failed to delete vehicle");
             }
-            fetchVehicles(timeframe, customRange);
+            fetchVehicles(fromDate, toDate);
         } catch (e: any) {
             alert(e.message || "Failed to delete vehicle");
         } finally {
@@ -513,12 +455,25 @@ export default function VehiclesPage() {
     const totalOutstanding = vehicles.reduce((sum, v) => sum + (v.totalOutstandingBalance || 0), 0);
     const topVehicle = vehicles[0]; // already sorted by sales desc
 
-    const timeframeLabel: Record<Timeframe, string> = {
-        weekly: "This Week",
-        monthly: "This Month",
-        all: "All Time",
-        custom: customRange ? formatCustomDateRange(customRange.from, customRange.to) : "Custom Range",
-    };
+    // Friendly date range label
+    const dateRangeLabel = (() => {
+        if (!isFiltered) return "All Time";
+        if (fromDate && toDate) {
+            if (fromDate === toDate) {
+                const d = new Date(fromDate + "T00:00:00");
+                return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+            }
+            const f = new Date(fromDate + "T00:00:00");
+            const t = new Date(toDate + "T00:00:00");
+            return `${f.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} – ${t.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+        }
+        if (fromDate) {
+            const d = new Date(fromDate + "T00:00:00");
+            return `From ${d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+        }
+        const d = new Date(toDate + "T00:00:00");
+        return `Until ${d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
+    })();
 
     return (
         <div className="max-w-[1200px] mx-auto animate-in fade-in duration-500 pb-10">
@@ -527,7 +482,7 @@ export default function VehiclesPage() {
                 <CollectBalanceModal
                     payload={collectPayload}
                     onClose={() => setCollectPayload(null)}
-                    onSuccess={() => fetchVehicles(timeframe, customRange)}
+                    onSuccess={() => fetchVehicles(fromDate, toDate)}
                 />
             )}
             {historyVehicle && (
@@ -537,61 +492,50 @@ export default function VehiclesPage() {
                     onClose={() => setHistoryVehicle(null)}
                 />
             )}
-            {isCustomModalOpen && (
-                <CustomDateRangeModal
-                    initialRange={customRange}
-                    onClose={() => setIsCustomModalOpen(false)}
-                    onApply={(range) => {
-                        setCustomRange(range);
-                        setTimeframe("custom");
-                    }}
-                />
-            )}
 
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <h1 className="text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
-                    <Truck className="w-8 h-8 text-primary" />
-                    Vehicle Management
-                </h1>
+            <div className="flex flex-col gap-4 mb-8">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
+                        <Truck className="w-8 h-8 text-primary" />
+                        Vehicle Management
+                    </h1>
+                </div>
 
-                {/* Timeframe Filter */}
-                <div className="flex flex-wrap sm:flex-nowrap gap-1 bg-muted/50 p-1 rounded-xl border border-border/50 w-full sm:w-auto">
-                    {(["weekly", "monthly", "all", "custom"] as Timeframe[]).map((tf) => {
-                        const isActive = timeframe === tf;
-                        const label =
-                            tf === "weekly"
-                                ? "This Week"
-                                : tf === "monthly"
-                                ? "This Month"
-                                : tf === "all"
-                                ? "All Time"
-                                : customRange
-                                ? formatCustomDateRange(customRange.from, customRange.to)
-                                : "Custom";
+                {/* Inline Date Range Picker */}
+                <div className="flex flex-wrap items-center gap-3">
+                    <InlineDatePicker
+                        label="From:"
+                        value={fromDate}
+                        onChange={handleFromChange}
+                        max={toDate || todayStr}
+                    />
 
-                        return (
-                            <button
-                                key={tf}
-                                onClick={() => {
-                                    if (tf === "custom") {
-                                        setIsCustomModalOpen(true);
-                                    } else {
-                                        setTimeframe(tf);
-                                    }
-                                }}
-                                className={clsx(
-                                    "flex-1 sm:flex-initial px-3.5 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 whitespace-nowrap",
-                                    isActive
-                                        ? "bg-background text-primary shadow-sm border border-border/40 font-black"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                {tf === "custom" && <Calendar className="w-3.5 h-3.5 shrink-0" />}
-                                <span>{label}</span>
-                            </button>
-                        );
-                    })}
+                    <span className="text-sm font-bold text-muted-foreground">—</span>
+
+                    <InlineDatePicker
+                        label="To:"
+                        value={toDate}
+                        onChange={handleToChange}
+                        min={fromDate || undefined}
+                        max={todayStr}
+                    />
+
+                    {isFiltered && (
+                        <button
+                            onClick={handleClearDates}
+                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-muted hover:bg-destructive/10 hover:text-destructive border border-border hover:border-destructive/30 transition-all"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            Clear
+                        </button>
+                    )}
+
+                    {!isFiltered && (
+                        <span className="text-xs font-medium text-muted-foreground italic">
+                            Showing all records · select dates to filter
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -604,7 +548,7 @@ export default function VehiclesPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
-                                Total Sales · {timeframeLabel[timeframe]}
+                                Total Sales · {dateRangeLabel}
                             </p>
                             <p className="text-2xl font-black text-emerald-600 mt-0.5 truncate">
                                 {formatCurrency(totalFleetSales)}
@@ -617,7 +561,7 @@ export default function VehiclesPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
-                                Total Trips · {timeframeLabel[timeframe]}
+                                Total Trips · {dateRangeLabel}
                             </p>
                             <p className="text-2xl font-black text-foreground mt-0.5 truncate">{totalTrips}</p>
                         </div>
@@ -628,7 +572,7 @@ export default function VehiclesPage() {
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider truncate">
-                                Top Vehicle · {timeframeLabel[timeframe]}
+                                Top Vehicle · {dateRangeLabel}
                             </p>
                             <p className="text-lg font-black text-foreground mt-0.5 truncate">
                                 {topVehicle?.totalSales > 0 ? topVehicle.number : "—"}

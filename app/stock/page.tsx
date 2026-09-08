@@ -13,6 +13,7 @@ import { BottlesPerPackEditor } from "./BottlesPerPackEditor";
 import mongoose from "mongoose";
 import StockSearch from "@/components/StockSearch";
 import StockExcelImport from "@/components/StockExcelImport";
+import StockExportButton from "@/components/StockExportButton";
 
 import { StringEditor } from "./StringEditor";
 
@@ -101,6 +102,7 @@ export default async function StockPage({ searchParams }: { searchParams: Promis
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     {isAdmin && <StockExcelImport />}
+                    <StockExportButton />
                     {isAdmin && <DeleteAllStockButton />}
                     {canAddStock && (
                         <Link href="/stock/add" className={cn(buttonVariants({ variant: "default" }), "bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-all hover:scale-105 active:scale-95 gap-2")}>

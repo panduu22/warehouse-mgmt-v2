@@ -9,9 +9,11 @@ interface AmountPaidCardProps {
   onTotalChange?: (total: number | null) => void;
   onPrint?: (title: string, from: string, to: string, breakdown: { date: string; amount: number }[], total: number) => void;
   onViewDetails?: (from: string, to: string, total: number) => void;
+  /** Optional ref to expose the fetchTotal function for external re-fetch triggers. */
+  refetchRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, onPrint, onViewDetails }) => {
+export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, onPrint, onViewDetails, refetchRef }) => {
   const { activeWarehouse } = useWarehouse();
 
   const today = () => new Date().toISOString().split('T')[0];
@@ -48,6 +50,14 @@ export const AmountPaidCard: React.FC<AmountPaidCardProps> = ({ onTotalChange, o
   }, [from, to, activeWarehouse?.id, onTotalChange]);
 
   useEffect(() => { fetchTotal(); }, [fetchTotal]);
+
+  // Expose fetchTotal via ref so the parent page can trigger re-fetch after mutations
+  useEffect(() => {
+    if (refetchRef) refetchRef.current = fetchTotal;
+    return () => {
+      if (refetchRef) refetchRef.current = null;
+    };
+  }, [refetchRef, fetchTotal]);
 
   const handleSave = async () => {
     if (!activeWarehouse?.id || !entryDate || !entryAmount) return;

@@ -1,10 +1,9 @@
 apply plugin: 'com.android.application'
-
 android {
-    namespace = "com.adithyatech.warehouse"
+    namespace = "com.adithyatech.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.adithyatech.warehouse"
+        applicationId "com.adithyatech.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

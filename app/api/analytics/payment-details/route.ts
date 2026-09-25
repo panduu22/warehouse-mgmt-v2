@@ -52,11 +52,12 @@ export async function GET(req: NextRequest) {
 
         let grandTotal = 0;
 
-        type PaymentRecord = { date: string; enteredBy: string; remarks: string; amount: number };
+        type PaymentRecord = { _id: string; date: string; enteredBy: string; remarks: string; amount: number };
 
         let records: PaymentRecord[] = payments.map((p) => {
             grandTotal += p.amount ?? 0;
             return {
+                _id:       (p._id as mongoose.Types.ObjectId).toString(),
                 date:      p.date,
                 enteredBy: p.userName || "Unknown",
                 remarks:   p.note   || "",
@@ -81,6 +82,7 @@ export async function GET(req: NextRequest) {
             records: paginated,
             total: grandTotal,
             pagination: { page, limit, totalRecords, totalPages },
+            isSuperAdmin,
         });
     } catch (error) {
         console.error("payment-details API error:", error);

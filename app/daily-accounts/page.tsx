@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { DailyAccountsCard } from '@/components/DailyAccountsCard';
 import { AmountPaidCard } from '@/components/AmountPaidCard';
@@ -34,6 +34,9 @@ export default function DailyAccountsPage() {
   const [restockTotal, setRestockTotal] = useState(0);
   const [schemeTotal, setSchemeTotal] = useState(0);
   const [paidTotal, setPaidTotal] = useState(0);
+
+  // Ref used to imperatively trigger a re-fetch in AmountPaidCard after edit/delete
+  const refetchPaidRef = useRef<(() => void) | null>(null);
 
   // Print state
   const [activePrintReport, setActivePrintReport] = useState<PrintReport | null>(null);
@@ -167,6 +170,7 @@ export default function DailyAccountsPage() {
                 onTotalChange={handlePaidChange}
                 onPrint={handlePrint}
                 onViewDetails={handlePaymentViewDetails}
+                refetchRef={refetchPaidRef}
               />
             </div>
             <div className="flex flex-col gap-6">
@@ -222,6 +226,7 @@ export default function DailyAccountsPage() {
             from={paymentModal.from}
             to={paymentModal.to}
             cardTotal={paymentModal.total}
+            onMutated={() => refetchPaidRef.current?.()}
           />
         </>
       )}

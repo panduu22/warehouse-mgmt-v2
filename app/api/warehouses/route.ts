@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Warehouse from "@/models/Warehouse";
@@ -38,8 +39,7 @@ export async function GET() {
                 (id) => new (require("mongoose").Types.ObjectId)(id)
             );
             warehouses = await Warehouse.find({
-                _id: { $in: objectIds },
-            }).sort({ createdAt: 1 });
+                _id: { $in: objectIds },            }).sort({ createdAt: 1 });
         }
 
         const capabilities = computeCapabilities(isSuperAdmin, assignedWarehouseIds);
@@ -58,72 +58,138 @@ export async function GET() {
 
 // ─── POST /api/warehouses ───────────────────────────────────────────────────
 // SUPER_ADMIN only.
-export async function POST(req: Request) {
-    try {
-        const session = await getServerSession(authOptions);
-        if (!session || (session.user as any)?.role !== "SUPER_ADMIN") {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-        }
 
-        const { name, address, isMain } = await req.json();
+export async function POST(req: Request) {
+    const session = await getServerSession(authOptions);
+
+    if (!session || (session.user as any)?.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    let body: { name?: unknown; address?: unknown; isMain?: unknown };
+
+    try {
+        body = await req.json();
+    } catch {
+        return NextResponse.json(
+            { error: "Invalid JSON request body" },
+            { status: 400 }
+        );
+    }
+
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const address =
+        typeof body.address === "string" ? body.address.trim() : "";
+    const makeMain = body.isMain === true;
+    const userId = (session.user as any)?.id;
+
+    if (!name) {
+        return NextResponse.json(
+            { error: "Warehouse name is required" },
+            { status: 400 }
+        );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return NextResponse.json(
+            { error: "Invalid authenticated user" },
+            { status: 401 }
+        );
+    }
+
+    let createdWarehouseId: string | null = null;
+let createdWarehouseName = "";
+    const dbSession = await mongoose.startSession();
+
+    try {
         await dbConnect();
 
-        if (isMain) {
-            await Warehouse.updateMany({}, { isMain: false });
-        }
+        await dbSession.withTransaction(async () => {
+            // Capture the original main warehouse BEFORE changing its status.
+            const originalMain = await Warehouse.findOne({ isMain: true })
+                .session(dbSession);
 
-        const warehouse = await Warehouse.create({
-            name,
-            address,
-            isMain: isMain || false,
-            createdBy: (session.user as any).id,
-        });
+            // New warehouses inherit the main warehouse's product templates,
+            // but all their stock quantities start at zero.
+            const newWarehouse = new Warehouse({
+                name,
+                address: address || undefined,
+                isMain: makeMain,
+                createdBy: userId,
+            });
 
-        // Clone all products from the main warehouse into the new warehouse
-        const mainWarehouse = await Warehouse.findOne({ isMain: true });
-        if (
-            mainWarehouse &&
-            mainWarehouse._id.toString() !== warehouse._id.toString()
-        ) {
-            const mainProducts = await Product.find({
-                warehouseId: mainWarehouse._id,
-            }).sort({ displayOrder: 1 });
-            if (mainProducts.length > 0) {
-                const newStock = mainProducts.map((p) => ({
-                    name: p.name,
-                    sku: p.sku,
-                    quantity: 0,
-                    price: p.price,
-                    location: p.location || "",
-                    pack: p.pack,
-                    flavour: p.flavour,
-                    mrp: p.mrp,
-                    salePrice: p.salePrice,
-                    invoiceCost: p.invoiceCost,
-                    bottlesPerPack: p.bottlesPerPack,
-                    displayOrder: p.displayOrder,
-                    warehouseId: warehouse._id,
-                }));
-                await Product.insertMany(newStock);
+            await newWarehouse.save({ session: dbSession });
+
+            if (originalMain) {
+                const mainProducts = await Product.find({
+                    warehouseId: originalMain._id,
+                })
+                    .sort({ displayOrder: 1 })
+                    .session(dbSession)
+                    .lean();
+
+                if (mainProducts.length > 0) {
+                    const newStock = mainProducts.map((product) => ({
+                        name: product.name,
+                        sku: product.sku,
+                        quantity: 0,
+                        price: product.price,
+                        location: product.location || "",
+                        pack: product.pack,
+                        flavour: product.flavour,
+                        mrp: product.mrp,
+                        salePrice: product.salePrice,
+                        invoiceCost: product.invoiceCost,
+                        bottlesPerPack: product.bottlesPerPack,
+                        displayOrder: product.displayOrder,
+                        warehouseId: newWarehouse._id,
+                    }));
+
+                    await Product.insertMany(newStock, {
+                        session: dbSession,
+                    });
+                }
             }
-        }
 
-        await logActivity({
-            userId: (session.user as any).id,
-            warehouseId: warehouse._id.toString(),
-            action: "CREATE_WAREHOUSE",
-            details: `Created new warehouse "${warehouse.name}".`,
-            targetId: warehouse._id.toString(),
-            targetModel: "Warehouse",
+            // Only switch the main flag after template cloning succeeds.
+            if (makeMain) {
+                await Warehouse.updateMany(
+                    { _id: { $ne: newWarehouse._id } },
+                    { $set: { isMain: false } },
+                    { session: dbSession }
+                );
+            }
+
+            createdWarehouseId = newWarehouse._id.toString();
+createdWarehouseName = newWarehouse.name;
         });
 
-        return NextResponse.json(warehouse, { status: 201 });
-    } catch (e) {
-        console.error(e);
+        if (!createdWarehouseId) {
+    throw new Error("Warehouse transaction completed without a result");
+}
+
+await logActivity({
+    userId,
+    warehouseId: createdWarehouseId,
+    action: "CREATE_WAREHOUSE",
+    details: `Created new warehouse "${createdWarehouseName}".`,
+    targetId: createdWarehouseId,
+    targetModel: "Warehouse",
+});
+
+return NextResponse.json(
+    await Warehouse.findById(createdWarehouseId),
+    { status: 201 }
+);
+    } catch (error) {
+        console.error("Failed to create warehouse:", error);
+
         return NextResponse.json(
             { error: "Failed to create warehouse" },
             { status: 500 }
         );
+    } finally {
+        await dbSession.endSession();
     }
 }
 

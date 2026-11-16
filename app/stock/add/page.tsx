@@ -74,6 +74,8 @@ interface CartItem {
     flavour: string;
     bottlesPerPack: number;
     qtyAdded: number; // total bottles
+    casesRestocked: number; // original cases entered (addPacks)
+    bottlesRestocked: number; // original bottles entered (addBottles)
     invoiceCost?: number;
 }
 
@@ -235,9 +237,10 @@ export default function AddStockPage() {
     const addToCart = () => {
         if (!targetProduct) return;
         const bpp: number = targetProduct.bottlesPerPack;
-        const totalBottles =
-            parseInt(addPacks || "0", 10) * bpp + parseInt(addBottles || "0", 10);
-        if (totalBottles <= 0) return;
+        const enteredCases = parseInt(addPacks || "0", 10);
+        const enteredBottles = parseInt(addBottles || "0", 10);
+        const totalBottles = (enteredCases * bpp) + enteredBottles;
+        if (totalBottles <= 0 && enteredCases <= 0 && enteredBottles <= 0) return;
 
         setCart((prev) => {
             const existingIdx = prev.findIndex(
@@ -248,6 +251,8 @@ export default function AddStockPage() {
                 updated[existingIdx] = {
                     ...updated[existingIdx],
                     qtyAdded: updated[existingIdx].qtyAdded + totalBottles,
+                    casesRestocked: (updated[existingIdx].casesRestocked || 0) + enteredCases,
+                    bottlesRestocked: (updated[existingIdx].bottlesRestocked || 0) + enteredBottles,
                 };
                 return updated;
             }
@@ -259,6 +264,8 @@ export default function AddStockPage() {
                     flavour: targetProduct.flavour,
                     bottlesPerPack: bpp,
                     qtyAdded: totalBottles,
+                    casesRestocked: enteredCases,
+                    bottlesRestocked: enteredBottles,
                     invoiceCost: targetProduct.invoiceCost || 0,
                 },
             ];
@@ -284,6 +291,8 @@ export default function AddStockPage() {
                     items: cart.map((c) => ({
                         productId: c.productId,
                         qtyAdded: c.qtyAdded,
+                        casesRestocked: c.casesRestocked,
+                        bottlesRestocked: c.bottlesRestocked,
                         pack: c.pack,
                         flavour: c.flavour,
                         bottlesPerPack: c.bottlesPerPack,

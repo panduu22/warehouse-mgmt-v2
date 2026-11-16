@@ -1,0 +1,277 @@
+import mongoose from "mongoose";
+import { NextResponse } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import Warehouse from "@/models/Warehouse";
+import User from "@/models/User";
+import { logActivity } from "@/lib/activity";
+import Product from "@/models/Product";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import {
+    requireWarehouseAccess,
+    computeCapabilities,
+} from "@/lib/warehouseAccess";
+
+export const dynamic = "force-dynamic";
+
+// ─── GET /api/warehouses ────────────────────────────────────────────────────
+// Returns ONLY the warehouses the authenticated user is permitted to see,
+// plus capability flags so the frontend can render permission-aware UI.
+export async function GET() {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || !session.user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        await dbConnect();
+
+        const { denied, isSuperAdmin, assignedWarehouseIds } =
+            await requireWarehouseAccess(session);
+        if (denied) return denied;
+
+        let warehouses;
+        if (isSuperAdmin) {
+            warehouses = await Warehouse.find({}).sort({ createdAt: 1 });
+        } else {
+            // Filter to ONLY assigned warehouses — never expose others
+            const objectIds = assignedWarehouseIds.map(
+                (id) => new (require("mongoose").Types.ObjectId)(id)
+            );
+            warehouses = await Warehouse.find({
+                _id: { $in: objectIds },            }).sort({ createdAt: 1 });
+        }
+
+        const capabilities = computeCapabilities(isSuperAdmin, assignedWarehouseIds);
+
+        // Return warehouses array annotated with capability flags so the client
+        // can drive UI decisions from data, not scattered role checks.
+        return NextResponse.json({ warehouses, capabilities });
+    } catch (e) {
+        console.error("Error fetching warehouses:", e);
+        return NextResponse.json(
+            { error: "Failed to fetch warehouses" },
+            { status: 500 }
+        );
+    }
+}
+
+// ─── POST /api/warehouses ───────────────────────────────────────────────────
+// SUPER_ADMIN only.
+
+export async function POST(req: Request) {
+    const session = await getServerSession(authOptions);
+
+    if (!session || (session.user as any)?.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    let body: { name?: unknown; address?: unknown; isMain?: unknown };
+
+    try {
+        body = await req.json();
+    } catch {
+        return NextResponse.json(
+            { error: "Invalid JSON request body" },
+            { status: 400 }
+        );
+    }
+
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const address =
+        typeof body.address === "string" ? body.address.trim() : "";
+    const makeMain = body.isMain === true;
+    const userId = (session.user as any)?.id;
+
+    if (!name) {
+        return NextResponse.json(
+            { error: "Warehouse name is required" },
+            { status: 400 }
+        );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return NextResponse.json(
+            { error: "Invalid authenticated user" },
+            { status: 401 }
+        );
+    }
+
+    let warehouse: InstanceType<typeof Warehouse> | null = null;
+    const dbSession = await mongoose.startSession();
+
+    try {
+        await dbConnect();
+
+        await dbSession.withTransaction(async () => {
+            // Capture the original main warehouse BEFORE changing its status.
+            const originalMain = await Warehouse.findOne({ isMain: true })
+                .session(dbSession);
+
+            // New warehouses inherit the main warehouse's product templates,
+            // but all their stock quantities start at zero.
+            const newWarehouse = new Warehouse({
+                name,
+                address: address || undefined,
+                isMain: makeMain,
+                createdBy: userId,
+            });
+
+            await newWarehouse.save({ session: dbSession });
+
+            if (originalMain) {
+                const mainProducts = await Product.find({
+                    warehouseId: originalMain._id,
+                })
+                    .sort({ displayOrder: 1 })
+                    .session(dbSession)
+                    .lean();
+
+                if (mainProducts.length > 0) {
+                    const newStock = mainProducts.map((product) => ({
+                        name: product.name,
+                        sku: product.sku,
+                        quantity: 0,
+                        price: product.price,
+                        location: product.location || "",
+                        pack: product.pack,
+                        flavour: product.flavour,
+                        mrp: product.mrp,
+                        salePrice: product.salePrice,
+                        invoiceCost: product.invoiceCost,
+                        bottlesPerPack: product.bottlesPerPack,
+                        displayOrder: product.displayOrder,
+                        warehouseId: newWarehouse._id,
+                    }));
+
+                    await Product.insertMany(newStock, {
+                        session: dbSession,
+                    });
+                }
+            }
+
+            // Only switch the main flag after template cloning succeeds.
+            if (makeMain) {
+                await Warehouse.updateMany(
+                    { _id: { $ne: newWarehouse._id } },
+                    { $set: { isMain: false } },
+                    { session: dbSession }
+                );
+            }
+
+            warehouse = newWarehouse;
+        });
+
+        if (!warehouse) {
+            throw new Error("Warehouse transaction completed without a result");
+        }
+
+        // Log only after the database transaction has committed.
+        await logActivity({
+            userId,
+            warehouseId: warehouse._id.toString(),
+            action: "CREATE_WAREHOUSE",
+            details: `Created new warehouse "${warehouse.name}".`,
+            targetId: warehouse._id.toString(),
+            targetModel: "Warehouse",
+        });
+
+        return NextResponse.json(warehouse, { status: 201 });
+    } catch (error) {
+        console.error("Failed to create warehouse:", error);
+
+        return NextResponse.json(
+            { error: "Failed to create warehouse" },
+            { status: 500 }
+        );
+    } finally {
+        await dbSession.endSession();
+    }
+}
+
+// ─── DELETE /api/warehouses ─────────────────────────────────────────────────
+// SUPER_ADMIN only.
+export async function DELETE(req: Request) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session || (session.user as any)?.role !== "SUPER_ADMIN") {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        const url = new URL(req.url);
+        const warehouseId = url.searchParams.get("id");
+
+        if (!warehouseId) {
+            return NextResponse.json(
+                { error: "Warehouse ID is required" },
+                { status: 400 }
+            );
+        }
+
+        await dbConnect();
+
+        const warehouse = await Warehouse.findById(warehouseId);
+        if (!warehouse) {
+            return NextResponse.json(
+                { error: "Warehouse not found" },
+                { status: 404 }
+            );
+        }
+
+        if (warehouse.isMain) {
+            return NextResponse.json(
+                { error: "Cannot delete the Main Warehouse" },
+                { status: 400 }
+            );
+        }
+
+        // Remove this warehouse from all users' assignedWarehouses
+        await User.updateMany(
+            { "assignedWarehouses.warehouseId": warehouseId },
+            { $pull: { assignedWarehouses: { warehouseId: warehouseId } } }
+        );
+
+        // Reset activeWarehouseId for users who were using this warehouse
+        await User.updateMany(
+            { activeWarehouseId: warehouseId },
+            { $set: { activeWarehouseId: null } }
+        );
+
+        // Update all access requests for this warehouse to REJECTED
+        const AccessRequest = (await import("@/models/AccessRequest")).default;
+        await AccessRequest.updateMany(
+            { warehouseId: warehouseId },
+            {
+                $set: {
+                    status: "REJECTED",
+                    adminNotes: "Warehouse was deleted by administrator.",
+                },
+            }
+        );
+
+        // Delete all products associated with this warehouse
+        await Product.deleteMany({ warehouseId });
+
+        // Delete warehouse
+        await Warehouse.findByIdAndDelete(warehouseId);
+
+        await logActivity({
+            userId: (session.user as any).id,
+            action: "DELETE_WAREHOUSE",
+            details: `Deleted warehouse "${warehouse.name}" and all associated stock.`,
+            targetId: warehouseId,
+            targetModel: "Warehouse",
+        });
+
+        return NextResponse.json(
+            { message: "Warehouse and its stock deleted successfully" },
+            { status: 200 }
+        );
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json(
+            { error: "Failed to delete warehouse" },
+            { status: 500 }
+        );
+    }
+}

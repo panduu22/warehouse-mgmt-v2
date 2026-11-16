@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Restock from "@/models/Restock";
+import RestockHistory from "@/models/RestockHistory";
 import Warehouse from "@/models/Warehouse";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -10,6 +11,7 @@ import { cookies } from "next/headers";
 import mongoose from "mongoose";
 import { logActivity } from "@/lib/activity";
 import { requireWarehouseAccess, resolveWarehouseId } from "@/lib/warehouseAccess";
+import { isoDateIST, formatIST } from "@/lib/dateUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -64,8 +66,32 @@ export async function POST(req: NextRequest) {
         userOid = new mongoose.Types.ObjectId();
     }
 
-    // ── Validate all products and collect product data ────────────────────
+    // ── Duplicate prevention check ────────────────────────────────────────
+    // If an identical restock was submitted in the last 3 seconds by the same user, prevent duplicate stock updates.
+    const threeSecondsAgo = new Date(Date.now() - 3000);
+    const recentDuplicate = await RestockHistory.findOne({
+        warehouseId: warehouseOid,
+        "createdBy.userId": userOid,
+        createdAt: { $gte: threeSecondsAgo },
+    }).lean();
+
+    if (recentDuplicate && recentDuplicate.products.length === items.length) {
+        const itemIds = items.map((i) => String(i.productId)).sort();
+        const dupIds = recentDuplicate.products.map((p) => String(p.productId)).sort();
+        const isExactMatch = itemIds.every((id, idx) => id === dupIds[idx]);
+        if (isExactMatch) {
+            console.warn("Restock: duplicate submission detected and prevented within 3s window");
+            return NextResponse.json(recentDuplicate, { status: 200 });
+        }
+    }
+
+    // ── Validate all products and collect authoritative product snapshots ──
     const enrichedItems: any[] = [];
+    const historyProducts: any[] = [];
+    let totalCases = 0;
+    let totalBottles = 0;
+    let grandTotal = 0;
+
     for (const item of items) {
         let product: any;
         try {
@@ -80,27 +106,84 @@ export async function POST(req: NextRequest) {
                 { status: 404 }
             );
         }
-        // Enrich with authoritative product data — never rely on client-supplied pack/flavour
+
+        const bpp = Number(product.bottlesPerPack || item.bottlesPerPack || 1);
+        const qtyAdded = Number(item.qtyAdded) || 0;
+
+        // Capture actual Cases and Bottles entered directly by user:
+        const casesRestocked = item.casesRestocked !== undefined && item.casesRestocked !== null
+            ? Math.max(0, Math.floor(Number(item.casesRestocked) || 0))
+            : Math.max(0, Math.floor(qtyAdded / bpp));
+
+        const bottlesRestocked = item.bottlesRestocked !== undefined && item.bottlesRestocked !== null
+            ? Math.max(0, Math.floor(Number(item.bottlesRestocked) || 0))
+            : Math.max(0, qtyAdded % bpp);
+
+        // Invoice Cost per case: ALWAYS from product.invoiceCost (authoritative server snapshot)
+        const invoiceCostPerCase = Number(product.invoiceCost) || 0;
+
+        // Cost Calculation:
+        // Case Cost = Cases × Invoice Cost per Case
+        // Cost per Bottle = Invoice Cost per Case ÷ Bottles Per Case
+        // Additional Bottle Cost = Bottles × Cost per Bottle
+        // Product Total Cost = Case Cost + Additional Bottle Cost
+        const caseCost = Math.round(casesRestocked * invoiceCostPerCase * 100) / 100;
+        const costPerBottle = bpp > 0 ? (invoiceCostPerCase / bpp) : 0;
+        const bottleCost = Math.round(bottlesRestocked * costPerBottle * 100) / 100;
+        const productTotalCost = Math.round((caseCost + bottleCost) * 100) / 100;
+
+        totalCases += casesRestocked;
+        totalBottles += bottlesRestocked;
+        grandTotal = Math.round((grandTotal + productTotalCost) * 100) / 100;
+
+        // Enrich with authoritative product data for legacy Restock model
         enrichedItems.push({
             productId: product._id,
             pack: product.pack || item.pack || "",
             flavour: product.flavour || item.flavour || "",
-            bottlesPerPack: product.bottlesPerPack || item.bottlesPerPack || 1,
-            qtyAdded: Number(item.qtyAdded) || 0,
+            bottlesPerPack: bpp,
+            qtyAdded,
+        });
+
+        // Historical snapshot data for RestockHistory
+        const productName = product.name || [product.pack, product.flavour].filter(Boolean).join(" ") || "Product";
+        historyProducts.push({
+            productId: product._id,
+            productNameSnapshot: productName,
+            flavourSnapshot: product.flavour || item.flavour || "",
+            packSizeSnapshot: product.pack || item.pack || "",
+            casesRestocked,
+            bottlesRestocked,
+            bottlesPerPack: bpp,
+            invoiceCostPerCase,
+            caseCost,
+            bottleCost,
+            totalCost: productTotalCost,
         });
     }
 
     // ── Increment stock ────────────────────────────────────────────────────
-    for (const item of enrichedItems) {
-        try {
+    const updatedProductIds: mongoose.Types.ObjectId[] = [];
+    try {
+        for (const item of enrichedItems) {
             await Product.findOneAndUpdate(
                 { _id: item.productId, warehouseId: warehouseOid },
                 { $inc: { quantity: item.qtyAdded } }
             );
-        } catch (e) {
-            console.error("Restock: stock increment failed for", item.productId, e);
-            return NextResponse.json({ error: `Stock update failed: ${item.productId}` }, { status: 500 });
+            updatedProductIds.push(item.productId);
         }
+    } catch (e) {
+        console.error("Restock: stock increment failed, performing rollback", e);
+        for (const pid of updatedProductIds) {
+            const item = enrichedItems.find((i) => i.productId.equals(pid));
+            if (item) {
+                await Product.findOneAndUpdate(
+                    { _id: pid, warehouseId: warehouseOid },
+                    { $inc: { quantity: -item.qtyAdded } }
+                ).catch((err) => console.error("Rollback failed for", pid, err));
+            }
+        }
+        return NextResponse.json({ error: "Stock update failed" }, { status: 500 });
     }
 
     // ── Generate collision-safe restock ID ────────────────────────────────
@@ -113,7 +196,7 @@ export async function POST(req: NextRequest) {
 
     let count = 0;
     try {
-        count = await Restock.countDocuments({ warehouseId: warehouseOid, createdAt: { $gte: todayStart } });
+        count = await RestockHistory.countDocuments({ warehouseId: warehouseOid, createdAt: { $gte: todayStart } });
     } catch (e) {
         console.error("Restock: countDocuments failed", e);
     }
@@ -121,9 +204,14 @@ export async function POST(req: NextRequest) {
     const seq = String(count + 1).padStart(4, "0");
     const tiebreaker = Date.now().toString(36).slice(-4).toUpperCase();
     const restockId = `${prefix}${seq}-${tiebreaker}`;
+    const transactionId = restockId;
 
-    // ── Save restock record ────────────────────────────────────────────────
+    const restockDate = isoDateIST(now);
+    const restockTime = formatIST(now, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+
+    // ── Save restock records (legacy + new RestockHistory) ──────────────────
     let restock: any;
+    let historyRecord: any;
     try {
         restock = await Restock.create({
             restockId,
@@ -134,8 +222,32 @@ export async function POST(req: NextRequest) {
             items: enrichedItems,
             status: "CONFIRMED",
         });
+
+        historyRecord = await RestockHistory.create({
+            transactionId,
+            warehouseId: warehouseOid,
+            warehouseName,
+            createdBy: {
+                userId: userOid,
+                userName,
+                userEmail: user.email || "",
+            },
+            restockDate,
+            restockTime,
+            products: historyProducts,
+            totalProducts: historyProducts.length,
+            totalCases,
+            totalBottles,
+            grandTotal,
+        });
     } catch (e: any) {
-        console.error("Restock: Restock.create() failed:", e?.message, JSON.stringify(e?.errors));
+        console.error("Restock: record creation failed, rolling back stock", e?.message);
+        for (const item of enrichedItems) {
+            await Product.findOneAndUpdate(
+                { _id: item.productId, warehouseId: warehouseOid },
+                { $inc: { quantity: -item.qtyAdded } }
+            ).catch((err) => console.error("Rollback failed for", item.productId, err));
+        }
         return NextResponse.json({ error: `Failed to save restock record: ${e?.message}` }, { status: 500 });
     }
 
@@ -144,12 +256,19 @@ export async function POST(req: NextRequest) {
         userId: userOid.toString(),
         warehouseId,
         action: "RESTOCK",
-        details: `Restocked ${items.length} product(s). Restock ID: ${restockId}`,
-        targetId: restock._id.toString(),
+        details: `Restocked ${historyProducts.length} product(s) (${totalCases} cases, ${totalBottles} bottles). Transaction ID: ${transactionId}`,
+        targetId: historyRecord._id.toString(),
         targetModel: "Product",
     });
 
-    return NextResponse.json(restock, { status: 201 });
+    return NextResponse.json({
+        ...restock.toObject(),
+        transactionId,
+        historyId: historyRecord._id,
+        totalCases,
+        totalBottles,
+        grandTotal,
+    }, { status: 201 });
 }
 
 export async function GET() {
